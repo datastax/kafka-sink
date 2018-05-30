@@ -1,3 +1,11 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * This software is subject to the below license agreement.
+ * DataStax may make changes to the agreement from time to time,
+ * and will post the amended terms at
+ * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
+ */
 package com.datastax.kafkaconnector;
 
 import com.datastax.driver.core.PreparedStatement;
@@ -20,8 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Very simple connector that works with the console. This connector supports both source and
- * sink modes via its 'mode' setting.
+ * Very simple connector that works with the console. This connector supports both source and sink
+ * modes via its 'mode' setting.
  */
 public class DseSinkConnector extends SinkConnector {
   private static final Logger log = LoggerFactory.getLogger(DseSinkConnector.class);
@@ -30,11 +38,21 @@ public class DseSinkConnector extends SinkConnector {
   private static final String TABLE_OPT = "table";
   private static final String CONTACT_POINTS_OPT = "contactPoints";
 
-  private static final ConfigDef CONFIG_DEF = new ConfigDef()
-      .define(KEYSPACE_OPT, Type.STRING, null, Importance.HIGH, "Keyspace to which to load messages")
-      .define(TABLE_OPT, Type.STRING, null, Importance.HIGH, "Table to which to load messages")
-      .define(CONTACT_POINTS_OPT, Type.LIST, Collections.singletonList("127.0.0.1"),
-          Importance.HIGH, "Initial DSE node contact points");
+  private static final ConfigDef CONFIG_DEF =
+      new ConfigDef()
+          .define(
+              KEYSPACE_OPT,
+              Type.STRING,
+              null,
+              Importance.HIGH,
+              "Keyspace to which to load messages")
+          .define(TABLE_OPT, Type.STRING, null, Importance.HIGH, "Table to which to load messages")
+          .define(
+              CONTACT_POINTS_OPT,
+              Type.LIST,
+              Collections.singletonList("127.0.0.1"),
+              Importance.HIGH,
+              "Initial DSE node contact points");
 
   // TODO: Handle multiple clusters, sessions, and prepared statements (one set for
   // each instance of the connector).
@@ -67,7 +85,10 @@ public class DseSinkConnector extends SinkConnector {
       // creates the session.
       if (DseSinkConnector.cluster.compareAndSet(null, cluster)) {
         session = cluster.connect();
-        statement = session.prepare(String.format("INSERT INTO %s.%s (timestamp, msg) VALUES (?,?)", keyspace, table));
+        statement =
+            session.prepare(
+                String.format(
+                    "INSERT INTO %s.%s (timestamp, f1, f2) VALUES (?,?,?)", keyspace, table));
       }
     } catch (RuntimeException e) {
       throw new ConnectException("Couldn't connect to DSE", e);
@@ -93,8 +114,8 @@ public class DseSinkConnector extends SinkConnector {
   @Override
   public void stop() {
     // TODO: When is it safe to close the (shared) session and cluster?
-//    closeQuietly(session);
-//    closeQuietly(cluster);
+    //    closeQuietly(session);
+    //    closeQuietly(cluster);
   }
 
   @Override
@@ -102,18 +123,15 @@ public class DseSinkConnector extends SinkConnector {
     return CONFIG_DEF;
   }
 
-  static DseSession getSession()
-  {
+  static DseSession getSession() {
     return session;
   }
 
-  static PreparedStatement getStatement()
-  {
+  static PreparedStatement getStatement() {
     return statement;
   }
 
-  private static void closeQuietly(AutoCloseable closeable)
-  {
+  private static void closeQuietly(AutoCloseable closeable) {
     if (closeable != null) {
       try {
         closeable.close();
