@@ -8,7 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
-import com.datastax.driver.core.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -35,13 +35,21 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void put(Collection<SinkRecord> sinkRecords) {
+    // TODO: Remove this.
+    sinkRecords.forEach(
+        r -> {
+          Struct parsed = (Struct) r.value();
+          log.error(
+              String.format(
+                  "SANDMAN: offset=%d f1=%d f2=%d",
+                  r.kafkaOffset(), parsed.getInt32("f1"), parsed.getInt32("f2")));
+        });
     for (SinkRecord record : sinkRecords) {
       // TODO: Make a batch
       Struct parsed = (Struct) record.value();
       BoundStatement bound =
           DseSinkConnector.getStatement()
               .bind(record.timestamp(), parsed.getInt32("f1"), parsed.getInt32("f2"));
-      log.trace("Writing line to {}: {}", record.timestamp(), record.value());
       DseSinkConnector.getSession().execute(bound);
     }
   }

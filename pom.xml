@@ -13,17 +13,17 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.datastax.dse</groupId>
-  <artifactId>kafka-sink</artifactId>
+  <artifactId>kafka-connect-dse</artifactId>
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>kafka-sink</name>
+  <name>kafka-connect-dse</name>
   <url>http://maven.apache.org</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
-    <driver.version>1.6.6</driver.version>
+    <driver.version>2.0.0-alpha1-SNAPSHOT</driver.version>
   </properties>
 
   <dependencies>
@@ -168,11 +168,25 @@ https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
                   <exclude>org.apache.kafka:*</exclude>
                 </excludes>
               </artifactSet>
+              <transformers>
+                <transformer
+                    implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>reference.conf</resource>
+                </transformer>
+              </transformers>
             </configuration>
           </execution>
         </executions>
       </plugin>
 
     </plugins>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+
   </build>
 </project>
