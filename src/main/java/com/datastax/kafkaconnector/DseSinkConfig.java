@@ -20,6 +20,7 @@ public class DseSinkConfig extends AbstractConfig {
   private static final String CONTACT_POINTS_OPT = "contactPoints";
   private static final String PORT_OPT = "port";
   private static final String DC_OPT = "loadBalancing.localDc";
+  private static final String MAPPING_OPT = "mapping";
 
   static ConfigDef CONFIG_DEF =
       new ConfigDef()
@@ -35,6 +36,12 @@ public class DseSinkConfig extends AbstractConfig {
               null,
               ConfigDef.Importance.HIGH,
               "Table to which to load messages")
+          .define(
+              MAPPING_OPT,
+              ConfigDef.Type.STRING,
+              null,
+              ConfigDef.Importance.HIGH,
+              "Mapping of record fields to dse columns, in the form 'col1=value.f1, col2=key.f1'")
           .define(
               CONTACT_POINTS_OPT,
               ConfigDef.Type.LIST,
@@ -59,6 +66,7 @@ public class DseSinkConfig extends AbstractConfig {
   private final int port;
   private final List<String> contactPoints;
   private final String localDc;
+  private final String mappingString;
 
   DseSinkConfig(final Map<?, ?> settings) {
     super(CONFIG_DEF, settings, false);
@@ -68,6 +76,7 @@ public class DseSinkConfig extends AbstractConfig {
     port = getInt(PORT_OPT);
     contactPoints = getList(CONTACT_POINTS_OPT);
     localDc = getString(DC_OPT);
+    mappingString = getString(MAPPING_OPT);
   }
 
   String getKeyspace() {
@@ -80,6 +89,10 @@ public class DseSinkConfig extends AbstractConfig {
 
   int getPort() {
     return port;
+  }
+
+  String getMappingString() {
+    return mappingString;
   }
 
   List<String> getContactPoints() {
