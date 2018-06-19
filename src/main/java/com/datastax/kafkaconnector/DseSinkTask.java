@@ -8,8 +8,8 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.DseSinkConfig.parseMappingString;
 import static com.datastax.kafkaconnector.DseSinkConnector.MAPPING_OPT;
-import static com.datastax.kafkaconnector.DseSinkConnector.parseMappingString;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -63,25 +63,7 @@ public class DseSinkTask extends SinkTask {
       for (Map.Entry<String, String> entry : mapping.entrySet()) {
         String colName = entry.getKey();
         String recordFieldFullName = entry.getValue();
-        String[] recordFieldNameParts = recordFieldFullName.split("\\.", 2);
-        String componentType = recordFieldNameParts[0];
-        String fieldName = recordFieldNameParts[1];
-
-        Object component;
-        if ("key".equals(componentType)) {
-          component = record.key();
-        } else if ("value".equals(componentType)) {
-          component = record.value();
-        } else {
-          throw new RuntimeException(
-              String.format("Unrecognized record component: %s", componentType));
-        }
-
-        // TODO: Handle straight-up 'key' or 'value'.
-
-        // TODO: What if record field doesn't exist in schema or object?
-
-        Object fieldValue = ((Struct) component).get(fieldName);
+        Object fieldValue = getFieldValue(record, recordFieldFullName);
         DataType columnType = preparedStatement.getVariableDefinitions().get(colName).getType();
 
         ByteBuffer bb = codecRegistry.codecFor(columnType).encode(fieldValue, protocolVersion);
@@ -89,6 +71,25 @@ public class DseSinkTask extends SinkTask {
       }
       session.execute(boundStatement);
     }
+  }
+
+  Object getFieldValue(SinkRecord record, String recordFieldFullName) {
+    String[] recordFieldNameParts = recordFieldFullName.split("\\.", 2);
+    String componentType = recordFieldNameParts[0];
+    String fieldName = recordFieldNameParts[1];
+
+    Object component;
+    if ("key".equals(componentType)) {
+      component = record.key();
+    } else if ("value".equals(componentType)) {
+      component = record.value();
+    } else {
+      throw new RuntimeException(String.format("Unrecognized record component: %s", componentType));
+    }
+
+    // TODO: Handle straight-up 'key' or 'value'.
+
+    return ((Struct) component).get(fieldName);
   }
 
   @Override

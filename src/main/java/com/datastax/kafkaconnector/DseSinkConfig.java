@@ -8,56 +8,70 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
+
+import com.datastax.kafkaconnector.schema.MappingBaseVisitor;
+import com.datastax.kafkaconnector.schema.MappingLexer;
+import com.datastax.kafkaconnector.schema.MappingParser;
+import com.datastax.kafkaconnector.util.StringUtil;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CodePointCharStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
+import org.apache.kafka.common.config.ConfigException;
 
 public class DseSinkConfig extends AbstractConfig {
-  private static final String KEYSPACE_OPT = "keyspace";
-  private static final String TABLE_OPT = "table";
-  private static final String CONTACT_POINTS_OPT = "contactPoints";
-  private static final String PORT_OPT = "port";
-  private static final String DC_OPT = "loadBalancing.localDc";
-  private static final String MAPPING_OPT = "mapping";
+  static final String KEYSPACE_OPT = "keyspace";
+  static final String TABLE_OPT = "table";
+  static final String CONTACT_POINTS_OPT = "contactPoints";
+  static final String PORT_OPT = "port";
+  static final String DC_OPT = "loadBalancing.localDc";
+  static final String MAPPING_OPT = "mapping";
 
   static ConfigDef CONFIG_DEF =
       new ConfigDef()
           .define(
               KEYSPACE_OPT,
               ConfigDef.Type.STRING,
-              null,
               ConfigDef.Importance.HIGH,
               "Keyspace to which to load messages")
           .define(
               TABLE_OPT,
               ConfigDef.Type.STRING,
-              null,
               ConfigDef.Importance.HIGH,
               "Table to which to load messages")
           .define(
               MAPPING_OPT,
               ConfigDef.Type.STRING,
-              null,
               ConfigDef.Importance.HIGH,
-              "Mapping of record fields to dse columns, in the form 'col1=value.f1, col2=key.f1'")
+              "Mapping of record fields to dse columns, in the form of 'col1=value.f1, col2=key.f1'")
           .define(
               CONTACT_POINTS_OPT,
               ConfigDef.Type.LIST,
-              Collections.singletonList("127.0.0.1"),
+              Collections.EMPTY_LIST,
               ConfigDef.Importance.HIGH,
               "Initial DSE node contact points")
           .define(
               PORT_OPT,
               ConfigDef.Type.INT,
               9042,
+              ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
               "Port to connect to on DSE nodes")
           .define(
               DC_OPT,
               ConfigDef.Type.STRING,
-              null,
+              "",
               ConfigDef.Importance.HIGH,
               "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running.");
 
@@ -67,16 +81,65 @@ public class DseSinkConfig extends AbstractConfig {
   private final List<String> contactPoints;
   private final String localDc;
   private final String mappingString;
+  private final Map<String, String> mapping;
 
   DseSinkConfig(final Map<?, ?> settings) {
     super(CONFIG_DEF, settings, false);
 
-    keyspace = getString(KEYSPACE_OPT);
-    table = getString(TABLE_OPT);
+    keyspace = StringUtil.quoteIfNecessary(getString(KEYSPACE_OPT));
+    table = StringUtil.quoteIfNecessary(getString(TABLE_OPT));
     port = getInt(PORT_OPT);
     contactPoints = getList(CONTACT_POINTS_OPT);
     localDc = getString(DC_OPT);
     mappingString = getString(MAPPING_OPT);
+    mapping = parseMappingString(mappingString);
+
+    // Verify that if contact-points are provided, local dc
+    // is also specified.
+    if (!contactPoints.isEmpty() && StringUtil.isEmpty(localDc)) {
+      throw new ConfigException(
+          CONTACT_POINTS_OPT,
+          contactPoints,
+          String.format("When contact points is provided, %s must also be specified", DC_OPT));
+    }
+  }
+
+  static Map<String, String> parseMappingString(String mappingString) {
+    MappingInspector inspector = new MappingInspector(mappingString);
+    List<String> errors = inspector.getErrors();
+    if (!errors.isEmpty()) {
+      throw new ConfigException(
+          MAPPING_OPT,
+          singleQuote(mappingString),
+          String.format(
+              "Encountered the following errors:%n%s",
+              errors.stream().collect(Collectors.joining(String.format("%n  ")))));
+    }
+
+    return inspector.getMapping();
+    //    if (props.isEmpty()) {
+    //      throw new ConfigException(
+    //          MAPPING_OPT, singleQuote(mappingString), "Mapping must be non-empty");
+    //    }
+    //    props.forEach(
+    //        (col, field) -> {
+    //          String colString = (String) col;
+    //          String fieldString = (String) field;
+    //          if (colString.isEmpty()) {
+    //            throw new ConfigException(
+    //                MAPPING_OPT,
+    //                singleQuote(mappingString),
+    //                String.format("No column specified for field '%s'", field));
+    //          }
+    //          if (fieldString.isEmpty()) {
+    //            throw new ConfigException(
+    //                MAPPING_OPT,
+    //                singleQuote(mappingString),
+    //                String.format("No record field specified for column '%s'", col));
+    //          }
+    //          builder.put(StringUtil.quoteIfNecessary(colString), fieldString);
+    //        });
+    //    return builder.build();
   }
 
   String getKeyspace() {
@@ -89,6 +152,10 @@ public class DseSinkConfig extends AbstractConfig {
 
   int getPort() {
     return port;
+  }
+
+  Map<String, String> getMapping() {
+    return mapping;
   }
 
   String getMappingString() {
@@ -113,5 +180,107 @@ public class DseSinkConfig extends AbstractConfig {
             + "        port = %d%n"
             + "        localDc = %s%n",
         keyspace, table, contactPoints, port, localDc);
+  }
+
+  private static class MappingInspector extends MappingBaseVisitor<String> {
+
+    // A mapping spec may refer to these special variables which are used to bind
+    // input fields to the write timestamp or ttl of the record.
+
+    static final String INTERNAL_TTL_VARNAME = "kafka_internal_ttl";
+    static final String INTERNAL_TIMESTAMP_VARNAME = "kafka_internal_timestamp";
+
+    private static final String EXTERNAL_TTL_VARNAME = "__ttl";
+    private static final String EXTERNAL_TIMESTAMP_VARNAME = "__timestamp";
+
+    private Map<String, String> mapping;
+    private List<String> errors;
+
+    public MappingInspector(String mapping) {
+      CodePointCharStream input = CharStreams.fromString(mapping);
+      MappingLexer lexer = new MappingLexer(input);
+      CommonTokenStream tokens = new CommonTokenStream(lexer);
+      MappingParser parser = new MappingParser(tokens);
+      BaseErrorListener listener =
+          new BaseErrorListener() {
+
+            @Override
+            public void syntaxError(
+                Recognizer<?, ?> recognizer,
+                Object offendingSymbol,
+                int line,
+                int col,
+                String msg,
+                RecognitionException e) {
+              throw new ConfigException(
+                  MAPPING_OPT,
+                  singleQuote(mapping),
+                  String.format("Could not be parsed at line %d:%d: %s", line, col, msg));
+            }
+          };
+      lexer.removeErrorListeners();
+      lexer.addErrorListener(listener);
+      parser.removeErrorListeners();
+      parser.addErrorListener(listener);
+      MappingParser.MappingContext ctx = parser.mapping();
+      visit(ctx);
+    }
+
+    public Map<String, String> getMapping() {
+      return mapping;
+    }
+
+    List<String> getErrors() {
+      return errors;
+    }
+
+    @Override
+    public String visitMapping(MappingParser.MappingContext ctx) {
+      mapping = new LinkedHashMap<>();
+      errors = new ArrayList<>();
+      if (!ctx.mappedEntry().isEmpty()) {
+        for (MappingParser.MappedEntryContext entry : ctx.mappedEntry()) {
+          visitMappedEntry(entry);
+        }
+      }
+      return null;
+    }
+
+    @Override
+    public String visitMappedEntry(MappingParser.MappedEntryContext ctx) {
+      String field = visitField(ctx.field());
+      String column = visitColumn(ctx.column());
+      if (mapping.containsKey(column)) {
+        errors.add(String.format("Mapping already defined for column '%s'", column));
+      }
+      mapping.put(StringUtil.quoteIfNecessary(column), field);
+      return null;
+    }
+
+    @Override
+    public String visitField(MappingParser.FieldContext ctx) {
+      String field = ctx.getText();
+      if (ctx.QUOTED_STRING() != null) {
+        field = field.substring(1, field.length() - 1).replace("\"\"", "\"");
+      }
+      return field;
+    }
+
+    @Override
+    public String visitColumn(MappingParser.ColumnContext ctx) {
+      String column = ctx.getText();
+      if (ctx.QUOTED_STRING() != null) {
+        column = column.substring(1, column.length() - 1).replace("\"\"", "\"");
+      } else {
+        // Rename the user-specified __ttl and __timestamp vars to the (legal) bound variable
+        // names.
+        if (column.equals(EXTERNAL_TTL_VARNAME)) {
+          column = INTERNAL_TTL_VARNAME;
+        } else if (column.equals(EXTERNAL_TIMESTAMP_VARNAME)) {
+          column = INTERNAL_TIMESTAMP_VARNAME;
+        }
+      }
+      return column;
+    }
   }
 }

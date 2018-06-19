@@ -25,21 +25,55 @@
     <java.version>1.8</java.version>
     <driver.version>2.0.0-alpha1-SNAPSHOT</driver.version>
     <guava.version>25.0-jre</guava.version>
+    <slf4j.version>1.7.25</slf4j.version>
+    <logback.version>1.2.3</logback.version>
+    <junit.version>5.0.2</junit.version>
+    <junit-platform.version>1.0.2</junit-platform.version>
+    <assertj.version>3.10.0</assertj.version>
+    <mockito.version>2.18.3</mockito.version>
+    <surefire.version>2.19.1</surefire.version>
+    <antlr4.version>4.7.1</antlr4.version>
+    <simulacron.version>0.8.2</simulacron.version>
+    <max.simulacron.clusters>4</max.simulacron.clusters>
+    <max.ccm.clusters>2</max.ccm.clusters>
   </properties>
 
   <dependencies>
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>connect-api</artifactId>
       <version>1.1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apiguardian</groupId>
+      <artifactId>apiguardian-api</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>${antlr4.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
     </dependency>
 
     <dependency>
@@ -67,10 +101,64 @@
         </exclusion>
       </exclusions>
     </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${junit.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>${assertj.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${mockito.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.datastax.oss.simulacron</groupId>
+      <artifactId>simulacron-native-server</artifactId>
+      <version>${simulacron.version}</version>
+    </dependency>
+
   </dependencies>
 
   <build>
     <plugins>
+
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>${antlr4.version}</version>
+        <configuration>
+          <visitor>true</visitor>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <phase>generate-sources</phase>
+          </execution>
+        </executions>
+      </plugin>
 
       <plugin>
         <groupId>com.coveo</groupId>
@@ -197,6 +285,114 @@ https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.0</version>
+        <executions>
+          <execution>
+            <id>unit-tests-coverage</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>integration-tests-coverage</id>
+            <goals>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report-unit-tests-coverage</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report-integration-tests-coverage</id>
+            <goals>
+              <goal>report-integration</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <excludes>
+            <exclude>com/datastax/kafkaconnector/schema/Mapping*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <configuration>
+          <forkCount>8</forkCount>
+          <systemPropertyVariables>
+            <logback.configurationFile>${project.basedir}/src/test/resources/logback-test.xml</logback.configurationFile>
+          </systemPropertyVariables>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-surefire-provider</artifactId>
+            <version>${junit-platform.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <configuration>
+          <systemPropertyVariables>
+            <logback.configurationFile>${project.basedir}/src/test/resources/logback-test.xml</logback.configurationFile>
+          </systemPropertyVariables>
+          <forkCount>${max.simulacron.clusters}</forkCount>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <properties>
+                <excludeTags>ccm</excludeTags>
+              </properties>
+              <reportNameSuffix>simulacron</reportNameSuffix>
+            </configuration>
+          </execution>
+        </executions>
+        <dependencies>
+          <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-surefire-provider</artifactId>
+            <version>${junit-platform.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>maven-surefire-common</artifactId>
+            <version>${surefire.version}</version>
+            <exclusions>
+              <exclusion>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-jdk14</artifactId>
+              </exclusion>
+            </exclusions>
+          </dependency>
+        </dependencies>
       </plugin>
 
     </plugins>
