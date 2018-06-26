@@ -11,11 +11,12 @@ package com.datastax.kafkaconnector;
 import static com.datastax.kafkaconnector.DseSinkConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
 
+import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
+import com.datastax.dsbulk.engine.internal.codecs.ExtendedCodecRegistry;
+import com.datastax.dsbulk.engine.internal.settings.CodecSettings;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
-import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.kafkaconnector.util.StringUtil;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
@@ -225,10 +226,14 @@ public class DseSinkConnector extends SinkConnector {
                           "basic.load-balancing-policy.local-datacenter=\"%s\"",
                           config.getLocalDc());
               return ConfigFactory.parseString(overrides).withFallback(dseConfig);
-            },
-            DefaultDriverOption.values(),
-            DseDriverOption.values());
+            });
 
+    Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
+    CodecSettings codecSettings =
+        new CodecSettings(new DefaultLoaderConfig(dsbulkConfig.getConfig("codecSettings")));
+    codecSettings.init();
+    ExtendedCodecRegistry registry =
+        codecSettings.createCodecRegistry(session.getContext().codecRegistry());
     session = builder.withConfigLoader(configLoader).build();
 
     validateKeyspaceAndTable(session, config);
