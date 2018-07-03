@@ -11,13 +11,13 @@ package com.datastax.kafkaconnector;
 import static com.datastax.kafkaconnector.DseSinkConfig.parseMappingString;
 import static com.datastax.kafkaconnector.DseSinkConnector.MAPPING_OPT;
 
+import com.datastax.dsbulk.connectors.api.RecordMetadata;
+import com.datastax.dsbulk.engine.internal.codecs.ExtendedCodecRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.oss.driver.api.core.ProtocolVersion;
-import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.type.DataType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
-import java.nio.ByteBuffer;
+import com.datastax.oss.driver.api.core.cql.Statement;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -31,8 +31,8 @@ import org.slf4j.LoggerFactory;
 /** DseSinkTask writes records to stdout or a file. */
 public class DseSinkTask extends SinkTask {
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
-
-  private Map<String, String> mapping;
+  private SessionState sessionState;
+  private Map<CqlIdentifier, CqlIdentifier> mapping;
 
   @Override
   public String version() {
@@ -43,6 +43,10 @@ public class DseSinkTask extends SinkTask {
   public void start(Map<String, String> props) {
     mapping = parseMappingString(props.get(MAPPING_OPT));
     log.debug("Task will run with mapping: {}", mapping);
+
+    // TODO: Use a caffeine cache keyed on "session attributes" to allow us to
+    // get/create a session with particular attributes.
+    sessionState = DseSinkConnector.getSessionState();
   }
 
   @Override
@@ -51,45 +55,53 @@ public class DseSinkTask extends SinkTask {
     sinkRecords.forEach(
         r -> log.debug("SANDMAN: offset={} key={} value={}", r.kafkaOffset(), r.key(), r.value()));
 
-    DseSession session = DseSinkConnector.getSession();
-    CodecRegistry codecRegistry = session.getContext().codecRegistry();
-    PreparedStatement preparedStatement = DseSinkConnector.getStatement();
+    DseSession session = sessionState.getSession();
+    ExtendedCodecRegistry codecRegistry = sessionState.getCodecRegistry();
+    PreparedStatement preparedStatement = sessionState.getInsertStatement();
+    Mapping mapping =
+        new Mapping(
+            this.mapping,
+            codecRegistry,
+            CqlIdentifier.fromInternal(DseSinkConfig.MappingInspector.INTERNAL_TIMESTAMP_VARNAME));
+    try {
+      for (SinkRecord record : sinkRecords) {
+        // TODO: Make a batch
 
-    for (SinkRecord record : sinkRecords) {
-      // TODO: Make a batch
-
-      BoundStatement boundStatement = preparedStatement.bind();
-      ProtocolVersion protocolVersion = session.getContext().protocolVersion();
-      for (Map.Entry<String, String> entry : mapping.entrySet()) {
-        String colName = entry.getKey();
-        String recordFieldFullName = entry.getValue();
-        Object fieldValue = getFieldValue(record, recordFieldFullName);
-        DataType columnType = preparedStatement.getVariableDefinitions().get(colName).getType();
-
-        ByteBuffer bb = codecRegistry.codecFor(columnType).encode(fieldValue, protocolVersion);
-        boundStatement = boundStatement.setBytesUnsafe(colName, bb);
+        InnerRecordAndMetadata key = makeMeta(record.key());
+        InnerRecordAndMetadata value = makeMeta(record.value());
+        KeyValueRecord keyValueRecord = new KeyValueRecord(key.innerRecord, value.innerRecord);
+        RecordMapper mapper =
+            new RecordMapper(
+                preparedStatement,
+                mapping,
+                new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
+                true,
+                true,
+                false);
+        Statement boundStatement = mapper.map(keyValueRecord);
+        session.execute(boundStatement);
       }
-      session.execute(boundStatement);
+    } catch (IOException e) {
+      throw new InvalidRecordException("Could not parse record", e);
     }
   }
 
-  Object getFieldValue(SinkRecord record, String recordFieldFullName) {
-    String[] recordFieldNameParts = recordFieldFullName.split("\\.", 2);
-    String componentType = recordFieldNameParts[0];
-    String fieldName = recordFieldNameParts[1];
+  private static InnerRecordAndMetadata makeMeta(Object keyOrValue) throws IOException {
+    Record innerRecord = null;
+    RecordMetadata innerRecordMeta = null;
 
-    Object component;
-    if ("key".equals(componentType)) {
-      component = record.key();
-    } else if ("value".equals(componentType)) {
-      component = record.value();
-    } else {
-      throw new RuntimeException(String.format("Unrecognized record component: %s", componentType));
+    if (keyOrValue instanceof Struct) {
+      Struct innerRecordStruct = (Struct) keyOrValue;
+      innerRecordMeta = new StructRecordMetadata(innerRecordStruct.schema());
+      innerRecord = new StructData(innerRecordStruct);
+    } else if (keyOrValue instanceof String) {
+      // TODO: Refine analysis instead of assuming it's JSON.
+      innerRecordMeta = DseSinkConnector.JSON_RECORD_METADATA;
+      innerRecord =
+          new JsonData(
+              DseSinkConnector.objectMapper, DseSinkConnector.jsonNodeMapType, (String) keyOrValue);
     }
-
-    // TODO: Handle straight-up 'key' or 'value'.
-
-    return ((Struct) component).get(fieldName);
+    return new InnerRecordAndMetadata(innerRecord, innerRecordMeta);
   }
 
   @Override
@@ -99,4 +111,14 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void stop() {}
+
+  private static class InnerRecordAndMetadata {
+    final Record innerRecord;
+    final RecordMetadata innerMetadata;
+
+    InnerRecordAndMetadata(Record innerRecord, RecordMetadata innerMetadata) {
+      this.innerMetadata = innerMetadata;
+      this.innerRecord = innerRecord;
+    }
+  }
 }

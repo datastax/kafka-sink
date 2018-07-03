@@ -14,6 +14,7 @@ import com.datastax.kafkaconnector.schema.MappingBaseVisitor;
 import com.datastax.kafkaconnector.schema.MappingLexer;
 import com.datastax.kafkaconnector.schema.MappingParser;
 import com.datastax.kafkaconnector.util.StringUtil;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -75,19 +76,19 @@ public class DseSinkConfig extends AbstractConfig {
               ConfigDef.Importance.HIGH,
               "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running.");
 
-  private final String keyspace;
-  private final String table;
+  private final CqlIdentifier keyspace;
+  private final CqlIdentifier table;
   private final int port;
   private final List<String> contactPoints;
   private final String localDc;
   private final String mappingString;
-  private final Map<String, String> mapping;
+  private final Map<CqlIdentifier, CqlIdentifier> mapping;
 
   DseSinkConfig(final Map<?, ?> settings) {
     super(CONFIG_DEF, settings, false);
 
-    keyspace = StringUtil.quoteIfNecessary(getString(KEYSPACE_OPT));
-    table = StringUtil.quoteIfNecessary(getString(TABLE_OPT));
+    keyspace = parseLoosely(getString(KEYSPACE_OPT));
+    table = parseLoosely(getString(TABLE_OPT));
     port = getInt(PORT_OPT);
     contactPoints = getList(CONTACT_POINTS_OPT);
     localDc = getString(DC_OPT);
@@ -104,7 +105,7 @@ public class DseSinkConfig extends AbstractConfig {
     }
   }
 
-  static Map<String, String> parseMappingString(String mappingString) {
+  static Map<CqlIdentifier, CqlIdentifier> parseMappingString(String mappingString) {
     MappingInspector inspector = new MappingInspector(mappingString);
     List<String> errors = inspector.getErrors();
     if (!errors.isEmpty()) {
@@ -117,36 +118,13 @@ public class DseSinkConfig extends AbstractConfig {
     }
 
     return inspector.getMapping();
-    //    if (props.isEmpty()) {
-    //      throw new ConfigException(
-    //          MAPPING_OPT, singleQuote(mappingString), "Mapping must be non-empty");
-    //    }
-    //    props.forEach(
-    //        (col, field) -> {
-    //          String colString = (String) col;
-    //          String fieldString = (String) field;
-    //          if (colString.isEmpty()) {
-    //            throw new ConfigException(
-    //                MAPPING_OPT,
-    //                singleQuote(mappingString),
-    //                String.format("No column specified for field '%s'", field));
-    //          }
-    //          if (fieldString.isEmpty()) {
-    //            throw new ConfigException(
-    //                MAPPING_OPT,
-    //                singleQuote(mappingString),
-    //                String.format("No record field specified for column '%s'", col));
-    //          }
-    //          builder.put(StringUtil.quoteIfNecessary(colString), fieldString);
-    //        });
-    //    return builder.build();
   }
 
-  String getKeyspace() {
+  CqlIdentifier getKeyspace() {
     return keyspace;
   }
 
-  String getTable() {
+  CqlIdentifier getTable() {
     return table;
   }
 
@@ -154,7 +132,7 @@ public class DseSinkConfig extends AbstractConfig {
     return port;
   }
 
-  Map<String, String> getMapping() {
+  Map<CqlIdentifier, CqlIdentifier> getMapping() {
     return mapping;
   }
 
@@ -182,7 +160,17 @@ public class DseSinkConfig extends AbstractConfig {
         keyspace, table, contactPoints, port, localDc);
   }
 
-  private static class MappingInspector extends MappingBaseVisitor<String> {
+  private static CqlIdentifier parseLoosely(String value) {
+    // If the value is unquoted, treat it as a literal (no real parsing).
+    // Otherwise parse it as cql. The idea is that users should be able to specify
+    // case-sensitive identifiers in the mapping spec and config properties.
+
+    return value.startsWith("\"")
+        ? CqlIdentifier.fromCql(value)
+        : CqlIdentifier.fromInternal(value);
+  }
+
+  static class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
 
     // A mapping spec may refer to these special variables which are used to bind
     // input fields to the write timestamp or ttl of the record.
@@ -193,7 +181,7 @@ public class DseSinkConfig extends AbstractConfig {
     private static final String EXTERNAL_TTL_VARNAME = "__ttl";
     private static final String EXTERNAL_TIMESTAMP_VARNAME = "__timestamp";
 
-    private Map<String, String> mapping;
+    private Map<CqlIdentifier, CqlIdentifier> mapping;
     private List<String> errors;
 
     public MappingInspector(String mapping) {
@@ -223,10 +211,13 @@ public class DseSinkConfig extends AbstractConfig {
       parser.removeErrorListeners();
       parser.addErrorListener(listener);
       MappingParser.MappingContext ctx = parser.mapping();
+
+      this.mapping = new LinkedHashMap<>();
+      errors = new ArrayList<>();
       visit(ctx);
     }
 
-    public Map<String, String> getMapping() {
+    public Map<CqlIdentifier, CqlIdentifier> getMapping() {
       return mapping;
     }
 
@@ -235,9 +226,7 @@ public class DseSinkConfig extends AbstractConfig {
     }
 
     @Override
-    public String visitMapping(MappingParser.MappingContext ctx) {
-      mapping = new LinkedHashMap<>();
-      errors = new ArrayList<>();
+    public CqlIdentifier visitMapping(MappingParser.MappingContext ctx) {
       if (!ctx.mappedEntry().isEmpty()) {
         for (MappingParser.MappedEntryContext entry : ctx.mappedEntry()) {
           visitMappedEntry(entry);
@@ -247,31 +236,38 @@ public class DseSinkConfig extends AbstractConfig {
     }
 
     @Override
-    public String visitMappedEntry(MappingParser.MappedEntryContext ctx) {
-      String field = visitField(ctx.field());
-      String column = visitColumn(ctx.column());
+    public CqlIdentifier visitMappedEntry(MappingParser.MappedEntryContext ctx) {
+      CqlIdentifier field = visitField(ctx.field());
+      CqlIdentifier column = visitColumn(ctx.column());
       if (mapping.containsKey(column)) {
-        errors.add(String.format("Mapping already defined for column '%s'", column));
+        errors.add(String.format("Mapping already defined for column '%s'", column.asInternal()));
       }
-      mapping.put(StringUtil.quoteIfNecessary(column), field);
+      mapping.put(column, field);
       return null;
     }
 
     @Override
-    public String visitField(MappingParser.FieldContext ctx) {
+    public CqlIdentifier visitField(MappingParser.FieldContext ctx) {
       String field = ctx.getText();
-      if (ctx.QUOTED_STRING() != null) {
-        field = field.substring(1, field.length() - 1).replace("\"\"", "\"");
-      }
-      return field;
+
+      // If the field name is unquoted, treat it as a literal (no real parsing).
+      // Otherwise parse it as cql. The idea is that users should be able to specify
+      // case-sensitive identifiers in the mapping spec.
+
+      return ctx.QUOTED_STRING() == null
+          ? CqlIdentifier.fromInternal(field)
+          : CqlIdentifier.fromCql(field);
     }
 
     @Override
-    public String visitColumn(MappingParser.ColumnContext ctx) {
+    public CqlIdentifier visitColumn(MappingParser.ColumnContext ctx) {
       String column = ctx.getText();
-      if (ctx.QUOTED_STRING() != null) {
-        column = column.substring(1, column.length() - 1).replace("\"\"", "\"");
-      } else {
+
+      // If the column name is unquoted, treat it as a literal (no real parsing).
+      // Otherwise parse it as cql. The idea is that users should be able to specify
+      // case-sensitive identifiers in the mapping spec.
+
+      if (ctx.QUOTED_STRING() == null) {
         // Rename the user-specified __ttl and __timestamp vars to the (legal) bound variable
         // names.
         if (column.equals(EXTERNAL_TTL_VARNAME)) {
@@ -279,8 +275,9 @@ public class DseSinkConfig extends AbstractConfig {
         } else if (column.equals(EXTERNAL_TIMESTAMP_VARNAME)) {
           column = INTERNAL_TIMESTAMP_VARNAME;
         }
+        return CqlIdentifier.fromInternal(column);
       }
-      return column;
+      return CqlIdentifier.fromCql(column);
     }
   }
 }

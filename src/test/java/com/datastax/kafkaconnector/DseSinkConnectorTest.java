@@ -14,7 +14,7 @@ import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
 import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +36,10 @@ class DseSinkConnectorTest {
   private static final String C2 = "This is column 2, and its name desperately needs quoting";
   private static final String C3 = "c3";
 
+  private static final CqlIdentifier C1_IDENT = CqlIdentifier.fromInternal(C1);
+  private static final CqlIdentifier C2_IDENT = CqlIdentifier.fromInternal(C2);
+  private static final CqlIdentifier C3_IDENT = CqlIdentifier.fromInternal(C3);
+
   private DseSession session;
   private Metadata metadata;
   private KeyspaceMetadata keyspace;
@@ -52,21 +56,21 @@ class DseSinkConnectorTest {
     ColumnMetadata col3 = mock(ColumnMetadata.class);
     Map<CqlIdentifier, ColumnMetadata> columns =
         ImmutableMap.<CqlIdentifier, ColumnMetadata>builder()
-            .put(CqlIdentifier.fromInternal(C1), col1)
-            .put(CqlIdentifier.fromInternal(C2), col2)
-            .put(CqlIdentifier.fromInternal(C3), col3)
+            .put(C1_IDENT, col1)
+            .put(C2_IDENT, col2)
+            .put(C3_IDENT, col3)
             .build();
     when(session.getMetadata()).thenReturn(metadata);
-    when(metadata.getKeyspace(anyString())).thenReturn(keyspace);
-    when(keyspace.getTable(anyString())).thenReturn(table);
+    when(metadata.getKeyspace(any(CqlIdentifier.class))).thenReturn(keyspace);
+    when(keyspace.getTable(any(CqlIdentifier.class))).thenReturn(table);
     when(table.getColumns()).thenReturn(columns);
-    when(table.getColumn(C1)).thenReturn(col1);
-    when(table.getColumn(C2)).thenReturn(col2);
-    when(table.getColumn(C3)).thenReturn(col3);
-    when(table.getPartitionKey()).thenReturn(Collections.singletonList(col1));
-    when(col1.getName()).thenReturn(CqlIdentifier.fromInternal(C1));
-    when(col2.getName()).thenReturn(CqlIdentifier.fromInternal(C2));
-    when(col3.getName()).thenReturn(CqlIdentifier.fromInternal(C3));
+    when(table.getColumn(C1_IDENT)).thenReturn(col1);
+    when(table.getColumn(C2_IDENT)).thenReturn(col2);
+    when(table.getColumn(C3_IDENT)).thenReturn(col3);
+    when(table.getPrimaryKey()).thenReturn(Collections.singletonList(col1));
+    when(col1.getName()).thenReturn(C1_IDENT);
+    when(col2.getName()).thenReturn(C2_IDENT);
+    when(col3.getName()).thenReturn(C3_IDENT);
     when(col1.getType()).thenReturn(TEXT);
     when(col2.getType()).thenReturn(TEXT);
     when(col3.getType()).thenReturn(TEXT);
@@ -74,7 +78,7 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_keyspace_was_not_found() {
-    when(metadata.getKeyspace("\"MyKs\"")).thenReturn(null);
+    when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(null);
     when(metadata.getKeyspace("myks")).thenReturn(keyspace);
 
     assertThatThrownBy(
@@ -88,7 +92,7 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_table_was_not_found() {
-    when(keyspace.getTable("\"MyTable\"")).thenReturn(null);
+    when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(null);
     when(keyspace.getTable("mytable")).thenReturn(table);
 
     assertThatThrownBy(
@@ -102,7 +106,7 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_keyspace_was_not_found_2() {
-    when(metadata.getKeyspace("\"MyKs\"")).thenReturn(null);
+    when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(null);
     when(metadata.getKeyspace("myks")).thenReturn(null);
     assertThatThrownBy(
             () ->
@@ -114,7 +118,7 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_table_was_not_found_2() {
-    when(keyspace.getTable("\"MyTable\"")).thenReturn(null);
+    when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(null);
     when(keyspace.getTable("mytable")).thenReturn(null);
 
     assertThatThrownBy(
@@ -126,7 +130,7 @@ class DseSinkConnectorTest {
   }
 
   @Test
-  void should_error_when_mapping_does_not_use_partition_key_columns() {
+  void should_error_when_mapping_does_not_use_primary_key_columns() {
     DseSinkConfig config = makeConfig("myks", "mytable", C3 + "=f3");
     assertThatThrownBy(() -> DseSinkConnector.validateMappingColumns(session, config))
         .isInstanceOf(ConfigException.class)

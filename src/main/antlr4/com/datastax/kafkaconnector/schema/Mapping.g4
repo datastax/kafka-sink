@@ -23,7 +23,7 @@ mappedEntry
     ;
 
 field
-    : UNQUOTED_STRING
+    : UNQUOTED_STRING (UNQUOTED_STRING | '.')*
     | QUOTED_STRING
     | function
     ;

@@ -8,8 +8,6 @@
  */
 package com.datastax.kafkaconnector.util;
 
-import com.datastax.oss.driver.internal.core.util.Strings;
-
 /** Utility methods for manipulating strings. */
 public class StringUtil {
   public static String singleQuote(String s) {
@@ -18,10 +16,6 @@ public class StringUtil {
 
   public static boolean isEmpty(String s) {
     return s == null || s.isEmpty();
-  }
-
-  public static String quoteIfNecessary(String s) {
-    return Strings.needsDoubleQuotes(s) ? Strings.doubleQuote(s) : s;
   }
 
   private StringUtil() {}
