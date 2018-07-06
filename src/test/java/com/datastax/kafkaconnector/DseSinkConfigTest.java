@@ -17,6 +17,7 @@ import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Map;
@@ -45,29 +46,43 @@ class DseSinkConfigTest {
   @Test
   void should_handle_keyspace_and_table() {
     Map<String, String> props =
-        ImmutableMap.<String, String>builder()
-            .put(KEYSPACE_OPT, "myks")
-            .put(TABLE_OPT, "mytable")
-            .put(MAPPING_OPT, "c1=f1")
-            .build();
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(KEYSPACE_OPT, "myks")
+                .put(TABLE_OPT, "mytable")
+                .put(MAPPING_OPT, "c1=f1")
+                .build());
 
     DseSinkConfig d = new DseSinkConfig(props);
-    assertThat(d.getKeyspace()).isEqualTo("myks");
-    assertThat(d.getTable()).isEqualTo("mytable");
+    assertThat(d.getKeyspace().asInternal()).isEqualTo("myks");
+    assertThat(d.getTable().asInternal()).isEqualTo("mytable");
+
+    props.put(KEYSPACE_OPT, "\"myks\"");
+    props.put(TABLE_OPT, "\"mytable\"");
+    d = new DseSinkConfig(props);
+    assertThat(d.getKeyspace().asInternal()).isEqualTo("myks");
+    assertThat(d.getTable().asInternal()).isEqualTo("mytable");
   }
 
   @Test
   void should_handle_case_sensitive_keyspace_and_table() {
     Map<String, String> props =
-        ImmutableMap.<String, String>builder()
-            .put(KEYSPACE_OPT, "MyKs")
-            .put(TABLE_OPT, "MyTable")
-            .put(MAPPING_OPT, "c1=f1")
-            .build();
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(KEYSPACE_OPT, "MyKs")
+                .put(TABLE_OPT, "MyTable")
+                .put(MAPPING_OPT, "c1=f1")
+                .build());
 
     DseSinkConfig d = new DseSinkConfig(props);
-    assertThat(d.getKeyspace()).isEqualTo("\"MyKs\"");
-    assertThat(d.getTable()).isEqualTo("\"MyTable\"");
+    assertThat(d.getKeyspace().asInternal()).isEqualTo("MyKs");
+    assertThat(d.getTable().asInternal()).isEqualTo("MyTable");
+
+    props.put(KEYSPACE_OPT, "\"MyKs\"");
+    props.put(TABLE_OPT, "\"MyTable\"");
+    d = new DseSinkConfig(props);
+    assertThat(d.getKeyspace().asInternal()).isEqualTo("MyKs");
+    assertThat(d.getTable().asInternal()).isEqualTo("MyTable");
   }
 
   @Test
@@ -199,13 +214,16 @@ class DseSinkConfigTest {
                 .put(TABLE_OPT, "mytable")
                 .put(
                     MAPPING_OPT,
-                    "first = good, \"jack\"=\"bill\",third=great, \"This has spaces, \"\", and commas\" = 7")
+                    "a=b.c, first = good, \"jack\"=\"bill\",third=great, \"This has spaces, \"\", and commas\" = \"me, \"\" too\"")
                 .build());
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getMapping())
-        .containsEntry("\"This has spaces, \"\", and commas\"", "7")
-        .containsEntry("jack", "bill")
-        .containsEntry("first", "good");
+        .containsEntry(
+            CqlIdentifier.fromInternal("This has spaces, \", and commas"),
+            CqlIdentifier.fromInternal("me, \" too"))
+        .containsEntry(CqlIdentifier.fromInternal("jack"), CqlIdentifier.fromInternal("bill"))
+        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("b.c"))
+        .containsEntry(CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("good"));
   }
 }
