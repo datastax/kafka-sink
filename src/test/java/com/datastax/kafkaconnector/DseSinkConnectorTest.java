@@ -27,6 +27,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,12 +62,12 @@ class DseSinkConnectorTest {
             .put(C3_IDENT, col3)
             .build();
     when(session.getMetadata()).thenReturn(metadata);
-    when(metadata.getKeyspace(any(CqlIdentifier.class))).thenReturn(keyspace);
-    when(keyspace.getTable(any(CqlIdentifier.class))).thenReturn(table);
+    when(metadata.getKeyspace(any(CqlIdentifier.class))).thenReturn(Optional.of(keyspace));
+    when(keyspace.getTable(any(CqlIdentifier.class))).thenReturn(Optional.of(table));
     when(table.getColumns()).thenReturn(columns);
-    when(table.getColumn(C1_IDENT)).thenReturn(col1);
-    when(table.getColumn(C2_IDENT)).thenReturn(col2);
-    when(table.getColumn(C3_IDENT)).thenReturn(col3);
+    when(table.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
+    when(table.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
+    when(table.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
     when(table.getPrimaryKey()).thenReturn(Collections.singletonList(col1));
     when(col1.getName()).thenReturn(C1_IDENT);
     when(col2.getName()).thenReturn(C2_IDENT);
@@ -78,8 +79,8 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_keyspace_was_not_found() {
-    when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(null);
-    when(metadata.getKeyspace("myks")).thenReturn(keyspace);
+    when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(Optional.empty());
+    when(metadata.getKeyspace("myks")).thenReturn(Optional.of(keyspace));
 
     assertThatThrownBy(
             () ->
@@ -92,8 +93,8 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_table_was_not_found() {
-    when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(null);
-    when(keyspace.getTable("mytable")).thenReturn(table);
+    when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(Optional.empty());
+    when(keyspace.getTable("mytable")).thenReturn(Optional.of(table));
 
     assertThatThrownBy(
             () ->
@@ -106,8 +107,8 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_keyspace_was_not_found_2() {
-    when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(null);
-    when(metadata.getKeyspace("myks")).thenReturn(null);
+    when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(Optional.empty());
+    when(metadata.getKeyspace("myks")).thenReturn(Optional.empty());
     assertThatThrownBy(
             () ->
                 DseSinkConnector.validateKeyspaceAndTable(
@@ -118,8 +119,8 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_that_table_was_not_found_2() {
-    when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(null);
-    when(keyspace.getTable("mytable")).thenReturn(null);
+    when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(Optional.empty());
+    when(keyspace.getTable("mytable")).thenReturn(Optional.empty());
 
     assertThatThrownBy(
             () ->

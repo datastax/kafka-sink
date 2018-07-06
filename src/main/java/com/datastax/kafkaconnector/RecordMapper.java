@@ -46,7 +46,7 @@ public class RecordMapper {
       boolean allowExtraFields,
       boolean allowMissingFields) {
     this.insertStatement = insertStatement;
-    this.pkIndices = insertStatement.getPrimaryKeyIndices();
+    this.pkIndices = insertStatement.getPartitionKeyIndices();
     this.mapping = mapping;
     this.recordMetadata = recordMetadata;
     this.nullToUnset = nullToUnset;
@@ -70,8 +70,7 @@ public class RecordMapper {
             "Extraneous field "
                 + field
                 + " was found in record. "
-                + "Please declare it explicitly in the mapping "
-                + "or set allowExtraFields setting to true.");
+                + "Please declare it explicitly in the mapping.");
       }
       if (columns != null) {
         for (CqlIdentifier column : columns) {
@@ -87,7 +86,7 @@ public class RecordMapper {
       }
     }
     BoundStatement bs = builder.build();
-    ensurePrimaryKeySet(bs);
+    ensurePartitionKeySet(bs);
     return bs;
   }
 
@@ -101,9 +100,9 @@ public class RecordMapper {
     ByteBuffer bb = codec.encode(raw, builder.protocolVersion());
     // Account for nullToUnset.
     if (isNull(bb, cqlType)) {
-      if (isPrimaryKey(variable)) {
+      if (isPartitionKey(variable)) {
         throw new ConfigException(
-            "Primary key column "
+            "Partition key column "
                 + variable.asCql(true)
                 + " cannot be mapped to null. "
                 + "Check that your mapping setting matches your dataset contents.");
@@ -133,7 +132,7 @@ public class RecordMapper {
     }
   }
 
-  private boolean isPrimaryKey(CqlIdentifier variable) {
+  private boolean isPartitionKey(CqlIdentifier variable) {
     return pkIndices.contains(insertStatement.getVariableDefinitions().firstIndexOf(variable));
   }
 
@@ -149,19 +148,18 @@ public class RecordMapper {
                 + " (mapped to column "
                 + variable.asCql(true)
                 + ") was missing from record. "
-                + "Please remove it from the mapping "
-                + "or set allowMissingFields setting to true.");
+                + "Please remove it from the mapping.");
       }
     }
   }
 
-  private void ensurePrimaryKeySet(BoundStatement bs) {
+  private void ensurePartitionKeySet(BoundStatement bs) {
     if (pkIndices != null) {
       for (int pkIndex : pkIndices) {
         if (!bs.isSet(pkIndex)) {
           CqlIdentifier variable = insertStatement.getVariableDefinitions().get(pkIndex).getName();
           throw new ConfigException(
-              "Primary key column "
+              "Partition key column "
                   + variable.asCql(true)
                   + " cannot be left unmapped. "
                   + "Check that your mapping setting matches your dataset contents.");

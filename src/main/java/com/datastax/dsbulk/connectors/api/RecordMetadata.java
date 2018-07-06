@@ -12,9 +12,7 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Defines metadata applicable to a record, in particular which field types it contains.
- */
+/** Defines metadata applicable to a record, in particular which field types it contains. */
 public interface RecordMetadata {
 
   /**

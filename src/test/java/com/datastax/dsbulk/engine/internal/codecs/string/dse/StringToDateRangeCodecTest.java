@@ -13,8 +13,10 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import com.datastax.dsbulk.engine.internal.DateRange;
 import java.util.List;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled
 class StringToDateRangeCodecTest {
 
   private List<String> nullStrings = newArrayList("NULL");

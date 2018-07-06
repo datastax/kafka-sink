@@ -122,7 +122,7 @@ class RecordMapperTest {
     when(boundStatement.isSet(1)).thenReturn(true);
     when(boundStatement.isSet(2)).thenReturn(true);
     when(insertStatement.getVariableDefinitions()).thenReturn(variables);
-    when(insertStatement.getPrimaryKeyIndices()).thenReturn(pkIndices);
+    when(insertStatement.getPartitionKeyIndices()).thenReturn(pkIndices);
     ColumnDefinition c1Def = mock(ColumnDefinition.class);
     ColumnDefinition c2Def = mock(ColumnDefinition.class);
     ColumnDefinition c3Def = mock(ColumnDefinition.class);
@@ -318,7 +318,7 @@ class RecordMapperTest {
   void should_map_null_to_unset() {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F2)).thenReturn(null);
-    when(insertStatement.getPrimaryKeyIndices()).thenReturn(Arrays.asList(0, 2));
+    when(insertStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(0, 2));
     RecordMapper mapper =
         new RecordMapper(insertStatement, mapping, recordMetadata, true, true, false);
     Statement result = mapper.map(record);
@@ -333,7 +333,7 @@ class RecordMapperTest {
   void should_map_null_to_null() {
     when(record.fields()).thenReturn(set(F1));
     when(record.getFieldValue(F1)).thenReturn(null);
-    when(insertStatement.getPrimaryKeyIndices()).thenReturn(Arrays.asList(1, 2));
+    when(insertStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(1, 2));
     RecordMapper mapper =
         new RecordMapper(insertStatement, mapping, recordMetadata, false, true, true);
     Statement result = mapper.map(record);
@@ -364,7 +364,7 @@ class RecordMapperTest {
         new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("Primary key column col1 cannot be mapped to null");
+        .hasMessageContaining("Partition key column col1 cannot be mapped to null");
   }
 
   @Test
@@ -380,7 +380,7 @@ class RecordMapperTest {
 
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("Primary key column col1 cannot be left unmapped");
+        .hasMessageContaining("Partition key column col1 cannot be left unmapped");
   }
 
   @Test
@@ -393,8 +393,7 @@ class RecordMapperTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Extraneous field field3 was found in record. "
-                + "Please declare it explicitly in the mapping "
-                + "or set allowExtraFields setting to true.");
+                + "Please declare it explicitly in the mapping.");
   }
 
   @Test
@@ -406,8 +405,7 @@ class RecordMapperTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Required field field3 (mapped to column \"My Fancy Column Name\") was missing from record. "
-                + "Please remove it from the mapping "
-                + "or set allowMissingFields setting to true.");
+                + "Please remove it from the mapping.");
   }
 
   private void assertParameter(

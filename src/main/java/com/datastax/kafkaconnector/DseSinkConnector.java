@@ -43,14 +43,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.Task;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkConnector;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
@@ -105,71 +103,25 @@ public class DseSinkConnector extends SinkConnector {
    */
   public static void main(String[] args) {
     DseSinkConnector conn = new DseSinkConnector();
-    // Table: create table types (bigintCol bigint PRIMARY KEY, booleanCol boolean,
-    // doubleCol double, floatCol float, intCol int, smallintCol smallint, textCol text,
-    // tinyIntCol tinyint);
 
-    String mappingString =
-        "bigintcol=key.text, booleancol=value.boolean, doublecol=key.double, floatcol=value.float, "
-            + "intcol=key.int, smallintcol=value.smallint, textcol=key.text, tinyintcol=value.tinyint";
-    //    String mappingString = "f1=value.f1, f2=value.f2";
+    String mappingString = "f1=value.f1, f2=value.f2";
     Map<String, String> props =
         ImmutableMap.<String, String>builder()
             .put("mapping", mappingString)
-            .put("keyspace", "simplex")
-            //            .put("table", "mapping")
-            .put("table", "types")
+            .put("keyspace", "ks1")
+            .put("table", "b")
             .build();
     try {
       conn.start(props);
-
-      // Create a record (emulating what the sink will do)
-
-      // STRUCT
-      Schema schema =
-          SchemaBuilder.struct()
-              .name("Kafka")
-              .field("bigint", Schema.INT64_SCHEMA)
-              .field("boolean", Schema.BOOLEAN_SCHEMA)
-              .field("double", Schema.FLOAT64_SCHEMA)
-              .field("float", Schema.FLOAT32_SCHEMA)
-              .field("int", Schema.INT32_SCHEMA)
-              .field("smallint", Schema.INT16_SCHEMA)
-              .field("text", Schema.STRING_SCHEMA)
-              .field("tinyint", Schema.INT8_SCHEMA);
-      Long baseValue = 98761234L;
-      Struct value =
-          new Struct(schema)
-              .put("bigint", baseValue)
-              .put("boolean", (baseValue.intValue() & 1) == 1)
-              .put("double", (double) baseValue + 0.123)
-              .put("float", baseValue.floatValue() + 0.987f)
-              .put("int", baseValue.intValue())
-              .put("smallint", baseValue.shortValue())
-              .put("text", baseValue.toString())
-              .put("tinyint", baseValue.byteValue());
-      baseValue = 1234567L;
-      String jsonValue =
-          String.format(
-              "{\"bigint\": %d, \"boolean\": false, \"double\": %f, \"float\": %f, \"int\": %d, \"smallint\": %d, \"text\": \"%s\", \"tinyint\": %d}",
-              baseValue,
-              (double) baseValue + 0.123,
-              baseValue.floatValue() + 0.987f,
-              baseValue.intValue(),
-              baseValue.shortValue(),
-              baseValue.toString(),
-              baseValue.byteValue());
-
-      // JSON
-      //      Schema schema = null;
-      //      String value = "{\"f1\": 42, \"f2\": {\"sub1\": 37, \"sub2\": 96}}";
-
-      SinkRecord record = new SinkRecord("mytopic", 0, null, jsonValue, null, value, 1234L);
+      String value = "{\"f1\": 42, \"f2\": 96}";
+      SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
       DseSinkTask task = new DseSinkTask();
       task.start(props);
       task.put(Collections.singletonList(record));
     } finally {
-      closeQuietly(sessionState.getSession());
+      if (sessionState != null) {
+        closeQuietly(sessionState.getSession());
+      }
     }
   }
 
@@ -177,10 +129,10 @@ public class DseSinkConnector extends SinkConnector {
     CqlIdentifier keyspaceName = config.getKeyspace();
     CqlIdentifier tableName = config.getTable();
     Metadata metadata = session.getMetadata();
-    KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
-    if (keyspace == null) {
+    Optional<KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+    if (!keyspace.isPresent()) {
       String lowerCaseKeyspaceName = keyspaceName.asInternal().toLowerCase();
-      if (metadata.getKeyspace(lowerCaseKeyspaceName) != null) {
+      if (metadata.getKeyspace(lowerCaseKeyspaceName).isPresent()) {
         throw new ConfigException(
             KEYSPACE_OPT,
             keyspaceName,
@@ -191,10 +143,10 @@ public class DseSinkConnector extends SinkConnector {
         throw new ConfigException(KEYSPACE_OPT, keyspaceName.asCql(true), "Not found");
       }
     }
-    TableMetadata table = keyspace.getTable(tableName);
-    if (table == null) {
+    Optional<TableMetadata> table = keyspace.get().getTable(tableName);
+    if (!table.isPresent()) {
       String lowerCaseTableName = tableName.asInternal().toLowerCase();
-      if (keyspace.getTable(lowerCaseTableName) != null) {
+      if (keyspace.get().getTable(lowerCaseTableName).isPresent()) {
         throw new ConfigException(
             TABLE_OPT,
             tableName,
@@ -211,10 +163,10 @@ public class DseSinkConnector extends SinkConnector {
     CqlIdentifier keyspaceName = config.getKeyspace();
     CqlIdentifier tableName = config.getTable();
     Metadata metadata = session.getMetadata();
-    KeyspaceMetadata keyspace = metadata.getKeyspace(keyspaceName);
-    assert keyspace != null;
-    TableMetadata table = keyspace.getTable(tableName);
-    assert table != null;
+    Optional<KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+    assert keyspace.isPresent();
+    Optional<TableMetadata> table = keyspace.get().getTable(tableName);
+    assert table.isPresent();
 
     Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
 
@@ -223,7 +175,7 @@ public class DseSinkConnector extends SinkConnector {
         mapping
             .keySet()
             .stream()
-            .filter(col -> table.getColumn(col) == null)
+            .filter(col -> !table.get().getColumn(col).isPresent())
             .map(c -> c.asCql(true))
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentCols)) {
@@ -238,6 +190,7 @@ public class DseSinkConnector extends SinkConnector {
     // in the mapping.
     String nonExistentKeyCols =
         table
+            .get()
             .getPrimaryKey()
             .stream()
             .filter(col -> !mapping.containsKey(col.getName()))
@@ -373,7 +326,9 @@ public class DseSinkConnector extends SinkConnector {
   @Override
   public void stop() {
     // TODO: When is it safe to close the (shared) session?
-    closeQuietly(sessionState.getSession());
+    if (sessionState != null) {
+      closeQuietly(sessionState.getSession());
+    }
   }
 
   @Override

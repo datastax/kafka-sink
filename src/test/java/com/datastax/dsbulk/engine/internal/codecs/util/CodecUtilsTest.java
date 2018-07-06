@@ -78,6 +78,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class CodecUtilsTest {
@@ -1075,6 +1076,7 @@ class CodecUtilsTest {
   }
 
   @Test
+  @Disabled
   void should_parse_date_range() throws ParseException {
     DateRange dateRange = DateRange.parse("[* TO 2014-12-01]");
     assertThat(CodecUtils.parseDateRange(null)).isNull();
