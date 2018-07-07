@@ -8,7 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
-import com.datastax.dsbulk.engine.internal.codecs.ExtendedCodecRegistry;
+import com.datastax.dsbulk.commons.codecs.ExtendedCodecRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 

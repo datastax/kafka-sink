@@ -11,7 +11,6 @@ package com.datastax.kafkaconnector;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
-import com.datastax.dsbulk.connectors.api.RecordMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatementBuilder;

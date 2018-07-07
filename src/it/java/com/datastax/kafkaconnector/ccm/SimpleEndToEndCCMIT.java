@@ -139,7 +139,14 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Long baseValue = 1234567L;
     String value =
         String.format(
-            "{\"bigint\": %d, \"boolean\": %b, \"double\": %f, \"float\": %f, \"int\": %d, \"smallint\": %d, \"text\": \"%s\", \"tinyint\": %d}",
+            "{\"bigint\": %d, "
+                + "\"boolean\": %b, "
+                + "\"double\": %f, "
+                + "\"float\": %f, "
+                + "\"int\": %d, "
+                + "\"smallint\": %d, "
+                + "\"text\": \"%s\", "
+                + "\"tinyint\": %d}",
             baseValue,
             (baseValue.intValue() & 1) == 1,
             (double) baseValue + 0.123,
@@ -229,7 +236,14 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Long baseKey = 1234567L;
     String jsonKey =
         String.format(
-            "{\"bigint\": %d, \"boolean\": %b, \"double\": %f, \"float\": %f, \"int\": %d, \"smallint\": %d, \"text\": \"%s\", \"tinyint\": %d}",
+            "{\"bigint\": %d, "
+                + "\"boolean\": %b, "
+                + "\"double\": %f, "
+                + "\"float\": %f, "
+                + "\"int\": %d, "
+                + "\"smallint\": %d, "
+                + "\"text\": \"%s\", "
+                + "\"tinyint\": %d}",
             baseKey,
             (baseKey.intValue() & 1) == 1,
             (double) baseKey + 0.123,
