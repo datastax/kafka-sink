@@ -26,6 +26,7 @@
     <caffeine.version>2.6.2</caffeine.version>
     <oss.driver.version>4.0.0-beta1-SNAPSHOT</oss.driver.version>
     <driver.version>2.0.0-alpha1-SNAPSHOT</driver.version>
+    <dsbulk.version>1.2.0-SNAPSHOT-ng</dsbulk.version>
     <guava.version>25.0-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
@@ -175,6 +176,19 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dsbulk-commons</artifactId>
+      <version>${dsbulk.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dsbulk-commons</artifactId>
+      <version>${dsbulk.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
 
   </dependencies>
 

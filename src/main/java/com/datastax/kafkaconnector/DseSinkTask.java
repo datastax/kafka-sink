@@ -11,8 +11,7 @@ package com.datastax.kafkaconnector;
 import static com.datastax.kafkaconnector.DseSinkConfig.parseMappingString;
 import static com.datastax.kafkaconnector.DseSinkConnector.MAPPING_OPT;
 
-import com.datastax.dsbulk.connectors.api.RecordMetadata;
-import com.datastax.dsbulk.engine.internal.codecs.ExtendedCodecRegistry;
+import com.datastax.dsbulk.commons.codecs.ExtendedCodecRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;

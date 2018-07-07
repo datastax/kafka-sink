@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector;
 
-import com.datastax.dsbulk.connectors.api.RecordMetadata;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.google.common.collect.ImmutableMap;
