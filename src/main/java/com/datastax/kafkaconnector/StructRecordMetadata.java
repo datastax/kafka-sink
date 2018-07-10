@@ -8,7 +8,14 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.LIST;
+import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.SET;
+import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.TUPLE;
+
 import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.ListType;
+import com.datastax.oss.driver.api.core.type.MapType;
+import com.datastax.oss.driver.api.core.type.SetType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Schema;
@@ -36,6 +43,30 @@ class StructRecordMetadata implements RecordMetadata {
   @Override
   public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
     Schema fieldType = schema.field(field).schema();
-    return TYPE_MAP.get(fieldType);
+    return getGenericType(fieldType, cqlType);
+  }
+
+  @NotNull
+  private GenericType<?> getGenericType(@NotNull Schema fieldType, @NotNull DataType cqlType) {
+    GenericType<?> result = TYPE_MAP.get(fieldType);
+    if (result != null) {
+      return result;
+    }
+    // This is a complex type.
+    switch (fieldType.type()) {
+      case ARRAY:
+        switch(cqlType.getProtocolCode()) {
+          case SET:
+            return GenericType.listOf(getGenericType(fieldType.valueSchema(), ((SetType) cqlType).getElementType()));
+          case LIST:
+            return GenericType.listOf(getGenericType(fieldType.valueSchema(), ((ListType) cqlType).getElementType()));
+          case TUPLE:
+            return GenericType.TUPLE_VALUE;
+        }
+      case MAP:
+        return GenericType.mapOf(getGenericType(fieldType.keySchema(), ((MapType) cqlType).getKeyType()), getGenericType(fieldType.valueSchema(), ((MapType) cqlType).getValueType()));
+      default:
+        throw new IllegalArgumentException(String.format("Unrecognized Kafka field type: %s", fieldType.type().getName()));
+    }
   }
 }

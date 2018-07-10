@@ -16,6 +16,7 @@ import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -43,14 +44,18 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     session.execute(
         "CREATE TABLE IF NOT EXISTS types ("
             + "bigintCol bigint PRIMARY KEY, "
-            + "booleanCol boolean,"
+            + "booleanCol boolean, "
             + "doubleCol double, "
             + "floatCol float, "
             + "intCol int, "
             + "smallintCol smallint, "
-            + "textCol text,"
-            + "tinyIntCol tinyint,"
-            + "mapCol map<text, int>"
+            + "textCol text, "
+            + "tinyIntCol tinyint, "
+            + "mapCol map<text, int>, "
+            + "mapNestedCol frozen<map<text, map<int, text>>>, "
+            + "listCol list<int>, "
+            + "setCol set<int>, "
+            + "tupleCol tuple<int, int, int>"
             + ")");
   }
 
@@ -76,7 +81,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "intcol=value.int, "
                 + "smallintcol=value.smallint, "
                 + "textcol=value.text, "
-                + "tinyintcol=value.tinyint");
+                + "tinyintcol=value.tinyint, "
+                + "mapcol=value.map, "
+                + "mapnestedcol=value.mapnested, "
+                + "listcol=value.list, "
+                + "setcol=value.set, "
+                + "tuplecol=value.tuple"
+        );
 
     conn.start(props);
 
@@ -90,7 +101,32 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("int", Schema.INT32_SCHEMA)
             .field("smallint", Schema.INT16_SCHEMA)
             .field("text", Schema.STRING_SCHEMA)
-            .field("tinyint", Schema.INT8_SCHEMA);
+            .field("tinyint", Schema.INT8_SCHEMA)
+            .field("map", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
+            .field("mapnested", SchemaBuilder.map(Schema.STRING_SCHEMA,
+                SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.STRING_SCHEMA)))
+            .field("list", SchemaBuilder.array(Schema.INT32_SCHEMA))
+            .field("set", SchemaBuilder.array(Schema.INT32_SCHEMA))
+            .field("tuple", SchemaBuilder.array(Schema.INT32_SCHEMA));
+
+    Map<String, Integer> mapValue = ImmutableMap.<String, Integer>builder()
+        .put("sub1", 37)
+        .put("sub2", 96)
+        .build();
+
+    Map<String, Map<Integer, String>> nestedMapValue = ImmutableMap.<String, Map<Integer, String>>builder()
+        .put("sub1", ImmutableMap.<Integer, String>builder()
+            .put(37, "sub1sub1")
+            .put(96, "sub1sub2")
+            .build())
+        .put("sub2", ImmutableMap.<Integer, String>builder()
+            .put(47, "sub2sub1")
+            .put(90, "sub2sub2")
+            .build())
+        .build();
+
+    List<Integer> listValue = Arrays.asList(37, 96, 90);
+
     Long baseValue = 98761234L;
     Struct value =
         new Struct(schema)
@@ -101,7 +137,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .put("int", baseValue.intValue())
             .put("smallint", baseValue.shortValue())
             .put("text", baseValue.toString())
-            .put("tinyint", baseValue.byteValue());
+            .put("tinyint", baseValue.byteValue())
+            .put("map", mapValue)
+            .put("mapnested", nestedMapValue)
+            .put("list", listValue)
+            .put("set", listValue)
+            .put("tuple", listValue);
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     task.start(props);
@@ -119,6 +160,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
     assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
     assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
+    assertThat(row.getMap("mapcol", String.class, Integer.class)).isEqualTo(mapValue);
+    assertThat(row.getMap("mapnestedcol", String.class, Map.class)).isEqualTo(nestedMapValue);
+    assertThat(row.getList("listcol", Integer.class)).isEqualTo(listValue);
+    assertThat(row.getList("setcol", Integer.class)).isEqualTo(listValue);
+    assertThat(row.getList("tuplecol", Integer.class)).isEqualTo(listValue);
   }
 
   @Test
