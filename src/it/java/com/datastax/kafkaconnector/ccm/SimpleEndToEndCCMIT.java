@@ -14,17 +14,29 @@ import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
+import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
+import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
+import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,13 +46,29 @@ import org.junit.jupiter.api.Test;
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   private DseSinkConnector conn = new DseSinkConnector();
   private DseSinkTask task = new DseSinkTask();
+  private AttachmentPoint attachmentPoint;
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
+    attachmentPoint =
+        new AttachmentPoint() {
+          @NotNull
+          @Override
+          public ProtocolVersion protocolVersion() {
+            return session.getContext().protocolVersion();
+          }
+
+          @NotNull
+          @Override
+          public CodecRegistry codecRegistry() {
+            return session.getContext().codecRegistry();
+          }
+        };
   }
 
   @BeforeAll
   void createTables() {
+    session.execute("CREATE TYPE IF NOT EXISTS myudt (" + "udtmem1 int, " + "udtmem2 text" + ")");
     session.execute(
         "CREATE TABLE IF NOT EXISTS types ("
             + "bigintCol bigint PRIMARY KEY, "
@@ -54,8 +82,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "mapCol map<text, int>, "
             + "mapNestedCol frozen<map<text, map<int, text>>>, "
             + "listCol list<int>, "
+            + "listNestedCol frozen<list<set<int>>>, "
             + "setCol set<int>, "
-            + "tupleCol tuple<int, int, int>"
+            + "setNestedCol frozen<set<list<int>>>, "
+            + "tupleCol tuple<smallint, int, int>, "
+            + "udtCol myudt, "
+            + "udtFromListCol myudt, "
+            + "blobCol blob"
             + ")");
   }
 
@@ -85,9 +118,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "mapcol=value.map, "
                 + "mapnestedcol=value.mapnested, "
                 + "listcol=value.list, "
+                + "listnestedcol=value.listnested, "
                 + "setcol=value.set, "
-                + "tuplecol=value.tuple"
-        );
+                + "setnestedcol=value.setnested, "
+                + "tuplecol=value.tuple, "
+                + "udtcol=value.udt, "
+                + "udtfromlistcol=value.udtfromlist, "
+                + "blobcol=value.blob");
 
     conn.start(props);
 
@@ -102,30 +139,55 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("smallint", Schema.INT16_SCHEMA)
             .field("text", Schema.STRING_SCHEMA)
             .field("tinyint", Schema.INT8_SCHEMA)
-            .field("map", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA))
-            .field("mapnested", SchemaBuilder.map(Schema.STRING_SCHEMA,
-                SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.STRING_SCHEMA)))
-            .field("list", SchemaBuilder.array(Schema.INT32_SCHEMA))
-            .field("set", SchemaBuilder.array(Schema.INT32_SCHEMA))
-            .field("tuple", SchemaBuilder.array(Schema.INT32_SCHEMA));
+            .field("map", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
+            .field(
+                "mapnested",
+                SchemaBuilder.map(
+                    Schema.STRING_SCHEMA,
+                    SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.STRING_SCHEMA).build())
+                    .build())
+            .field("list", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .field(
+                "listnested",
+                SchemaBuilder.array(SchemaBuilder.array(Schema.INT32_SCHEMA).build()).build())
+            .field("set", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .field(
+                "setnested",
+                SchemaBuilder.array(SchemaBuilder.array(Schema.INT32_SCHEMA).build()).build())
+            .field("tuple", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .field("udt", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
+            .field("udtfromlist", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .field("blob", Schema.BYTES_SCHEMA)
+            .build();
 
-    Map<String, Integer> mapValue = ImmutableMap.<String, Integer>builder()
-        .put("sub1", 37)
-        .put("sub2", 96)
-        .build();
+    Map<String, Integer> mapValue =
+        ImmutableMap.<String, Integer>builder().put("sub1", 37).put("sub2", 96).build();
 
-    Map<String, Map<Integer, String>> nestedMapValue = ImmutableMap.<String, Map<Integer, String>>builder()
-        .put("sub1", ImmutableMap.<Integer, String>builder()
-            .put(37, "sub1sub1")
-            .put(96, "sub1sub2")
-            .build())
-        .put("sub2", ImmutableMap.<Integer, String>builder()
-            .put(47, "sub2sub1")
-            .put(90, "sub2sub2")
-            .build())
-        .build();
+    Map<String, Map<Integer, String>> nestedMapValue =
+        ImmutableMap.<String, Map<Integer, String>>builder()
+            .put(
+                "sub1",
+                ImmutableMap.<Integer, String>builder()
+                    .put(37, "sub1sub1")
+                    .put(96, "sub1sub2")
+                    .build())
+            .put(
+                "sub2",
+                ImmutableMap.<Integer, String>builder()
+                    .put(47, "sub2sub1")
+                    .put(90, "sub2sub2")
+                    .build())
+            .build();
 
     List<Integer> listValue = Arrays.asList(37, 96, 90);
+
+    List<Integer> list2 = Arrays.asList(3, 2);
+    List<List<Integer>> nestedListValue = Arrays.asList(listValue, list2);
+
+    Map<String, Integer> udtValue =
+        ImmutableMap.<String, Integer>builder().put("udtmem1", 47).put("udtmem2", 90).build();
+
+    byte[] blobValue = new byte[]{12, 22, 32};
 
     Long baseValue = 98761234L;
     Struct value =
@@ -141,8 +203,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .put("map", mapValue)
             .put("mapnested", nestedMapValue)
             .put("list", listValue)
+            .put("listnested", nestedListValue)
             .put("set", listValue)
-            .put("tuple", listValue);
+            .put("setnested", nestedListValue)
+            .put("tuple", listValue)
+            .put("udt", udtValue)
+            .put("udtfromlist", udtValue.values())
+            .put("blob", blobValue);
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     task.start(props);
@@ -163,12 +230,80 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getMap("mapcol", String.class, Integer.class)).isEqualTo(mapValue);
     assertThat(row.getMap("mapnestedcol", String.class, Map.class)).isEqualTo(nestedMapValue);
     assertThat(row.getList("listcol", Integer.class)).isEqualTo(listValue);
-    assertThat(row.getList("setcol", Integer.class)).isEqualTo(listValue);
-    assertThat(row.getList("tuplecol", Integer.class)).isEqualTo(listValue);
+    assertThat(row.getList("listnestedcol", Set.class))
+        .isEqualTo(
+            new ArrayList<Set>(Arrays.asList(new HashSet<>(listValue), new HashSet<>(list2))));
+    assertThat(row.getSet("setcol", Integer.class)).isEqualTo(new HashSet<>(listValue));
+    assertThat(row.getSet("setnestedcol", List.class)).isEqualTo(new HashSet<>(nestedListValue));
+
+    DefaultTupleType tupleType =
+        new DefaultTupleType(
+            ImmutableList.of(DataTypes.SMALLINT, DataTypes.INT, DataTypes.INT), attachmentPoint);
+    assertThat(row.getTupleValue("tuplecol")).isEqualTo(tupleType.newValue((short) 37, 96, 90));
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder("ks1", "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(47, "90"));
+    assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
+    assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
   }
+
+
+  @Test
+  void struct_value_struct_field() {
+    Map<String, String> props =
+        makeConnectorProperties(
+            "bigintcol=value.bigint, "
+                + "udtcol=value.struct");
+
+    conn.start(props);
+
+    Schema fieldSchema = SchemaBuilder.struct()
+        .field("udtmem1", Schema.INT32_SCHEMA)
+        .field("udtmem2", Schema.STRING_SCHEMA)
+        .build();
+    Struct fieldValue = new Struct(fieldSchema).put("udtmem1", 42).put("udtmem2", "the answer");
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("struct", fieldSchema)
+            .build();
+
+    Struct value =
+        new Struct(schema)
+            .put("bigint", 1234567L)
+            .put("struct", fieldValue);
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder("ks1", "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+  }
+
 
   @Test
   void simple_json_value_only() {
+    // Since the well-established JSON converter codecs do all the heavy lifting,
+    // we don't test json very deeply here.
     Map<String, String> props =
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -265,7 +400,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("int", Schema.INT32_SCHEMA)
             .field("smallint", Schema.INT16_SCHEMA)
             .field("text", Schema.STRING_SCHEMA)
-            .field("tinyint", Schema.INT8_SCHEMA);
+            .field("tinyint", Schema.INT8_SCHEMA)
+            .build();
     Long baseValue = 98761234L;
     Struct structValue =
         new Struct(schema)

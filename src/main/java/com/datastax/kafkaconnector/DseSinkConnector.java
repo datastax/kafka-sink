@@ -17,6 +17,7 @@ import com.datastax.dsbulk.commons.config.CodecSettings;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
+import com.datastax.kafkaconnector.codecs.CodecFactory;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
@@ -288,7 +289,7 @@ public class DseSinkConnector extends SinkConnector {
     DseSession session = builder.withConfigLoader(configLoader).build();
 
     ExtendedCodecRegistry codecRegistry =
-        codecSettings.createCodecRegistry(session.getContext().codecRegistry());
+        codecSettings.createCodecRegistry(session.getContext().codecRegistry(), new CodecFactory());
 
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
