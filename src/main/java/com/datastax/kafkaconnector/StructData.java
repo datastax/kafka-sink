@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,6 +36,15 @@ public class StructData implements Record {
 
   @Override
   public Object getFieldValue(String field) {
-    return struct != null ? struct.get(field) : null;
+    if (struct == null) {
+      return null;
+    }
+
+    Object value = struct.get(field);
+    if (value instanceof byte[]) {
+      // The driver requires a ByteBuffer rather than byte[] when inserting a blob.
+      return ByteBuffer.wrap((byte[]) value);
+    }
+    return value;
   }
 }
