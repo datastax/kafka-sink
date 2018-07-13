@@ -12,11 +12,11 @@ import static com.datastax.kafkaconnector.DseSinkConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
 import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
 
-import com.datastax.dsbulk.commons.codecs.ExtendedCodecRegistry;
-import com.datastax.dsbulk.commons.config.CodecSettings;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
+import com.datastax.kafkaconnector.codecs.CodecSettings;
+import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
@@ -287,7 +287,7 @@ public class DseSinkConnector extends SinkConnector {
 
     DseSession session = builder.withConfigLoader(configLoader).build();
 
-    ExtendedCodecRegistry codecRegistry =
+    KafkaCodecRegistry codecRegistry =
         codecSettings.createCodecRegistry(session.getContext().codecRegistry());
 
     validateKeyspaceAndTable(session, config);

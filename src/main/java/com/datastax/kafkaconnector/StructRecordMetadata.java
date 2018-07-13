@@ -12,9 +12,10 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.google.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.jetbrains.annotations.NotNull;
 
-class StructRecordMetadata implements RecordMetadata {
+public class StructRecordMetadata implements RecordMetadata {
   private static final ImmutableMap<Schema, GenericType<?>> TYPE_MAP =
       ImmutableMap.<Schema, GenericType<?>>builder()
           .put(Schema.BOOLEAN_SCHEMA, GenericType.BOOLEAN)
@@ -29,13 +30,37 @@ class StructRecordMetadata implements RecordMetadata {
           .build();
   private final Schema schema;
 
-  StructRecordMetadata(@NotNull Schema schema) {
+  public StructRecordMetadata(@NotNull Schema schema) {
     this.schema = schema;
   }
 
   @Override
   public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
     Schema fieldType = schema.field(field).schema();
-    return TYPE_MAP.get(fieldType);
+    return getGenericType(fieldType);
+  }
+
+  @NotNull
+  private GenericType<?> getGenericType(@NotNull Schema fieldType) {
+    GenericType<?> result = TYPE_MAP.get(fieldType);
+    if (result != null) {
+      return result;
+    }
+    // This is a complex type.
+    // TODO: PERF: Cache these results and check the cache before creating
+    // new entries.
+
+    switch (fieldType.type()) {
+      case ARRAY:
+        return GenericType.listOf(getGenericType(fieldType.valueSchema()));
+      case MAP:
+        return GenericType.mapOf(
+            getGenericType(fieldType.keySchema()), getGenericType(fieldType.valueSchema()));
+      case STRUCT:
+        return GenericType.of(Struct.class);
+      default:
+        throw new IllegalArgumentException(
+            String.format("Unrecognized Kafka field type: %s", fieldType.type().getName()));
+    }
   }
 }
