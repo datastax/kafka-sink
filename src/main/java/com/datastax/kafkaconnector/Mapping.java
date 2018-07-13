@@ -9,8 +9,8 @@
 package com.datastax.kafkaconnector;
 
 import com.datastax.dsbulk.commons.codecs.ConvertingCodec;
-import com.datastax.dsbulk.commons.codecs.ExtendedCodecRegistry;
 import com.datastax.dsbulk.commons.codecs.writetime.WriteTimeCodec;
+import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
@@ -33,13 +33,13 @@ public class Mapping {
 
   private final Map<CqlIdentifier, CqlIdentifier> columnsToFields;
   private final Multimap<CqlIdentifier, CqlIdentifier> fieldsToColumns;
-  private final ExtendedCodecRegistry codecRegistry;
+  private final KafkaCodecRegistry codecRegistry;
   private final Cache<CqlIdentifier, TypeCodec<?>> columnsToCodecs;
   private final CqlIdentifier writeTimeVariable;
 
   public Mapping(
       Map<CqlIdentifier, CqlIdentifier> columnsToFields,
-      ExtendedCodecRegistry codecRegistry,
+      KafkaCodecRegistry codecRegistry,
       CqlIdentifier writeTimeVariable) {
     this.columnsToFields = columnsToFields;
     this.codecRegistry = codecRegistry;

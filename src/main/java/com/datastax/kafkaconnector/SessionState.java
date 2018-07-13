@@ -8,17 +8,17 @@
  */
 package com.datastax.kafkaconnector;
 
-import com.datastax.dsbulk.commons.codecs.ExtendedCodecRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
 class SessionState {
   private final DseSession session;
-  private final ExtendedCodecRegistry codecRegistry;
+  private final KafkaCodecRegistry codecRegistry;
   private final PreparedStatement insertStatement;
 
   SessionState(
-      DseSession session, ExtendedCodecRegistry codecRegistry, PreparedStatement insertStatement) {
+      DseSession session, KafkaCodecRegistry codecRegistry, PreparedStatement insertStatement) {
     this.session = session;
     this.codecRegistry = codecRegistry;
     this.insertStatement = insertStatement;
@@ -28,7 +28,7 @@ class SessionState {
     return session;
   }
 
-  ExtendedCodecRegistry getCodecRegistry() {
+  KafkaCodecRegistry getCodecRegistry() {
     return codecRegistry;
   }
 

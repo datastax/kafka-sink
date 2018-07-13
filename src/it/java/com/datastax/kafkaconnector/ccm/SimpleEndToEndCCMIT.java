@@ -143,8 +143,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field(
                 "mapnested",
                 SchemaBuilder.map(
-                    Schema.STRING_SCHEMA,
-                    SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.STRING_SCHEMA).build())
+                        Schema.STRING_SCHEMA,
+                        SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.STRING_SCHEMA).build())
                     .build())
             .field("list", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
             .field(
@@ -187,7 +187,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Map<String, Integer> udtValue =
         ImmutableMap.<String, Integer>builder().put("udtmem1", 47).put("udtmem2", 90).build();
 
-    byte[] blobValue = new byte[]{12, 22, 32};
+    byte[] blobValue = new byte[] {12, 22, 32};
 
     Long baseValue = 98761234L;
     Struct value =
@@ -252,20 +252,18 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
   }
 
-
   @Test
   void struct_value_struct_field() {
     Map<String, String> props =
-        makeConnectorProperties(
-            "bigintcol=value.bigint, "
-                + "udtcol=value.struct");
+        makeConnectorProperties("bigintcol=value.bigint, " + "udtcol=value.struct");
 
     conn.start(props);
 
-    Schema fieldSchema = SchemaBuilder.struct()
-        .field("udtmem1", Schema.INT32_SCHEMA)
-        .field("udtmem2", Schema.STRING_SCHEMA)
-        .build();
+    Schema fieldSchema =
+        SchemaBuilder.struct()
+            .field("udtmem1", Schema.INT32_SCHEMA)
+            .field("udtmem2", Schema.STRING_SCHEMA)
+            .build();
     Struct fieldValue = new Struct(fieldSchema).put("udtmem1", 42).put("udtmem2", "the answer");
 
     Schema schema =
@@ -275,10 +273,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("struct", fieldSchema)
             .build();
 
-    Struct value =
-        new Struct(schema)
-            .put("bigint", 1234567L)
-            .put("struct", fieldValue);
+    Struct value = new Struct(schema).put("bigint", 1234567L).put("struct", fieldValue);
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     task.start(props);
@@ -298,7 +293,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
   }
-
 
   @Test
   void simple_json_value_only() {

@@ -11,8 +11,8 @@ package com.datastax.kafkaconnector;
 import static com.datastax.kafkaconnector.DseSinkConfig.parseMappingString;
 import static com.datastax.kafkaconnector.DseSinkConnector.MAPPING_OPT;
 
-import com.datastax.dsbulk.commons.codecs.ExtendedCodecRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
@@ -55,8 +55,9 @@ public class DseSinkTask extends SinkTask {
         r -> log.debug("SANDMAN: offset={} key={} value={}", r.kafkaOffset(), r.key(), r.value()));
 
     DseSession session = sessionState.getSession();
-    ExtendedCodecRegistry codecRegistry = sessionState.getCodecRegistry();
+    KafkaCodecRegistry codecRegistry = sessionState.getCodecRegistry();
     PreparedStatement preparedStatement = sessionState.getInsertStatement();
+    // TODO: PERF: Cache the mapping, keyed on DseSession and the table being loaded.
     Mapping mapping =
         new Mapping(
             this.mapping,
