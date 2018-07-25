@@ -11,6 +11,12 @@ package com.datastax.kafkaconnector.ccm;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dse.driver.api.core.type.geometry.LineString;
+import com.datastax.dse.driver.api.core.type.geometry.Point;
+import com.datastax.dse.driver.api.core.type.geometry.Polygon;
+import com.datastax.dse.driver.internal.core.type.geometry.DefaultLineString;
+import com.datastax.dse.driver.internal.core.type.geometry.DefaultPoint;
+import com.datastax.dse.driver.internal.core.type.geometry.DefaultPolygon;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -20,6 +26,7 @@ import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
@@ -88,7 +95,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "tupleCol tuple<smallint, int, int>, "
             + "udtCol myudt, "
             + "udtFromListCol myudt, "
-            + "blobCol blob"
+            + "blobCol blob, "
+            + "pointCol 'PointType', "
+            + "linestringCol 'LineStringType', "
+            + "polygonCol 'PolygonType'"
             + ")");
   }
 
@@ -105,6 +115,21 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void struct_value_only() {
+    // We skip testing the following datatypes, since in Kafka messages values for these
+    // types would simply be strings or numbers, and we'd just pass these right through to
+    // the ExtendedCodecRegistry for encoding:
+    //
+    // ascii
+    // date
+    // decimal
+    // duration
+    // inet
+    // time
+    // timestamp
+    // timeuuid
+    // uuid
+    // varint
+
     Map<String, String> props =
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -124,7 +149,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "tuplecol=value.tuple, "
                 + "udtcol=value.udt, "
                 + "udtfromlistcol=value.udtfromlist, "
-                + "blobcol=value.blob");
+                + "blobcol=value.blob, "
+                + "pointcol=value.point, "
+                + "linestringcol=value.linestring, "
+                + "polygoncol=value.polygon");
 
     conn.start(props);
 
@@ -158,6 +186,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("udt", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
             .field("udtfromlist", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
             .field("blob", Schema.BYTES_SCHEMA)
+            .field("point", Schema.STRING_SCHEMA)
+            .field("linestring", Schema.STRING_SCHEMA)
+            .field("polygon", Schema.STRING_SCHEMA)
             .build();
 
     Map<String, Integer> mapValue =
@@ -209,7 +240,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .put("tuple", listValue)
             .put("udt", udtValue)
             .put("udtfromlist", udtValue.values())
-            .put("blob", blobValue);
+            .put("blob", blobValue)
+            .put("point", "POINT (32.0 64.0)")
+            .put("linestring", "LINESTRING (32.0 64.0, 48.5 96.5)")
+            .put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))");
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     task.start(props);
@@ -250,6 +284,17 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(47, "90"));
     assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
     assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
+    assertThat(row.get("pointcol", GenericType.of(Point.class))).isEqualTo(new DefaultPoint(32.0, 64.0));
+    assertThat(row.get("linestringcol", GenericType.of(LineString.class)))
+        .isEqualTo(new DefaultLineString(new DefaultPoint(32.0, 64.0), new DefaultPoint(48.5, 96.5)));
+    assertThat(row.get("polygoncol", GenericType.of(Polygon.class)))
+        .isEqualTo(new DefaultPolygon(
+            new DefaultPoint(0, 0),
+            new DefaultPoint(20, 0),
+            new DefaultPoint(25, 25),
+            new DefaultPoint(0, 25),
+            new DefaultPoint(0, 0)
+        ));
   }
 
   @Test
