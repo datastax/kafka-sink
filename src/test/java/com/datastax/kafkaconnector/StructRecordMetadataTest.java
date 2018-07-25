@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -66,7 +67,6 @@ class StructRecordMetadataTest {
   }
 
   private GenericType<?> getFieldType(@NotNull String field) {
-    //noinspection ConstantConditions
-    return metadata.getFieldType(field, null);
+    return metadata.getFieldType(field, DataTypes.TEXT);
   }
 }

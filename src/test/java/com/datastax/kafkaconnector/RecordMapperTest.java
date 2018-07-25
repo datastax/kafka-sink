@@ -29,11 +29,11 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.dsbulk.commons.codecs.string.StringToIntegerCodec;
 import com.datastax.dsbulk.commons.codecs.string.StringToLongCodec;
+import com.datastax.dsbulk.commons.codecs.util.CodecUtils;
 import com.datastax.dsbulk.commons.codecs.util.CqlTemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.OverflowStrategy;
 import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.ZonedTemporalFormat;
-import com.datastax.dsbulk.commons.config.CodecSettings;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatementBuilder;
@@ -94,7 +94,7 @@ class RecordMapperTest {
   private ArgumentCaptor<ByteBuffer> valueCaptor;
   private RecordMetadata recordMetadata;
   private final FastThreadLocal<NumberFormat> formatter =
-      CodecSettings.getNumberFormatThreadLocal("#,###.##", US, HALF_EVEN, true);
+      CodecUtils.getNumberFormatThreadLocal("#,###.##", US, HALF_EVEN, true);
 
   @BeforeEach
   void setUp() {

@@ -19,19 +19,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.dse.driver.api.core.metadata.DseMetadata;
+import com.datastax.dse.driver.api.core.metadata.schema.DseColumnMetadata;
+import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
+import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.metadata.Metadata;
-import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
-import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
-import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("unchecked")
 class DseSinkConnectorTest {
   private static final String C1 = "c1";
   private static final String C2 = "This is column 2, and its name desperately needs quoting";
@@ -42,33 +44,36 @@ class DseSinkConnectorTest {
   private static final CqlIdentifier C3_IDENT = CqlIdentifier.fromInternal(C3);
 
   private DseSession session;
-  private Metadata metadata;
-  private KeyspaceMetadata keyspace;
-  private TableMetadata table;
+  private DseMetadata metadata;
+  private DseKeyspaceMetadata keyspace;
+  private DseTableMetadata table;
 
   @BeforeEach
   void setUp() {
     session = mock(DseSession.class);
-    metadata = mock(Metadata.class);
-    keyspace = mock(KeyspaceMetadata.class);
-    table = mock(TableMetadata.class);
-    ColumnMetadata col1 = mock(ColumnMetadata.class);
-    ColumnMetadata col2 = mock(ColumnMetadata.class);
-    ColumnMetadata col3 = mock(ColumnMetadata.class);
-    Map<CqlIdentifier, ColumnMetadata> columns =
-        ImmutableMap.<CqlIdentifier, ColumnMetadata>builder()
+    metadata = mock(DseMetadata.class);
+    keyspace = mock(DseKeyspaceMetadata.class);
+    table = mock(DseTableMetadata.class);
+    DseColumnMetadata col1 = mock(DseColumnMetadata.class);
+    DseColumnMetadata col2 = mock(DseColumnMetadata.class);
+    DseColumnMetadata col3 = mock(DseColumnMetadata.class);
+    Map<CqlIdentifier, DseColumnMetadata> columns =
+        ImmutableMap.<CqlIdentifier, DseColumnMetadata>builder()
             .put(C1_IDENT, col1)
             .put(C2_IDENT, col2)
             .put(C3_IDENT, col3)
             .build();
     when(session.getMetadata()).thenReturn(metadata);
-    when(metadata.getKeyspace(any(CqlIdentifier.class))).thenReturn(Optional.of(keyspace));
-    when(keyspace.getTable(any(CqlIdentifier.class))).thenReturn(Optional.of(table));
-    when(table.getColumns()).thenReturn(columns);
-    when(table.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
-    when(table.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
-    when(table.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
-    when(table.getPrimaryKey()).thenReturn(Collections.singletonList(col1));
+    when((Optional<DseKeyspaceMetadata>) metadata.getKeyspace(any(CqlIdentifier.class)))
+        .thenReturn(Optional.of(keyspace));
+    when((Optional<DseTableMetadata>) keyspace.getTable(any(CqlIdentifier.class)))
+        .thenReturn(Optional.of(table));
+    when((Map<CqlIdentifier, DseColumnMetadata>) table.getColumns()).thenReturn(columns);
+    when((Optional<DseColumnMetadata>) table.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
+    when((Optional<DseColumnMetadata>) table.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
+    when((Optional<DseColumnMetadata>) table.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
+    when((List<DseColumnMetadata>) table.getPrimaryKey())
+        .thenReturn(Collections.singletonList(col1));
     when(col1.getName()).thenReturn(C1_IDENT);
     when(col2.getName()).thenReturn(C2_IDENT);
     when(col3.getName()).thenReturn(C3_IDENT);
@@ -80,7 +85,8 @@ class DseSinkConnectorTest {
   @Test
   void should_error_that_keyspace_was_not_found() {
     when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(Optional.empty());
-    when(metadata.getKeyspace("myks")).thenReturn(Optional.of(keyspace));
+    when((Optional<DseKeyspaceMetadata>) metadata.getKeyspace("myks"))
+        .thenReturn(Optional.of(keyspace));
 
     assertThatThrownBy(
             () ->
@@ -94,7 +100,7 @@ class DseSinkConnectorTest {
   @Test
   void should_error_that_table_was_not_found() {
     when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(Optional.empty());
-    when(keyspace.getTable("mytable")).thenReturn(Optional.of(table));
+    when((Optional<DseTableMetadata>) keyspace.getTable("mytable")).thenReturn(Optional.of(table));
 
     assertThatThrownBy(
             () ->

@@ -15,17 +15,18 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECI
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.DseSessionBuilder;
+import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -128,7 +129,7 @@ public class DseSinkConnector extends SinkConnector {
     CqlIdentifier keyspaceName = config.getKeyspace();
     CqlIdentifier tableName = config.getTable();
     Metadata metadata = session.getMetadata();
-    Optional<KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+    Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
     if (!keyspace.isPresent()) {
       String lowerCaseKeyspaceName = keyspaceName.asInternal().toLowerCase();
       if (metadata.getKeyspace(lowerCaseKeyspaceName).isPresent()) {
@@ -142,7 +143,7 @@ public class DseSinkConnector extends SinkConnector {
         throw new ConfigException(KEYSPACE_OPT, keyspaceName.asCql(true), "Not found");
       }
     }
-    Optional<TableMetadata> table = keyspace.get().getTable(tableName);
+    Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
     if (!table.isPresent()) {
       String lowerCaseTableName = tableName.asInternal().toLowerCase();
       if (keyspace.get().getTable(lowerCaseTableName).isPresent()) {
@@ -162,9 +163,9 @@ public class DseSinkConnector extends SinkConnector {
     CqlIdentifier keyspaceName = config.getKeyspace();
     CqlIdentifier tableName = config.getTable();
     Metadata metadata = session.getMetadata();
-    Optional<KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+    Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
     assert keyspace.isPresent();
-    Optional<TableMetadata> table = keyspace.get().getTable(tableName);
+    Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
     assert table.isPresent();
 
     Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
@@ -265,27 +266,24 @@ public class DseSinkConnector extends SinkConnector {
         .getContactPoints()
         .forEach(
             hostStr -> builder.addContactPoint(new InetSocketAddress(hostStr, config.getPort())));
-    DriverConfigLoader configLoader =
-        new DefaultDriverConfigLoader(
-            () -> {
-              ConfigFactory.invalidateCaches();
-              Config dseConfig = ConfigFactory.load().getConfig("datastax-dse-java-driver");
 
-              String overrides =
-                  config.getLocalDc().isEmpty()
-                      ? ""
-                      : String.format(
-                          "basic.load-balancing-policy.local-datacenter=\"%s\"",
-                          config.getLocalDc());
-              return ConfigFactory.parseString(overrides).withFallback(dseConfig);
-            });
+    DriverConfigLoader configLoader = null;
+    if (!config.getLocalDc().isEmpty()) {
+      configLoader =
+          DefaultDseDriverConfigLoader.builder()
+              .withString(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc())
+              .build();
+    }
 
     Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
     CodecSettings codecSettings =
         new CodecSettings(new DefaultLoaderConfig(dsbulkConfig.getConfig("codec")));
     codecSettings.init();
 
-    DseSession session = builder.withConfigLoader(configLoader).build();
+    if (configLoader != null) {
+      builder.withConfigLoader(configLoader);
+    }
+    DseSession session = builder.build();
 
     KafkaCodecRegistry codecRegistry =
         codecSettings.createCodecRegistry(session.getContext().codecRegistry());
