@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector;
 import static com.datastax.kafkaconnector.DseSinkConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.DseSinkConfig.TTL_OPT;
 import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -163,12 +164,30 @@ class DseSinkConnectorTest {
                 C1, C2, C3, C1, C2, C3));
   }
 
+  @Test
+  void should_make_correct_insert_cql_with_ttl() {
+    DseSinkConfig config =
+        makeConfig("myks", "mytable", String.format("%s=f1, \"%s\"=f2, %s=f3", C1, C2, C3), 1234);
+    assertThat(DseSinkConnector.makeInsertStatement(config))
+        .isEqualTo(
+            String.format(
+                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
+                    + "USING TTL 1234",
+                C1, C2, C3, C1, C2, C3));
+  }
+
   private static DseSinkConfig makeConfig(String keyspaceName, String tableName, String mapping) {
+    return makeConfig(keyspaceName, tableName, mapping, -1);
+  }
+
+  private static DseSinkConfig makeConfig(
+      String keyspaceName, String tableName, String mapping, int ttl) {
     return new DseSinkConfig(
         ImmutableMap.<String, String>builder()
             .put(KEYSPACE_OPT, keyspaceName)
             .put(TABLE_OPT, tableName)
             .put(MAPPING_OPT, mapping)
+            .put(TTL_OPT, String.valueOf(ttl))
             .build());
   }
 }

@@ -52,7 +52,13 @@ public class DseSinkTask extends SinkTask {
   public void put(Collection<SinkRecord> sinkRecords) {
     // TODO: Consider removing this logging.
     sinkRecords.forEach(
-        r -> log.debug("SANDMAN: offset={} key={} value={}", r.kafkaOffset(), r.key(), r.value()));
+        r ->
+            log.debug(
+                "SANDMAN: offset={} key={} value={} timestamp={}",
+                r.kafkaOffset(),
+                r.key(),
+                r.value(),
+                r.timestamp()));
 
     DseSession session = sessionState.getSession();
     KafkaCodecRegistry codecRegistry = sessionState.getCodecRegistry();
@@ -79,6 +85,9 @@ public class DseSinkTask extends SinkTask {
                 true,
                 false);
         Statement boundStatement = mapper.map(keyValueRecord);
+        if (record.timestamp() != null) {
+          boundStatement = boundStatement.setTimestamp(record.timestamp() * 1000);
+        }
         session.execute(boundStatement);
       }
     } catch (IOException e) {

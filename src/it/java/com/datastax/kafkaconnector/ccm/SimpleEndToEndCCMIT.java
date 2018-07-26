@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -284,23 +285,25 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(47, "90"));
     assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
     assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
-    assertThat(row.get("pointcol", GenericType.of(Point.class))).isEqualTo(new DefaultPoint(32.0, 64.0));
+    assertThat(row.get("pointcol", GenericType.of(Point.class)))
+        .isEqualTo(new DefaultPoint(32.0, 64.0));
     assertThat(row.get("linestringcol", GenericType.of(LineString.class)))
-        .isEqualTo(new DefaultLineString(new DefaultPoint(32.0, 64.0), new DefaultPoint(48.5, 96.5)));
+        .isEqualTo(
+            new DefaultLineString(new DefaultPoint(32.0, 64.0), new DefaultPoint(48.5, 96.5)));
     assertThat(row.get("polygoncol", GenericType.of(Polygon.class)))
-        .isEqualTo(new DefaultPolygon(
-            new DefaultPoint(0, 0),
-            new DefaultPoint(20, 0),
-            new DefaultPoint(25, 25),
-            new DefaultPoint(0, 25),
-            new DefaultPoint(0, 0)
-        ));
+        .isEqualTo(
+            new DefaultPolygon(
+                new DefaultPoint(0, 0),
+                new DefaultPoint(20, 0),
+                new DefaultPoint(25, 25),
+                new DefaultPoint(0, 25),
+                new DefaultPoint(0, 0)));
   }
 
   @Test
   void struct_value_struct_field() {
     Map<String, String> props =
-        makeConnectorProperties("bigintcol=value.bigint, " + "udtcol=value.struct");
+        makeConnectorProperties("bigintcol=value.bigint, udtcol=value.struct");
 
     conn.start(props);
 
@@ -337,6 +340,38 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
     udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+  }
+
+  @Test
+  void ttl() {
+    Map<String, String> props =
+        makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double");
+
+    conn.start(props);
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("double", Schema.FLOAT64_SCHEMA)
+            .build();
+
+    Struct value = new Struct(schema).put("bigint", 1234567L).put("double", 42.0);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getLong(2)).isEqualTo(153000987000L);
   }
 
   @Test

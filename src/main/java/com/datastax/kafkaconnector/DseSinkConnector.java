@@ -229,6 +229,9 @@ public class DseSinkConnector extends SinkConnector {
     statementBuilder.append(valuesBuilder.toString());
     statementBuilder.append(')');
 
+    if (config.getTtl() != -1) {
+      statementBuilder.append(" USING TTL ").append(config.getTtl());
+    }
     return statementBuilder.toString();
   }
 
