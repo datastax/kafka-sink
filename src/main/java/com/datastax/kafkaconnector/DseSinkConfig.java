@@ -38,6 +38,7 @@ public class DseSinkConfig extends AbstractConfig {
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
   static final String MAPPING_OPT = "mapping";
+  static final String TTL_OPT = "ttl";
 
   static ConfigDef CONFIG_DEF =
       new ConfigDef()
@@ -74,7 +75,14 @@ public class DseSinkConfig extends AbstractConfig {
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
-              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running.");
+              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running.")
+          .define(
+              TTL_OPT,
+              ConfigDef.Type.INT,
+              -1,
+              ConfigDef.Range.atLeast(-1),
+              ConfigDef.Importance.HIGH,
+              "TTL of rows inserted in DSE nodes");
 
   private final CqlIdentifier keyspace;
   private final CqlIdentifier table;
@@ -83,6 +91,7 @@ public class DseSinkConfig extends AbstractConfig {
   private final String localDc;
   private final String mappingString;
   private final Map<CqlIdentifier, CqlIdentifier> mapping;
+  private final int ttl;
 
   DseSinkConfig(final Map<?, ?> settings) {
     super(CONFIG_DEF, settings, false);
@@ -94,6 +103,7 @@ public class DseSinkConfig extends AbstractConfig {
     localDc = getString(DC_OPT);
     mappingString = getString(MAPPING_OPT);
     mapping = parseMappingString(mappingString);
+    ttl = getInt(TTL_OPT);
 
     // Verify that if contact-points are provided, local dc
     // is also specified.
@@ -146,6 +156,10 @@ public class DseSinkConfig extends AbstractConfig {
 
   String getLocalDc() {
     return localDc;
+  }
+
+  int getTtl() {
+    return ttl;
   }
 
   @Override

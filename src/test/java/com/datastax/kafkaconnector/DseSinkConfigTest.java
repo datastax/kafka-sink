@@ -14,6 +14,7 @@ import static com.datastax.kafkaconnector.DseSinkConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.DseSinkConfig.TTL_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -120,6 +121,26 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
+  void should_error_invalid_ttl() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(KEYSPACE_OPT, "myks")
+                .put(TABLE_OPT, "mytable")
+                .put(MAPPING_OPT, "c1=f1")
+                .put(TTL_OPT, "foo")
+                .build());
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Invalid value foo for configuration ttl");
+
+    props.put(TTL_OPT, "-2");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least -1");
   }
 
   @Test
