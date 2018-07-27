@@ -66,9 +66,9 @@ public class RecordMapper {
       Collection<CqlIdentifier> columns = mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
       if ((columns == null || columns.isEmpty()) && !allowExtraFields) {
         throw new ConfigException(
-            "Extraneous field "
-                + field
-                + " was found in record. "
+            "Extraneous field '"
+                + getExternalName(field)
+                + "' was found in record. "
                 + "Please declare it explicitly in the mapping.");
       }
       if (columns != null) {
@@ -87,6 +87,13 @@ public class RecordMapper {
     BoundStatement bs = builder.build();
     ensurePartitionKeySet(bs);
     return bs;
+  }
+
+  private static String getExternalName(String field) {
+    if (field.endsWith(RawRecord.FIELD_NAME)) {
+      return field.substring(0, field.length() - RawRecord.FIELD_NAME.length() - 1);
+    }
+    return field;
   }
 
   private <T> void bindColumn(
@@ -142,9 +149,9 @@ public class RecordMapper {
       CqlIdentifier field = mapping.columnToField(variable);
       if (!recordFields.contains(field.asInternal())) {
         throw new ConfigException(
-            "Required field "
-                + field
-                + " (mapped to column "
+            "Required field '"
+                + getExternalName(field.asInternal())
+                + "' (mapped to column "
                 + variable.asCql(true)
                 + ") was missing from record. "
                 + "Please remove it from the mapping.");

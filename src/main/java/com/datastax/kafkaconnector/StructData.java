@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
@@ -23,10 +24,13 @@ public class StructData implements Record {
 
   StructData(@Nullable Struct struct) {
     this.struct = struct;
-    fields =
-        struct == null
-            ? Collections.emptySet()
-            : struct.schema().fields().stream().map(Field::name).collect(Collectors.toSet());
+    if (struct == null) {
+      fields = Collections.singleton(RawRecord.FIELD_NAME);
+    } else {
+      fields = new HashSet<>();
+      fields.add(RawRecord.FIELD_NAME);
+      fields.addAll(struct.schema().fields().stream().map(Field::name).collect(Collectors.toSet()));
+    }
   }
 
   @Override
@@ -36,6 +40,10 @@ public class StructData implements Record {
 
   @Override
   public Object getFieldValue(String field) {
+    if (field.equals(RawRecord.FIELD_NAME)) {
+      return struct;
+    }
+
     if (struct == null) {
       return null;
     }

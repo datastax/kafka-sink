@@ -36,6 +36,9 @@ public class StructRecordMetadata implements RecordMetadata {
 
   @Override
   public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
+    if (field.equals(RawRecord.FIELD_NAME)) {
+      return GenericType.of(Struct.class);
+    }
     Schema fieldType = schema.field(field).schema();
     return getGenericType(fieldType);
   }

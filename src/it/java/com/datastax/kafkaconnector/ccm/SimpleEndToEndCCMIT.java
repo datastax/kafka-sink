@@ -343,35 +343,213 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void ttl() {
+  void raw_bigint_value() {
+    Map<String, String> props = makeConnectorProperties("bigintcol=value");
+
+    conn.start(props);
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(5725368L);
+  }
+
+  @Test
+  void raw_string_value() {
+    Map<String, String> props = makeConnectorProperties("bigintcol=key, pointcol=value");
+
+    conn.start(props);
+
+    SinkRecord record =
+        new SinkRecord("mytopic", 0, null, 98761234L, null, "POINT (32.0 64.0)", 1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, pointcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    assertThat(row.get("pointcol", GenericType.of(Point.class)))
+        .isEqualTo(new DefaultPoint(32.0, 64.0));
+  }
+
+  @Test
+  void raw_list_value_from_json() {
+    Map<String, String> props = makeConnectorProperties("bigintcol=key, listcol=value");
+
+    conn.start(props);
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "[42, 37]", 1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    assertThat(row.getList("listcol", Integer.class)).isEqualTo(Arrays.asList(42, 37));
+  }
+
+  @Test
+  void raw_list_value_from_list() {
+    Map<String, String> props = makeConnectorProperties("bigintcol=key, listcol=value");
+
+    conn.start(props);
+
+    SinkRecord record =
+        new SinkRecord("mytopic", 0, null, 98761234L, null, Arrays.asList(42, 37), 1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    assertThat(row.getList("listcol", Integer.class)).isEqualTo(Arrays.asList(42, 37));
+  }
+
+  @Test
+  void raw_udt_value_from_json() {
+    Map<String, String> props = makeConnectorProperties("bigintcol=key, udtcol=value");
+
+    conn.start(props);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic",
+            0,
+            null,
+            98761234L,
+            null,
+            "{\"udtmem1\": 42, \"udtmem2\": \"the answer\"}",
+            1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder("ks1", "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+  }
+
+  @Test
+  void raw_udt_value_and_cherry_pick_from_json() {
     Map<String, String> props =
-        makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double");
+        makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1");
+
+    conn.start(props);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic",
+            0,
+            null,
+            98761234L,
+            null,
+            "{\"udtmem1\": 42, \"udtmem2\": \"the answer\"}",
+            1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder("ks1", "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+    assertThat(row.getInt("intcol")).isEqualTo(42);
+  }
+
+  @Test
+  void raw_udt_value_from_struct() {
+    Map<String, String> props = makeConnectorProperties("bigintcol=key, udtcol=value");
 
     conn.start(props);
 
     Schema schema =
         SchemaBuilder.struct()
             .name("Kafka")
-            .field("bigint", Schema.INT64_SCHEMA)
-            .field("double", Schema.FLOAT64_SCHEMA)
+            .field("udtmem1", Schema.INT32_SCHEMA)
+            .field("udtmem2", Schema.STRING_SCHEMA)
             .build();
+    Struct value = new Struct(schema).put("udtmem1", 42).put("udtmem2", "the answer");
 
-    Struct value = new Struct(schema).put("bigint", 1234567L).put("double", 42.0);
-
-    SinkRecord record =
-        new SinkRecord(
-            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     task.start(props);
     task.put(Collections.singletonList(record));
 
     // Verify that the record was inserted properly in DSE.
-    List<Row> results =
-        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getLong(2)).isEqualTo(153000987000L);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder("ks1", "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+  }
+
+  @Test
+  void raw_udt_value_and_cherry_pick_from_struct() {
+    Map<String, String> props =
+        makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1");
+
+    conn.start(props);
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("udtmem1", Schema.INT32_SCHEMA)
+            .field("udtmem2", Schema.STRING_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("udtmem1", 42).put("udtmem2", "the answer");
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder("ks1", "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+    assertThat(row.getInt("intcol")).isEqualTo(42);
   }
 
   @Test
@@ -525,6 +703,38 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
     assertThat(row.getString("textcol")).isEqualTo(baseKey.toString());
     assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
+  }
+
+  @Test
+  void timestamp() {
+    Map<String, String> props =
+        makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double");
+
+    conn.start(props);
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("double", Schema.FLOAT64_SCHEMA)
+            .build();
+
+    Struct value = new Struct(schema).put("bigint", 1234567L).put("double", 42.0);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    task.start(props);
+    task.put(Collections.singletonList(record));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getLong(2)).isEqualTo(153000987000L);
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {

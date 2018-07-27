@@ -391,7 +391,31 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Extraneous field field3 was found in record. "
+            "Extraneous field 'field3' was found in record. "
+                + "Please declare it explicitly in the mapping.");
+  }
+
+  @Test
+  void should_return_unmappable_statement_when_extra_field_key() {
+    when(record.fields()).thenReturn(set(F1, F2, F3, "key.__self"));
+    RecordMapper mapper =
+        new RecordMapper(insertStatement, mapping, recordMetadata, false, false, false);
+    assertThatThrownBy(() -> mapper.map(record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Extraneous field 'key' was found in record. "
+                + "Please declare it explicitly in the mapping.");
+  }
+
+  @Test
+  void should_return_unmappable_statement_when_extra_field_value() {
+    when(record.fields()).thenReturn(set(F1, F2, F3, "value.__self"));
+    RecordMapper mapper =
+        new RecordMapper(insertStatement, mapping, recordMetadata, false, false, false);
+    assertThatThrownBy(() -> mapper.map(record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Extraneous field 'value' was found in record. "
                 + "Please declare it explicitly in the mapping.");
   }
 
@@ -403,7 +427,35 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field field3 (mapped to column \"My Fancy Column Name\") was missing from record. "
+            "Required field 'field3' (mapped to column \"My Fancy Column Name\") was missing from record. "
+                + "Please remove it from the mapping.");
+  }
+
+  @Test
+  void should_return_unmappable_statement_when_missing_field_key() {
+    when(mapping.fieldToColumns(CqlIdentifier.fromInternal("key.__self")))
+        .thenReturn(Collections.singleton(C1));
+    when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("key.__self"));
+    RecordMapper mapper =
+        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+    assertThatThrownBy(() -> mapper.map(record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Required field 'key' (mapped to column col1) was missing from record. "
+                + "Please remove it from the mapping.");
+  }
+
+  @Test
+  void should_return_unmappable_statement_when_missing_field_value() {
+    when(mapping.fieldToColumns(CqlIdentifier.fromInternal("value.__self")))
+        .thenReturn(Collections.singleton(C1));
+    when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("value.__self"));
+    RecordMapper mapper =
+        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+    assertThatThrownBy(() -> mapper.map(record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Required field 'value' (mapped to column col1) was missing from record. "
                 + "Please remove it from the mapping.");
   }
 
