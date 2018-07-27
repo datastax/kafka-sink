@@ -92,7 +92,7 @@ class DseSinkConnectorTest {
     assertThatThrownBy(
             () ->
                 DseSinkConnector.validateKeyspaceAndTable(
-                    session, makeConfig("MyKs", "t1", "c1=f1")))
+                    session, makeConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Keyspace does not exist, however a keyspace myks was found. Update the config to use myks if desired.");
@@ -106,7 +106,7 @@ class DseSinkConnectorTest {
     assertThatThrownBy(
             () ->
                 DseSinkConnector.validateKeyspaceAndTable(
-                    session, makeConfig("ks1", "MyTable", "c1=f1")))
+                    session, makeConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Table does not exist, however a table mytable was found. Update the config to use mytable if desired.");
@@ -119,7 +119,7 @@ class DseSinkConnectorTest {
     assertThatThrownBy(
             () ->
                 DseSinkConnector.validateKeyspaceAndTable(
-                    session, makeConfig("MyKs", "t1", "c1=f1")))
+                    session, makeConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage("Invalid value \"MyKs\" for configuration keyspace: Not found");
   }
@@ -132,14 +132,14 @@ class DseSinkConnectorTest {
     assertThatThrownBy(
             () ->
                 DseSinkConnector.validateKeyspaceAndTable(
-                    session, makeConfig("ks1", "MyTable", "c1=f1")))
+                    session, makeConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage("Invalid value \"MyTable\" for configuration table: Not found");
   }
 
   @Test
   void should_error_when_mapping_does_not_use_primary_key_columns() {
-    DseSinkConfig config = makeConfig("myks", "mytable", C3 + "=f3");
+    DseSinkConfig config = makeConfig("myks", "mytable", C3 + "=key.f3");
     assertThatThrownBy(() -> DseSinkConnector.validateMappingColumns(session, config))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("but are not mapped: " + C1);
@@ -147,7 +147,7 @@ class DseSinkConnectorTest {
 
   @Test
   void should_error_when_mapping_has_nonexistent_column() {
-    DseSinkConfig config = makeConfig("myks", "mytable", "nocol=f3");
+    DseSinkConfig config = makeConfig("myks", "mytable", "nocol=key.f3");
     assertThatThrownBy(() -> DseSinkConnector.validateMappingColumns(session, config))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("do not exist in table mytable: nocol");
@@ -156,7 +156,8 @@ class DseSinkConnectorTest {
   @Test
   void should_make_correct_insert_cql() {
     DseSinkConfig config =
-        makeConfig("myks", "mytable", String.format("%s=f1, \"%s\"=f2, %s=f3", C1, C2, C3));
+        makeConfig(
+            "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
     assertThat(DseSinkConnector.makeInsertStatement(config))
         .isEqualTo(
             String.format(
@@ -167,7 +168,11 @@ class DseSinkConnectorTest {
   @Test
   void should_make_correct_insert_cql_with_ttl() {
     DseSinkConfig config =
-        makeConfig("myks", "mytable", String.format("%s=f1, \"%s\"=f2, %s=f3", C1, C2, C3), 1234);
+        makeConfig(
+            "myks",
+            "mytable",
+            String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3),
+            1234);
     assertThat(DseSinkConnector.makeInsertStatement(config))
         .isEqualTo(
             String.format(

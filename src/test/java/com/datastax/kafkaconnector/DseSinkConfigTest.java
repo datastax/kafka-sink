@@ -51,7 +51,7 @@ class DseSinkConfigTest {
             ImmutableMap.<String, String>builder()
                 .put(KEYSPACE_OPT, "myks")
                 .put(TABLE_OPT, "mytable")
-                .put(MAPPING_OPT, "c1=f1")
+                .put(MAPPING_OPT, "c1=value.f1")
                 .build());
 
     DseSinkConfig d = new DseSinkConfig(props);
@@ -72,7 +72,7 @@ class DseSinkConfigTest {
             ImmutableMap.<String, String>builder()
                 .put(KEYSPACE_OPT, "MyKs")
                 .put(TABLE_OPT, "MyTable")
-                .put(MAPPING_OPT, "c1=f1")
+                .put(MAPPING_OPT, "c1=value.f1")
                 .build());
 
     DseSinkConfig d = new DseSinkConfig(props);
@@ -105,7 +105,7 @@ class DseSinkConfigTest {
             ImmutableMap.<String, String>builder()
                 .put(KEYSPACE_OPT, "myks")
                 .put(TABLE_OPT, "mytable")
-                .put(MAPPING_OPT, "c1=f1")
+                .put(MAPPING_OPT, "c1=value.f1")
                 .put(PORT_OPT, "foo")
                 .build());
     assertThatThrownBy(() -> new DseSinkConfig(props))
@@ -130,7 +130,7 @@ class DseSinkConfigTest {
             ImmutableMap.<String, String>builder()
                 .put(KEYSPACE_OPT, "myks")
                 .put(TABLE_OPT, "mytable")
-                .put(MAPPING_OPT, "c1=f1")
+                .put(MAPPING_OPT, "c1=value.f1")
                 .put(TTL_OPT, "foo")
                 .build());
     assertThatThrownBy(() -> new DseSinkConfig(props))
@@ -149,7 +149,7 @@ class DseSinkConfigTest {
         ImmutableMap.<String, String>builder()
             .put(KEYSPACE_OPT, "myks")
             .put(TABLE_OPT, "mytable")
-            .put(MAPPING_OPT, "c1=f1")
+            .put(MAPPING_OPT, "c1=value.f1")
             .put(CONTACT_POINTS_OPT, "127.0.0.1")
             .build();
     assertThatThrownBy(() -> new DseSinkConfig(props))
@@ -164,7 +164,7 @@ class DseSinkConfigTest {
         ImmutableMap.<String, String>builder()
             .put(KEYSPACE_OPT, "myks")
             .put(TABLE_OPT, "mytable")
-            .put(MAPPING_OPT, "c1=f1")
+            .put(MAPPING_OPT, "c1=value.f1")
             .put(CONTACT_POINTS_OPT, "127.0.0.1, 127.0.1.1")
             .put(DC_OPT, "local")
             .build();
@@ -206,24 +206,35 @@ class DseSinkConfigTest {
         .hasMessageStartingWith("Invalid value '= value' for configuration mapping:");
 
     // Non-first key without value.
-    props.put(MAPPING_OPT, "first = good, jack");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
-        .isInstanceOf(ConfigException.class)
-        .hasMessageStartingWith("Invalid value 'first = good, jack' for configuration mapping:");
-
-    // Non-first value without key
-    props.put(MAPPING_OPT, "first = good, = value");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
-        .isInstanceOf(ConfigException.class)
-        .hasMessageStartingWith("Invalid value 'first = good, = value' for configuration mapping:");
-
-    // Multiple mappings for the same column
-    props.put(MAPPING_OPT, "c1=f1, c1=f2");
+    props.put(MAPPING_OPT, "first = value.good, jack");
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageStartingWith(
-            "Invalid value 'c1=f1, c1=f2' for configuration mapping: Encountered the following errors:")
+            "Invalid value 'first = value.good, jack' for configuration mapping:");
+
+    // Non-first value without key
+    props.put(MAPPING_OPT, "first = value.good, = value");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageStartingWith(
+            "Invalid value 'first = value.good, = value' for configuration mapping:");
+
+    // Multiple mappings for the same column
+    props.put(MAPPING_OPT, "c1=value.f1, c1=value.f2");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageStartingWith(
+            "Invalid value 'c1=value.f1, c1=value.f2' for configuration mapping: Encountered the following errors:")
         .hasMessageContaining("Mapping already defined for column 'c1'");
+
+    // Mapping a field whose name doesn't start with "key." or "value."
+    props.put(MAPPING_OPT, "c1=f1");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageStartingWith(
+            "Invalid value 'c1=f1' for configuration mapping: Encountered the following errors:")
+        .hasMessageContaining(
+            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.'.");
   }
 
   @Test
@@ -235,16 +246,20 @@ class DseSinkConfigTest {
                 .put(TABLE_OPT, "mytable")
                 .put(
                     MAPPING_OPT,
-                    "a=b.c, first = good, \"jack\"=\"bill\",third=great, \"This has spaces, \"\", and commas\" = \"me, \"\" too\"")
+                    "a=key.b, first = value.good, \"jack\"=\"value.bill\",third=key.great, c1=key, "
+                        + "\"This has spaces, \"\", and commas\" = \"value.me, \"\" too\", d1=value")
                 .build());
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getMapping())
         .containsEntry(
             CqlIdentifier.fromInternal("This has spaces, \", and commas"),
-            CqlIdentifier.fromInternal("me, \" too"))
-        .containsEntry(CqlIdentifier.fromInternal("jack"), CqlIdentifier.fromInternal("bill"))
-        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("b.c"))
-        .containsEntry(CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("good"));
+            CqlIdentifier.fromInternal("value.me, \" too"))
+        .containsEntry(CqlIdentifier.fromInternal("c1"), CqlIdentifier.fromInternal("key.__self"))
+        .containsEntry(CqlIdentifier.fromInternal("d1"), CqlIdentifier.fromInternal("value.__self"))
+        .containsEntry(CqlIdentifier.fromInternal("jack"), CqlIdentifier.fromInternal("value.bill"))
+        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("key.b"))
+        .containsEntry(
+            CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("value.good"));
   }
 }

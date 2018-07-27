@@ -256,6 +256,15 @@ public class DseSinkConfig extends AbstractConfig {
       if (mapping.containsKey(column)) {
         errors.add(String.format("Mapping already defined for column '%s'", column.asInternal()));
       }
+      String fieldString = field.asInternal();
+      if (fieldString.equals("value") || fieldString.equals("key")) {
+        field = CqlIdentifier.fromInternal(fieldString + '.' + RawRecord.FIELD_NAME);
+      } else if (!fieldString.startsWith("key.") && !fieldString.startsWith("value.")) {
+        errors.add(
+            String.format(
+                "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.'.",
+                fieldString));
+      }
       mapping.put(column, field);
       return null;
     }

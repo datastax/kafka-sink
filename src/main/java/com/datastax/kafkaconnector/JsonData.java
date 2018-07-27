@@ -16,13 +16,17 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 public class JsonData implements Record {
   private final Map<String, JsonNode> data;
+  private final String json;
+  private final Set<String> fields;
 
   JsonData(ObjectMapper objectMapper, JavaType jsonNodeMapType, String json) throws IOException {
+    this.json = json;
     JsonFactory factory = objectMapper.getFactory();
     if (json == null) {
       data = Collections.emptyMap();
@@ -37,15 +41,20 @@ public class JsonData implements Record {
         }
       }
     }
+    fields = new HashSet<>(data.keySet());
+    fields.add(RawRecord.FIELD_NAME);
   }
 
   @Override
   public Set<String> fields() {
-    return data.keySet();
+    return fields;
   }
 
   @Override
   public Object getFieldValue(String field) {
+    if (field.equals(RawRecord.FIELD_NAME)) {
+      return json;
+    }
     return data.get(field);
   }
 }

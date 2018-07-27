@@ -58,7 +58,8 @@ import org.slf4j.LoggerFactory;
 public class DseSinkConnector extends SinkConnector {
   static final String MAPPING_OPT = "mapping";
   static final RecordMetadata JSON_RECORD_METADATA =
-      (field, cqlType) -> GenericType.of(JsonNode.class);
+      (field, cqlType) ->
+          field.equals(RawRecord.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
   static final ObjectMapper objectMapper = new ObjectMapper();
   static final JavaType jsonNodeMapType =
       objectMapper.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());

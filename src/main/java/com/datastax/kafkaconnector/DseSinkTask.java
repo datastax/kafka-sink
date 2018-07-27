@@ -105,11 +105,21 @@ public class DseSinkTask extends SinkTask {
       innerRecordMeta = new StructRecordMetadata(innerRecordStruct.schema());
       innerRecord = new StructData(innerRecordStruct);
     } else if (keyOrValue instanceof String) {
-      // TODO: Refine analysis instead of assuming it's JSON.
       innerRecordMeta = DseSinkConnector.JSON_RECORD_METADATA;
-      innerRecord =
-          new JsonData(
-              DseSinkConnector.objectMapper, DseSinkConnector.jsonNodeMapType, (String) keyOrValue);
+      try {
+        innerRecord =
+            new JsonData(
+                DseSinkConnector.objectMapper,
+                DseSinkConnector.jsonNodeMapType,
+                (String) keyOrValue);
+      } catch (RuntimeException e) {
+        // Json parsing failed. Treat as raw string.
+        innerRecord = new RawRecord(keyOrValue);
+        innerRecordMeta = (RecordMetadata) innerRecord;
+      }
+    } else if (keyOrValue != null) {
+      innerRecord = new RawRecord(keyOrValue);
+      innerRecordMeta = (RecordMetadata) innerRecord;
     }
     return new InnerRecordAndMetadata(innerRecord, innerRecordMeta);
   }
