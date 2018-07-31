@@ -8,18 +8,21 @@
  */
 package com.datastax.kafkaconnector;
 
-import static com.datastax.kafkaconnector.DseSinkConfig.parseMappingString;
-import static com.datastax.kafkaconnector.DseSinkConnector.MAPPING_OPT;
+import static com.datastax.kafkaconnector.DseSinkConnector.MAPPINGS_OPT;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -31,7 +34,8 @@ import org.slf4j.LoggerFactory;
 public class DseSinkTask extends SinkTask {
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
   private SessionState sessionState;
-  private Map<CqlIdentifier, CqlIdentifier> mapping;
+  private Map<String, Map<CqlIdentifier, CqlIdentifier>> topicMappings;
+  private Cache<String, Mapping> mappingObjects;
 
   @Override
   public String version() {
@@ -40,8 +44,9 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    mapping = parseMappingString(props.get(MAPPING_OPT));
-    log.debug("Task will run with mapping: {}", mapping);
+    mappingObjects = Caffeine.newBuilder().build();
+    topicMappings = SinkUtil.deserializeTopicMappings(props.get(MAPPINGS_OPT));
+    log.debug("Task will run with mapping: {}", topicMappings.toString());
 
     // TODO: Use a caffeine cache keyed on "session attributes" to allow us to
     // get/create a session with particular attributes.
@@ -62,17 +67,25 @@ public class DseSinkTask extends SinkTask {
 
     DseSession session = sessionState.getSession();
     KafkaCodecRegistry codecRegistry = sessionState.getCodecRegistry();
-    PreparedStatement preparedStatement = sessionState.getInsertStatement();
-    // TODO: PERF: Cache the mapping, keyed on DseSession and the table being loaded.
-    Mapping mapping =
-        new Mapping(
-            this.mapping,
-            codecRegistry,
-            CqlIdentifier.fromInternal(DseSinkConfig.MappingInspector.INTERNAL_TIMESTAMP_VARNAME));
+
     try {
       for (SinkRecord record : sinkRecords) {
         // TODO: Make a batch
-
+        String topicName = record.topic();
+        PreparedStatement preparedStatement = sessionState.getInsertStatement(topicName);
+        Mapping mapping =
+            mappingObjects.get(
+                topicName,
+                t -> {
+                  if (topicMappings.containsKey(t)) {
+                    return new Mapping(topicMappings.get(t), codecRegistry);
+                  } else {
+                    throw new KafkaException(
+                        String.format(
+                            "Connector has no configuration for record topic '%s'. Please update the configuration and restart.",
+                            topicName));
+                  }
+                });
         InnerRecordAndMetadata key = makeMeta(record.key());
         InnerRecordAndMetadata value = makeMeta(record.value());
         KeyValueRecord keyValueRecord = new KeyValueRecord(key.innerRecord, value.innerRecord);

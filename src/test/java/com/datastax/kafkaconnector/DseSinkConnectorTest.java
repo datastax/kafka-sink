@@ -8,10 +8,10 @@
  */
 package com.datastax.kafkaconnector;
 
-import static com.datastax.kafkaconnector.DseSinkConfig.KEYSPACE_OPT;
-import static com.datastax.kafkaconnector.DseSinkConfig.MAPPING_OPT;
-import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
-import static com.datastax.kafkaconnector.DseSinkConfig.TTL_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TTL_OPT;
 import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,6 +24,8 @@ import com.datastax.dse.driver.api.core.metadata.DseMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseColumnMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
+import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -94,8 +96,8 @@ class DseSinkConnectorTest {
                 DseSinkConnector.validateKeyspaceAndTable(
                     session, makeConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(
-            "Keyspace does not exist, however a keyspace myks was found. Update the config to use myks if desired.");
+        .hasMessage(
+            "Invalid value MyKs for configuration topic.mytopic.keyspace: Keyspace does not exist, however a keyspace myks was found. Update the config to use myks if desired.");
   }
 
   @Test
@@ -108,8 +110,8 @@ class DseSinkConnectorTest {
                 DseSinkConnector.validateKeyspaceAndTable(
                     session, makeConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(
-            "Table does not exist, however a table mytable was found. Update the config to use mytable if desired.");
+        .hasMessage(
+            "Invalid value MyTable for configuration topic.mytopic.table: Table does not exist, however a table mytable was found. Update the config to use mytable if desired.");
   }
 
   @Test
@@ -121,7 +123,7 @@ class DseSinkConnectorTest {
                 DseSinkConnector.validateKeyspaceAndTable(
                     session, makeConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
-        .hasMessage("Invalid value \"MyKs\" for configuration keyspace: Not found");
+        .hasMessage("Invalid value \"MyKs\" for configuration topic.mytopic.keyspace: Not found");
   }
 
   @Test
@@ -134,7 +136,7 @@ class DseSinkConnectorTest {
                 DseSinkConnector.validateKeyspaceAndTable(
                     session, makeConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
-        .hasMessage("Invalid value \"MyTable\" for configuration table: Not found");
+        .hasMessage("Invalid value \"MyTable\" for configuration topic.mytopic.table: Not found");
   }
 
   @Test
@@ -142,6 +144,7 @@ class DseSinkConnectorTest {
     DseSinkConfig config = makeConfig("myks", "mytable", C3 + "=key.f3");
     assertThatThrownBy(() -> DseSinkConnector.validateMappingColumns(session, config))
         .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Invalid value c3=key.f3 for configuration topic.mytopic.mapping:")
         .hasMessageContaining("but are not mapped: " + C1);
   }
 
@@ -150,6 +153,7 @@ class DseSinkConnectorTest {
     DseSinkConfig config = makeConfig("myks", "mytable", "nocol=key.f3");
     assertThatThrownBy(() -> DseSinkConnector.validateMappingColumns(session, config))
         .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Invalid value nocol=key.f3 for configuration topic.mytopic.mapping:")
         .hasMessageContaining("do not exist in table mytable: nocol");
   }
 
@@ -158,7 +162,7 @@ class DseSinkConnectorTest {
     DseSinkConfig config =
         makeConfig(
             "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
-    assertThat(DseSinkConnector.makeInsertStatement(config))
+    assertThat(DseSinkConnector.makeInsertStatement(config.getTopicConfigs().get("mytopic")))
         .isEqualTo(
             String.format(
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s)",
@@ -173,7 +177,7 @@ class DseSinkConnectorTest {
             "mytable",
             String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3),
             1234);
-    assertThat(DseSinkConnector.makeInsertStatement(config))
+    assertThat(DseSinkConnector.makeInsertStatement(config.getTopicConfigs().get("mytopic")))
         .isEqualTo(
             String.format(
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
@@ -189,10 +193,10 @@ class DseSinkConnectorTest {
       String keyspaceName, String tableName, String mapping, int ttl) {
     return new DseSinkConfig(
         ImmutableMap.<String, String>builder()
-            .put(KEYSPACE_OPT, keyspaceName)
-            .put(TABLE_OPT, tableName)
-            .put(MAPPING_OPT, mapping)
-            .put(TTL_OPT, String.valueOf(ttl))
+            .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), keyspaceName)
+            .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), tableName)
+            .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), mapping)
+            .put(TopicConfig.getTopicSettingName("mytopic", TTL_OPT), String.valueOf(ttl))
             .build());
   }
 }

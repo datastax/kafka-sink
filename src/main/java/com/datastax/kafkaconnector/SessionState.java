@@ -11,17 +11,20 @@ package com.datastax.kafkaconnector;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import java.util.Map;
 
 class SessionState {
   private final DseSession session;
   private final KafkaCodecRegistry codecRegistry;
-  private final PreparedStatement insertStatement;
+  private final Map<String, PreparedStatement> insertStatements;
 
   SessionState(
-      DseSession session, KafkaCodecRegistry codecRegistry, PreparedStatement insertStatement) {
+      DseSession session,
+      KafkaCodecRegistry codecRegistry,
+      Map<String, PreparedStatement> insertStatements) {
     this.session = session;
     this.codecRegistry = codecRegistry;
-    this.insertStatement = insertStatement;
+    this.insertStatements = insertStatements;
   }
 
   DseSession getSession() {
@@ -32,7 +35,7 @@ class SessionState {
     return codecRegistry;
   }
 
-  PreparedStatement getInsertStatement() {
-    return insertStatement;
+  PreparedStatement getInsertStatement(String topicName) {
+    return insertStatements.get(topicName);
   }
 }

@@ -8,8 +8,10 @@
  */
 package com.datastax.kafkaconnector;
 
-import static com.datastax.kafkaconnector.DseSinkConfig.KEYSPACE_OPT;
-import static com.datastax.kafkaconnector.DseSinkConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.getTopicSettingName;
 import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
 
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
@@ -18,6 +20,9 @@ import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
+import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -32,6 +37,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.BufferedReader;
@@ -40,23 +46,24 @@ import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
-import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Sink connector to insert Kafka records into DSE. */
 public class DseSinkConnector extends SinkConnector {
-  static final String MAPPING_OPT = "mapping";
+  static final String MAPPINGS_OPT = "mappings";
   static final RecordMetadata JSON_RECORD_METADATA =
       (field, cqlType) ->
           field.equals(RawRecord.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
@@ -98,116 +105,106 @@ public class DseSinkConnector extends SinkConnector {
     }
   }
 
-  /**
-   * This isn't used in the connector really; it's primarily useful for trying things out and
-   * debugging logic in IntelliJ.
-   */
-  public static void main(String[] args) {
-    DseSinkConnector conn = new DseSinkConnector();
-
-    String mappingString = "f1=value.f1, f2=value.f2";
-    Map<String, String> props =
-        ImmutableMap.<String, String>builder()
-            .put("mapping", mappingString)
-            .put("keyspace", "ks1")
-            .put("table", "b")
-            .build();
-    try {
-      conn.start(props);
-      String value = "{\"f1\": 42, \"f2\": 96}";
-      SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
-      DseSinkTask task = new DseSinkTask();
-      task.start(props);
-      task.put(Collections.singletonList(record));
-    } finally {
-      if (sessionState != null) {
-        closeQuietly(sessionState.getSession());
-      }
-    }
-  }
-
   static void validateKeyspaceAndTable(DseSession session, DseSinkConfig config) {
-    CqlIdentifier keyspaceName = config.getKeyspace();
-    CqlIdentifier tableName = config.getTable();
-    Metadata metadata = session.getMetadata();
-    Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
-    if (!keyspace.isPresent()) {
-      String lowerCaseKeyspaceName = keyspaceName.asInternal().toLowerCase();
-      if (metadata.getKeyspace(lowerCaseKeyspaceName).isPresent()) {
-        throw new ConfigException(
-            KEYSPACE_OPT,
-            keyspaceName,
-            String.format(
-                "Keyspace does not exist, however a keyspace %s was found. Update the config to use %s if desired.",
-                lowerCaseKeyspaceName, lowerCaseKeyspaceName));
-      } else {
-        throw new ConfigException(KEYSPACE_OPT, keyspaceName.asCql(true), "Not found");
-      }
-    }
-    Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
-    if (!table.isPresent()) {
-      String lowerCaseTableName = tableName.asInternal().toLowerCase();
-      if (keyspace.get().getTable(lowerCaseTableName).isPresent()) {
-        throw new ConfigException(
-            TABLE_OPT,
-            tableName,
-            String.format(
-                "Table does not exist, however a table %s was found. Update the config to use %s if desired.",
-                lowerCaseTableName, lowerCaseTableName));
-      } else {
-        throw new ConfigException(TABLE_OPT, tableName.asCql(true), "Not found");
-      }
-    }
+    config
+        .getTopicConfigs()
+        .forEach(
+            (topicName, topicConfig) -> {
+              CqlIdentifier keyspaceName = topicConfig.getKeyspace();
+              CqlIdentifier tableName = topicConfig.getTable();
+              Metadata metadata = session.getMetadata();
+              Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+              if (!keyspace.isPresent()) {
+                String lowerCaseKeyspaceName = keyspaceName.asInternal().toLowerCase();
+                if (metadata.getKeyspace(lowerCaseKeyspaceName).isPresent()) {
+                  throw new ConfigException(
+                      getTopicSettingName(topicName, KEYSPACE_OPT),
+                      keyspaceName,
+                      String.format(
+                          "Keyspace does not exist, however a keyspace %s was found. Update the config to use %s if desired.",
+                          lowerCaseKeyspaceName, lowerCaseKeyspaceName));
+                } else {
+                  throw new ConfigException(
+                      getTopicSettingName(topicName, KEYSPACE_OPT),
+                      keyspaceName.asCql(true),
+                      "Not found");
+                }
+              }
+              Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
+              if (!table.isPresent()) {
+                String lowerCaseTableName = tableName.asInternal().toLowerCase();
+                if (keyspace.get().getTable(lowerCaseTableName).isPresent()) {
+                  throw new ConfigException(
+                      getTopicSettingName(topicName, TABLE_OPT),
+                      tableName,
+                      String.format(
+                          "Table does not exist, however a table %s was found. Update the config to use %s if desired.",
+                          lowerCaseTableName, lowerCaseTableName));
+                } else {
+                  throw new ConfigException(
+                      getTopicSettingName(topicName, TABLE_OPT),
+                      tableName.asCql(true),
+                      "Not found");
+                }
+              }
+            });
   }
 
   static void validateMappingColumns(DseSession session, DseSinkConfig config) {
-    CqlIdentifier keyspaceName = config.getKeyspace();
-    CqlIdentifier tableName = config.getTable();
-    Metadata metadata = session.getMetadata();
-    Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
-    assert keyspace.isPresent();
-    Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
-    assert table.isPresent();
+    config
+        .getTopicConfigs()
+        .forEach(
+            (topicName, topicConfig) -> {
+              CqlIdentifier keyspaceName = topicConfig.getKeyspace();
+              CqlIdentifier tableName = topicConfig.getTable();
+              Metadata metadata = session.getMetadata();
+              Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+              assert keyspace.isPresent();
+              Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
+              assert table.isPresent();
 
-    Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
+              Map<CqlIdentifier, CqlIdentifier> mapping = topicConfig.getMapping();
 
-    // The columns in the mapping are the keys. Check that each exists in the table.
-    String nonExistentCols =
-        mapping
-            .keySet()
-            .stream()
-            .filter(col -> !table.get().getColumn(col).isPresent())
-            .map(c -> c.asCql(true))
-            .collect(Collectors.joining(", "));
-    if (!StringUtil.isEmpty(nonExistentCols)) {
-      throw new ConfigException(
-          MAPPING_OPT,
-          config.getMappingString(),
-          String.format(
-              "The following columns do not exist in table %s: %s", tableName, nonExistentCols));
-    }
+              // The columns in the mapping are the keys. Check that each exists in the table.
+              String nonExistentCols =
+                  mapping
+                      .keySet()
+                      .stream()
+                      .filter(col -> !table.get().getColumn(col).isPresent())
+                      .map(c -> c.asCql(true))
+                      .collect(Collectors.joining(", "));
+              if (!StringUtil.isEmpty(nonExistentCols)) {
+                throw new ConfigException(
+                    getTopicSettingName(topicName, MAPPING_OPT),
+                    topicConfig.getMappingString(),
+                    String.format(
+                        "The following columns do not exist in table %s: %s",
+                        tableName, nonExistentCols));
+              }
 
-    // Now verify that each column that makes up the primary key in the table has a reference
-    // in the mapping.
-    String nonExistentKeyCols =
-        table
-            .get()
-            .getPrimaryKey()
-            .stream()
-            .filter(col -> !mapping.containsKey(col.getName()))
-            .map(col -> col.getName().toString())
-            .collect(Collectors.joining(", "));
-    if (!StringUtil.isEmpty(nonExistentKeyCols)) {
-      throw new ConfigException(
-          MAPPING_OPT,
-          config.getMappingString(),
-          String.format(
-              "The following columns are part of the primary key but are not mapped: %s",
-              nonExistentKeyCols));
-    }
+              // Now verify that each column that makes up the primary key in the table has a
+              // reference
+              // in the mapping.
+              String nonExistentKeyCols =
+                  table
+                      .get()
+                      .getPrimaryKey()
+                      .stream()
+                      .filter(col -> !mapping.containsKey(col.getName()))
+                      .map(col -> col.getName().toString())
+                      .collect(Collectors.joining(", "));
+              if (!StringUtil.isEmpty(nonExistentKeyCols)) {
+                throw new ConfigException(
+                    getTopicSettingName(topicName, MAPPING_OPT),
+                    topicConfig.getMappingString(),
+                    String.format(
+                        "The following columns are part of the primary key but are not mapped: %s",
+                        nonExistentKeyCols));
+              }
+            });
   }
 
-  static String makeInsertStatement(DseSinkConfig config) {
+  static String makeInsertStatement(TopicConfig config) {
     Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
     StringBuilder statementBuilder = new StringBuilder("INSERT INTO ");
     statementBuilder.append(config.getKeyspace()).append('.').append(config.getTable()).append('(');
@@ -264,7 +261,7 @@ public class DseSinkConnector extends SinkConnector {
   @Override
   public void start(Map<String, String> props) {
     config = new DseSinkConfig(props);
-    log.info(config.toString());
+    log.info(String.format("%s\n", config.toString()));
     DseSessionBuilder builder = DseSession.builder();
     config
         .getContactPoints()
@@ -298,12 +295,30 @@ public class DseSinkConnector extends SinkConnector {
     // TODO: Multiple sink connectors (say for different topics/tables) may be created at the same
     // time. They can all share the same session, but we must make sure only one connector
     // creates the session.
-    PreparedStatement statement = session.prepare(makeInsertStatement(config));
+
+    Map<String, CompletionStage<PreparedStatement>> prepareFutures = new HashMap<>();
+    config
+        .getTopicConfigs()
+        .forEach(
+            (topicName, topicConfig) ->
+                prepareFutures.put(
+                    topicName, session.prepareAsync(makeInsertStatement(topicConfig))));
+    Map<String, PreparedStatement> preparedStatements = new HashMap<>();
+    prepareFutures.forEach(
+        (topicName, future) -> {
+          try {
+            preparedStatements.put(
+                topicName, Uninterruptibles.getUninterruptibly(future.toCompletableFuture()));
+          } catch (ExecutionException e) {
+            // TODO: Is this ok??
+            throw new RuntimeException(e);
+          }
+        });
 
     // Configure the json object mapper
     objectMapper.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
 
-    sessionState = new SessionState(session, codecRegistry, statement);
+    sessionState = new SessionState(session, codecRegistry, preparedStatements);
 
     statementReady.countDown();
   }
@@ -317,7 +332,9 @@ public class DseSinkConnector extends SinkConnector {
   public List<Map<String, String>> taskConfigs(int maxTasks) {
     ArrayList<Map<String, String>> configs = new ArrayList<>();
     Map<String, String> taskConfig =
-        ImmutableMap.<String, String>builder().put(MAPPING_OPT, config.getMappingString()).build();
+        ImmutableMap.<String, String>builder()
+            .put(MAPPINGS_OPT, SinkUtil.serializeTopicMappings(config))
+            .build();
     for (int i = 0; i < maxTasks; i++) {
       configs.add(taskConfig);
     }
@@ -334,6 +351,6 @@ public class DseSinkConnector extends SinkConnector {
 
   @Override
   public ConfigDef config() {
-    return DseSinkConfig.CONFIG_DEF;
+    return DseSinkConfig.GLOBAL_CONFIG_DEF;
   }
 }
