@@ -15,7 +15,7 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
 public class RawRecord implements Record, RecordMetadata {
-  static final String FIELD_NAME = "__self";
+  public static final String FIELD_NAME = "__self";
   private static final Set<String> FIELDS = new HashSet<>();
 
   static {

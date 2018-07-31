@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dse.driver.api.core.type.geometry.LineString;
@@ -33,12 +34,12 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -131,7 +132,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     // uuid
     // varint
 
-    Map<String, String> props =
+    conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
                 + "booleancol=value.boolean, "
@@ -153,9 +154,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "blobcol=value.blob, "
                 + "pointcol=value.point, "
                 + "linestringcol=value.linestring, "
-                + "polygoncol=value.polygon");
-
-    conn.start(props);
+                + "polygoncol=value.polygon"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -246,9 +245,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .put("linestring", "LINESTRING (32.0 64.0, 48.5 96.5)")
             .put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))");
 
-    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -302,10 +299,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void struct_value_struct_field() {
-    Map<String, String> props =
-        makeConnectorProperties("bigintcol=value.bigint, udtcol=value.struct");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, udtcol=value.struct"));
 
     Schema fieldSchema =
         SchemaBuilder.struct()
@@ -323,9 +317,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
     Struct value = new Struct(schema).put("bigint", 1234567L).put("struct", fieldValue);
 
-    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -344,13 +336,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_bigint_value() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=value");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=value"));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -361,14 +350,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_string_value() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=key, pointcol=value");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, pointcol=value"));
 
     SinkRecord record =
         new SinkRecord("mytopic", 0, null, 98761234L, null, "POINT (32.0 64.0)", 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, pointcol FROM types").all();
@@ -381,13 +367,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_list_value_from_json() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=key, listcol=value");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, listcol=value"));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "[42, 37]", 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
@@ -399,14 +382,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_list_value_from_list() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=key, listcol=value");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, listcol=value"));
 
     SinkRecord record =
         new SinkRecord("mytopic", 0, null, 98761234L, null, Arrays.asList(42, 37), 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
@@ -418,9 +398,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_udt_value_from_json() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=key, udtcol=value");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, udtcol=value"));
 
     SinkRecord record =
         new SinkRecord(
@@ -431,8 +409,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             null,
             "{\"udtmem1\": 42, \"udtmem2\": \"the answer\"}",
             1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
@@ -451,10 +428,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_udt_value_and_cherry_pick_from_json() {
-    Map<String, String> props =
-        makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1"));
 
     SinkRecord record =
         new SinkRecord(
@@ -465,8 +439,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             null,
             "{\"udtmem1\": 42, \"udtmem2\": \"the answer\"}",
             1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
@@ -486,9 +459,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_udt_value_from_struct() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=key, udtcol=value");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, udtcol=value"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -499,8 +470,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Struct value = new Struct(schema).put("udtmem1", 42).put("udtmem2", "the answer");
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
@@ -519,10 +489,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_udt_value_and_cherry_pick_from_struct() {
-    Map<String, String> props =
-        makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -533,8 +500,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Struct value = new Struct(schema).put("udtmem1", 42).put("udtmem2", "the answer");
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
@@ -556,7 +522,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   void simple_json_value_only() {
     // Since the well-established JSON converter codecs do all the heavy lifting,
     // we don't test json very deeply here.
-    Map<String, String> props =
+    conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
                 + "booleancol=value.boolean, "
@@ -565,9 +531,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "intcol=value.int, "
                 + "smallintcol=value.smallint, "
                 + "textcol=value.text, "
-                + "tinyintcol=value.tinyint");
-
-    conn.start(props);
+                + "tinyintcol=value.tinyint"));
 
     Long baseValue = 1234567L;
     String value =
@@ -590,8 +554,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             baseValue.byteValue());
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -609,12 +572,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void complex_json_value_only() {
-    Map<String, String> props = makeConnectorProperties("bigintcol=value.f1, mapcol=value.f2");
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=value.f1, mapcol=value.f2"));
+
     String value = "{\"f1\": 42, \"f2\": {\"sub1\": 37, \"sub2\": 96}}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -629,7 +591,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   @Test
   void json_key_struct_value() {
     // Map various fields from the key and value to columns.
-    Map<String, String> props =
+    conn.start(
         makeConnectorProperties(
             "bigintcol=key.bigint, "
                 + "booleancol=value.boolean, "
@@ -638,8 +600,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "intcol=key.int, "
                 + "smallintcol=value.smallint, "
                 + "textcol=key.text, "
-                + "tinyintcol=value.tinyint");
-    conn.start(props);
+                + "tinyintcol=value.tinyint"));
 
     // Use a Struct for the value.
     Schema schema =
@@ -688,8 +649,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             baseKey.byteValue());
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, jsonKey, null, structValue, 1234L);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -707,10 +667,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void timestamp() {
-    Map<String, String> props =
-        makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double");
-
-    conn.start(props);
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -718,14 +675,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("bigint", Schema.INT64_SCHEMA)
             .field("double", Schema.FLOAT64_SCHEMA)
             .build();
-
     Struct value = new Struct(schema).put("bigint", 1234567L).put("double", 42.0);
 
     SinkRecord record =
         new SinkRecord(
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
-    task.start(props);
-    task.put(Collections.singletonList(record));
+    runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
     List<Row> results =
@@ -737,7 +692,70 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong(2)).isEqualTo(153000987000L);
   }
 
+  @Test
+  void multiple_records_multiple_topics() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double", "bigintcol=key, intcol=value"));
+
+    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("double", Schema.FLOAT64_SCHEMA)
+            .build();
+    Struct value1 = new Struct(schema).put("bigint", 1234567L).put("double", 42.0);
+    Struct value2 = new Struct(schema).put("bigint", 9876543L).put("double", 21.0);
+
+    SinkRecord record1 = new SinkRecord("mytopic", 0, null, null, null, value1, 1234L);
+    SinkRecord record2 = new SinkRecord("mytopic", 0, null, null, null, value2, 1235L);
+
+    // Set up a record for "yourtopic"
+    SinkRecord record3 = new SinkRecord("yourtopic", 0, null, 5555L, null, 3333, 1000L);
+
+    runTaskWithRecords(record1, record2, record3);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, doublecol, intcol FROM types").all();
+    assertThat(results.size()).isEqualTo(3);
+    for (Row row : results) {
+      if (row.getLong("bigintcol") == 1234567L) {
+        assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+        assertThat(row.getObject("intcol")).isNull();
+      } else if (row.getLong("bigintcol") == 9876543L) {
+        assertThat(row.getDouble("doublecol")).isEqualTo(21.0);
+        assertThat(row.getObject("intcol")).isNull();
+      } else if (row.getLong("bigintcol") == 5555L) {
+        assertThat(row.getObject("doublecol")).isNull();
+        assertThat(row.getInt("intcol")).isEqualTo(3333);
+      }
+    }
+  }
+
+  @Test
+  void undefined_topic() {
+    conn.start(makeConnectorProperties("bigintcol=key, intcol=value"));
+
+    SinkRecord record = new SinkRecord("unknown", 0, null, 42L, null, 42, 1234L);
+    assertThatThrownBy(() -> runTaskWithRecords(record))
+        .isInstanceOf(KafkaException.class)
+        .hasMessage(
+            "Connector has no configuration for record topic 'unknown'. Please update the configuration and restart.");
+  }
+
+  private void runTaskWithRecords(SinkRecord... records) {
+    List<Map<String, String>> taskProps = conn.taskConfigs(1);
+    task.start(taskProps.get(0));
+    task.put(Arrays.asList(records));
+  }
+
   private Map<String, String> makeConnectorProperties(String mappingString) {
+    return makeConnectorProperties(mappingString, "bigintcol=value.f1");
+  }
+
+  private Map<String, String> makeConnectorProperties(
+      String myTopicMappingString, String yourTopicMappingString) {
     return ImmutableMap.<String, String>builder()
         .put(
             "contactPoints",
@@ -747,9 +765,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 .collect(Collectors.joining(",")))
         .put("port", String.format("%d", ccm.getBinaryPort()))
         .put("loadBalancing.localDc", "Cassandra")
-        .put("mapping", mappingString)
-        .put("keyspace", session.getKeyspace().get().asCql(true))
-        .put("table", "types")
+        .put("topic.mytopic.keyspace", session.getKeyspace().get().asCql(true))
+        .put("topic.mytopic.table", "types")
+        .put("topic.mytopic.mapping", myTopicMappingString)
+        .put("topic.yourtopic.keyspace", session.getKeyspace().get().asCql(true))
+        .put("topic.yourtopic.table", "types")
+        .put("topic.yourtopic.mapping", yourTopicMappingString)
         .build();
   }
 }

@@ -9,3 +9,4 @@
 - [new feature] KAF-6: Support specifying TTL for inserted rows
 - [new feature] KAF-25: Set timestamp on DSE row to the timestamp in the Kafka record
 - [improvement] KAF-7: Support mapping raw values in records (e.g. mycol=value or mycol=key)
+- [improvement] KAF-12: Fix setting names to conform to design doc
