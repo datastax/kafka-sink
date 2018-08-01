@@ -20,6 +20,7 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 
+/** Topic-specific connector configuration. */
 public class TopicConfig extends AbstractConfig {
   public static final String KEYSPACE_OPT = "keyspace";
   public static final String TABLE_OPT = "table";

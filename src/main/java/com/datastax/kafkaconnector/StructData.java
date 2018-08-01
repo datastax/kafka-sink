@@ -15,9 +15,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.Nullable;
 
-public class StructData implements Record {
+/** The key or value of a {@link SinkRecord} when it is a {@link Struct}. */
+public class StructData implements KeyOrValue {
 
   private final Struct struct;
   private final Set<String> fields;
@@ -25,10 +27,10 @@ public class StructData implements Record {
   StructData(@Nullable Struct struct) {
     this.struct = struct;
     if (struct == null) {
-      fields = Collections.singleton(RawRecord.FIELD_NAME);
+      fields = Collections.singleton(RawData.FIELD_NAME);
     } else {
       fields = new HashSet<>();
-      fields.add(RawRecord.FIELD_NAME);
+      fields.add(RawData.FIELD_NAME);
       fields.addAll(struct.schema().fields().stream().map(Field::name).collect(Collectors.toSet()));
     }
   }
@@ -40,7 +42,7 @@ public class StructData implements Record {
 
   @Override
   public Object getFieldValue(String field) {
-    if (field.equals(RawRecord.FIELD_NAME)) {
+    if (field.equals(RawData.FIELD_NAME)) {
       return struct;
     }
 

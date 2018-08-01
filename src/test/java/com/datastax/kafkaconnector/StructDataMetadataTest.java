@@ -17,7 +17,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
-class StructRecordMetadataTest {
+class StructDataMetadataTest {
   private final Schema schema =
       SchemaBuilder.struct()
           .name("Kafka")
@@ -42,7 +42,7 @@ class StructRecordMetadataTest {
               "listnested",
               SchemaBuilder.array(SchemaBuilder.array(Schema.INT32_SCHEMA).build()).build())
           .build();
-  private final StructRecordMetadata metadata = new StructRecordMetadata(schema);
+  private final StructDataMetadata metadata = new StructDataMetadata(schema);
 
   @Test
   void should_translate_field_types() {

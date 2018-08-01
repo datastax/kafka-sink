@@ -11,13 +11,14 @@ package com.datastax.kafkaconnector;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import java.nio.ByteBuffer;
@@ -26,6 +27,10 @@ import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.config.ConfigException;
 
+/**
+ * Maps {@link Record}s into {@link BoundStatement}s, applying any necessary transformations via
+ * codecs.
+ */
 public class RecordMapper {
   private final PreparedStatement insertStatement;
   private final List<Integer> pkIndices;
@@ -53,8 +58,7 @@ public class RecordMapper {
     this.allowMissingFields = allowMissingFields;
   }
 
-  public Statement map(Record record) {
-    CqlIdentifier variable;
+  public BoundStatement map(Record record) {
     Object raw;
     DataType cqlType;
     if (!allowMissingFields) {
@@ -73,16 +77,22 @@ public class RecordMapper {
       }
       if (columns != null) {
         for (CqlIdentifier column : columns) {
-          // TODO: Are the variable defs in internal form?
-          variable = column;
           cqlType = variableDefinitions.get(column).getType();
           GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
           if (fieldType != null) {
             raw = record.getFieldValue(field);
-            bindColumn(builder, variable, raw, cqlType, fieldType);
+            bindColumn(builder, column, raw, cqlType, fieldType);
           }
         }
       }
+    }
+    if (record.getTimestamp() != null) {
+      bindColumn(
+          builder,
+          CqlIdentifier.fromInternal(SinkUtil.TIMESTAMP_VARNAME),
+          record.getTimestamp() * 1000,
+          DataTypes.BIGINT,
+          GenericType.LONG);
     }
     BoundStatement bs = builder.build();
     ensurePartitionKeySet(bs);
@@ -90,8 +100,9 @@ public class RecordMapper {
   }
 
   private static String getExternalName(String field) {
-    if (field.endsWith(RawRecord.FIELD_NAME)) {
-      return field.substring(0, field.length() - RawRecord.FIELD_NAME.length() - 1);
+    if (field.endsWith(RawData.FIELD_NAME)) {
+      // e.g. value.__self => value
+      return field.substring(0, field.length() - RawData.FIELD_NAME.length() - 1);
     }
     return field;
   }
@@ -146,6 +157,10 @@ public class RecordMapper {
     ColumnDefinitions variables = insertStatement.getVariableDefinitions();
     for (int i = 0; i < variables.size(); i++) {
       CqlIdentifier variable = variables.get(i).getName();
+      if (variable.asInternal().equals(SinkUtil.TIMESTAMP_VARNAME)) {
+        // Not a real field; it's just the bound variable for the timestamp.
+        continue;
+      }
       CqlIdentifier field = mapping.columnToField(variable);
       if (!recordFields.contains(field.asInternal())) {
         throw new ConfigException(

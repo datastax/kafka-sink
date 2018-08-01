@@ -11,15 +11,21 @@ package com.datastax.kafkaconnector;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/**
+ * The fully parsed {@link SinkRecord} in a form where we can apply mappings of fields to DSE
+ * columns.
+ */
 public class KeyValueRecord implements Record {
-  @Nullable private final Record key;
-  @Nullable private final Record value;
+  @Nullable private final KeyOrValue key;
+  @Nullable private final KeyOrValue value;
   private final Set<String> fields;
+  @Nullable private final Long timestamp;
 
-  KeyValueRecord(@Nullable Record key, @Nullable Record value) {
+  KeyValueRecord(@Nullable KeyOrValue key, @Nullable KeyOrValue value, @Nullable Long timestamp) {
     this.key = key;
     this.value = value;
     fields = new HashSet<>();
@@ -29,6 +35,7 @@ public class KeyValueRecord implements Record {
     if (value != null) {
       fields.addAll(value.fields().stream().map(f -> "value." + f).collect(Collectors.toList()));
     }
+    this.timestamp = timestamp;
   }
 
   @Override
@@ -46,5 +53,10 @@ public class KeyValueRecord implements Record {
       assert false : "field name must start with 'key.' or 'value.'.";
     }
     return null;
+  }
+
+  @Override
+  public Long getTimestamp() {
+    return timestamp;
   }
 }

@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Test;
 
 class KeyValueRecordTest {
 
-  private Record key;
-  private Record value;
+  private KeyOrValue key;
+  private KeyOrValue value;
   private Map<String, String> keyFields =
       ImmutableMap.<String, String>builder().put("kf1", "kv1").put("kf2", "kv2").build();
   private Map<String, String> valueFields =
@@ -28,7 +28,7 @@ class KeyValueRecordTest {
   @BeforeEach
   void setUp() {
     key =
-        new Record() {
+        new KeyOrValue() {
           @Override
           public Set<String> fields() {
             return keyFields.keySet();
@@ -41,7 +41,7 @@ class KeyValueRecordTest {
         };
 
     value =
-        new Record() {
+        new KeyOrValue() {
           @Override
           public Set<String> fields() {
             return valueFields.keySet();
@@ -56,25 +56,25 @@ class KeyValueRecordTest {
 
   @Test
   void should_qualify_field_names() {
-    KeyValueRecord record = new KeyValueRecord(key, value);
+    KeyValueRecord record = new KeyValueRecord(key, value, null);
     assertThat(record.fields()).containsOnly("key.kf1", "key.kf2", "value.vf1", "value.vf2");
   }
 
   @Test
   void should_qualify_field_names_keys_only() {
-    KeyValueRecord record = new KeyValueRecord(key, null);
+    KeyValueRecord record = new KeyValueRecord(key, null, null);
     assertThat(record.fields()).containsOnly("key.kf1", "key.kf2");
   }
 
   @Test
   void should_qualify_field_names_values_only() {
-    KeyValueRecord record = new KeyValueRecord(null, value);
+    KeyValueRecord record = new KeyValueRecord(null, value, null);
     assertThat(record.fields()).containsOnly("value.vf1", "value.vf2");
   }
 
   @Test
   void should_get_field_values() {
-    KeyValueRecord record = new KeyValueRecord(key, value);
+    KeyValueRecord record = new KeyValueRecord(key, value, null);
     assertThat(record.getFieldValue("key.kf1")).isEqualTo("kv1");
     assertThat(record.getFieldValue("value.vf2")).isEqualTo("vv2");
     assertThat(record.getFieldValue("value.noexist")).isNull();

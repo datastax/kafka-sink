@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.connect.data.Struct;
 import org.jetbrains.annotations.NotNull;
 
+/** Converting codec registry that handles processing Kafka {@link Struct} objects. */
 public class KafkaCodecRegistry extends ExtendedCodecRegistry {
   KafkaCodecRegistry(
       CodecRegistry codecRegistry,
@@ -70,8 +71,6 @@ public class KafkaCodecRegistry extends ExtendedCodecRegistry {
   @Override
   protected ConvertingCodec<?, ?> maybeCreateConvertingCodec(
       @NotNull DataType cqlType, @NotNull GenericType<?> javaType) {
-    // TODO: PERF: Consider caching codecs. It's highly likely that this will get expensive if it
-    // has to create a new codec for every sink-record that has a Struct field.
     if (cqlType instanceof UserDefinedType && javaType.equals(GenericType.of(Struct.class))) {
       return new StructToUDTCodec(this, (UserDefinedType) cqlType);
     }

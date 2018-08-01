@@ -148,6 +148,7 @@ class RecordMapperTest {
     when(record.getFieldValue(F1)).thenReturn("42");
     when(record.getFieldValue(F2)).thenReturn("4242");
     when(record.getFieldValue(F3)).thenReturn("foo");
+    when(record.getTimestamp()).thenReturn(null);
 
     when(mapping.fieldToColumns(F1_IDENT)).thenReturn(Collections.singleton(C1));
     when(mapping.fieldToColumns(F2_IDENT)).thenReturn(Collections.singleton(C2));

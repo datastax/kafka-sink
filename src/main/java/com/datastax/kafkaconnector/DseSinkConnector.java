@@ -66,7 +66,7 @@ public class DseSinkConnector extends SinkConnector {
   static final String MAPPINGS_OPT = "mappings";
   static final RecordMetadata JSON_RECORD_METADATA =
       (field, cqlType) ->
-          field.equals(RawRecord.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
+          field.equals(RawData.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
   static final ObjectMapper objectMapper = new ObjectMapper();
   static final JavaType jsonNodeMapType =
       objectMapper.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
@@ -223,12 +223,14 @@ public class DseSinkConnector extends SinkConnector {
       statementBuilder.append(colCql);
       valuesBuilder.append(':').append(colCql);
     }
-    statementBuilder.append(") VALUES (");
-    statementBuilder.append(valuesBuilder.toString());
-    statementBuilder.append(')');
+    statementBuilder
+        .append(") VALUES (")
+        .append(valuesBuilder.toString())
+        .append(") USING TIMESTAMP :")
+        .append(SinkUtil.TIMESTAMP_VARNAME);
 
     if (config.getTtl() != -1) {
-      statementBuilder.append(" USING TTL ").append(config.getTtl());
+      statementBuilder.append(" AND TTL ").append(config.getTtl());
     }
     return statementBuilder.toString();
   }

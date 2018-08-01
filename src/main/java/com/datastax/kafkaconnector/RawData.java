@@ -12,9 +12,11 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 
-public class RawRecord implements Record, RecordMetadata {
+/** The key or value of a {@link SinkRecord} when it is a primitive type. */
+public class RawData implements KeyOrValue, RecordMetadata {
   public static final String FIELD_NAME = "__self";
   private static final Set<String> FIELDS = new HashSet<>();
 
@@ -25,7 +27,7 @@ public class RawRecord implements Record, RecordMetadata {
   private final GenericType<?> type;
   private final Object value;
 
-  RawRecord(@NotNull Object keyOrValue) {
+  RawData(@NotNull Object keyOrValue) {
     value = keyOrValue;
     type = GenericType.of(keyOrValue.getClass());
   }
