@@ -29,7 +29,7 @@ class JsonDataTest {
     JavaType type = mapper.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
     JsonData jsonData =
         new JsonData(mapper, type, "{\"f1\": 42, \"f2\": {\"sub1\": 37, \"sub2\": 96}}");
-    assertThat(jsonData.fields()).containsOnly(RawRecord.FIELD_NAME, "f1", "f2");
+    assertThat(jsonData.fields()).containsOnly(RawData.FIELD_NAME, "f1", "f2");
     assertThat(jsonData.getFieldValue("f1")).isEqualTo(new IntNode(42));
     Object f2 = jsonData.getFieldValue("f2");
 
@@ -46,7 +46,7 @@ class JsonDataTest {
     ObjectMapper mapper = new ObjectMapper();
     JavaType type = mapper.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
     JsonData jsonData = new JsonData(mapper, type, "{}");
-    assertThat(jsonData.fields()).containsOnly(RawRecord.FIELD_NAME);
+    assertThat(jsonData.fields()).containsOnly(RawData.FIELD_NAME);
     assertThat(jsonData.getFieldValue("noexist")).isEqualTo(null);
   }
 }

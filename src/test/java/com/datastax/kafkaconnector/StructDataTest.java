@@ -32,7 +32,7 @@ class StructDataTest {
   @Test
   void should_parse_field_names_from_struct() {
     assertThat(structData.fields())
-        .containsExactlyInAnyOrder(RawRecord.FIELD_NAME, "bigint", "boolean", "bytes");
+        .containsExactlyInAnyOrder(RawData.FIELD_NAME, "bigint", "boolean", "bytes");
   }
 
   @Test
@@ -49,7 +49,7 @@ class StructDataTest {
   @Test
   void should_handle_null_struct() {
     StructData empty = new StructData(null);
-    assertThat(empty.fields()).containsOnly(RawRecord.FIELD_NAME);
+    assertThat(empty.fields()).containsOnly(RawData.FIELD_NAME);
     assertThat(empty.getFieldValue("junk")).isNull();
   }
 }

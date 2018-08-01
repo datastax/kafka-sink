@@ -19,7 +19,10 @@ import java.util.HashMap;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
+/** Utility class to house useful methods and constants that the rest of the application may use. */
 public class SinkUtil {
+  public static final String TIMESTAMP_VARNAME = "kafka_internal_timestamp";
+
   public static @NotNull String serializeTopicMappings(DseSinkConfig config) {
     Map<String, TopicConfig> topicConfigs = config.getTopicConfigs();
     // Make a map of <topic, mapping>, where mapping is a map of <column, field>

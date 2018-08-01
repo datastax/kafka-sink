@@ -14,8 +14,11 @@ import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.cql.BatchStatement;
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.Statement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.io.IOException;
@@ -30,7 +33,7 @@ import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** DseSinkTask writes records to stdout or a file. */
+/** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
 public class DseSinkTask extends SinkTask {
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
   private SessionState sessionState;
@@ -69,8 +72,8 @@ public class DseSinkTask extends SinkTask {
     KafkaCodecRegistry codecRegistry = sessionState.getCodecRegistry();
 
     try {
+      BatchStatementBuilder bsb = BatchStatement.builder(DefaultBatchType.UNLOGGED);
       for (SinkRecord record : sinkRecords) {
-        // TODO: Make a batch
         String topicName = record.topic();
         PreparedStatement preparedStatement = sessionState.getInsertStatement(topicName);
         Mapping mapping =
@@ -86,9 +89,10 @@ public class DseSinkTask extends SinkTask {
                             topicName));
                   }
                 });
-        InnerRecordAndMetadata key = makeMeta(record.key());
-        InnerRecordAndMetadata value = makeMeta(record.value());
-        KeyValueRecord keyValueRecord = new KeyValueRecord(key.innerRecord, value.innerRecord);
+        InnerDataAndMetadata key = makeMeta(record.key());
+        InnerDataAndMetadata value = makeMeta(record.value());
+        KeyValueRecord keyValueRecord =
+            new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
         RecordMapper mapper =
             new RecordMapper(
                 preparedStatement,
@@ -97,44 +101,42 @@ public class DseSinkTask extends SinkTask {
                 true,
                 true,
                 false);
-        Statement boundStatement = mapper.map(keyValueRecord);
-        if (record.timestamp() != null) {
-          boundStatement = boundStatement.setTimestamp(record.timestamp() * 1000);
-        }
-        session.execute(boundStatement);
+        BoundStatement boundStatement = mapper.map(keyValueRecord);
+        bsb.addStatement(boundStatement);
       }
+      session.execute(bsb.build());
     } catch (IOException e) {
       throw new InvalidRecordException("Could not parse record", e);
     }
   }
 
-  private static InnerRecordAndMetadata makeMeta(Object keyOrValue) throws IOException {
-    Record innerRecord = null;
-    RecordMetadata innerRecordMeta = null;
+  private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
+    KeyOrValue innerData = null;
+    RecordMetadata innerMetadata = null;
 
     if (keyOrValue instanceof Struct) {
       Struct innerRecordStruct = (Struct) keyOrValue;
       // TODO: PERF: Cache these metadata objects, keyed on schema.
-      innerRecordMeta = new StructRecordMetadata(innerRecordStruct.schema());
-      innerRecord = new StructData(innerRecordStruct);
+      innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
+      innerData = new StructData(innerRecordStruct);
     } else if (keyOrValue instanceof String) {
-      innerRecordMeta = DseSinkConnector.JSON_RECORD_METADATA;
+      innerMetadata = DseSinkConnector.JSON_RECORD_METADATA;
       try {
-        innerRecord =
+        innerData =
             new JsonData(
                 DseSinkConnector.objectMapper,
                 DseSinkConnector.jsonNodeMapType,
                 (String) keyOrValue);
       } catch (RuntimeException e) {
         // Json parsing failed. Treat as raw string.
-        innerRecord = new RawRecord(keyOrValue);
-        innerRecordMeta = (RecordMetadata) innerRecord;
+        innerData = new RawData(keyOrValue);
+        innerMetadata = (RecordMetadata) innerData;
       }
     } else if (keyOrValue != null) {
-      innerRecord = new RawRecord(keyOrValue);
-      innerRecordMeta = (RecordMetadata) innerRecord;
+      innerData = new RawData(keyOrValue);
+      innerMetadata = (RecordMetadata) innerData;
     }
-    return new InnerRecordAndMetadata(innerRecord, innerRecordMeta);
+    return new InnerDataAndMetadata(innerData, innerMetadata);
   }
 
   @Override
@@ -145,13 +147,13 @@ public class DseSinkTask extends SinkTask {
   @Override
   public void stop() {}
 
-  private static class InnerRecordAndMetadata {
-    final Record innerRecord;
+  private static class InnerDataAndMetadata {
+    final KeyOrValue innerData;
     final RecordMetadata innerMetadata;
 
-    InnerRecordAndMetadata(Record innerRecord, RecordMetadata innerMetadata) {
+    InnerDataAndMetadata(KeyOrValue innerData, RecordMetadata innerMetadata) {
       this.innerMetadata = innerMetadata;
-      this.innerRecord = innerRecord;
+      this.innerData = innerData;
     }
   }
 }

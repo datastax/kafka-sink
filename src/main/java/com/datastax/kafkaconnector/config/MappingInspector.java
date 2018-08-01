@@ -10,10 +10,11 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
-import com.datastax.kafkaconnector.RawRecord;
+import com.datastax.kafkaconnector.RawData;
 import com.datastax.kafkaconnector.schema.MappingBaseVisitor;
 import com.datastax.kafkaconnector.schema.MappingLexer;
 import com.datastax.kafkaconnector.schema.MappingParser;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.apache.kafka.common.config.ConfigException;
 
+/** Processor for a mapping string. */
 class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
 
   // A mapping spec may refer to these special variables which are used to bind
@@ -35,7 +37,6 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
   // some day...
 
   private static final String INTERNAL_TTL_VARNAME = "kafka_internal_ttl";
-  private static final String INTERNAL_TIMESTAMP_VARNAME = "kafka_internal_timestamp";
 
   private static final String EXTERNAL_TTL_VARNAME = "__ttl";
   private static final String EXTERNAL_TIMESTAMP_VARNAME = "__timestamp";
@@ -103,7 +104,7 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
     }
     String fieldString = field.asInternal();
     if (fieldString.equals("value") || fieldString.equals("key")) {
-      field = CqlIdentifier.fromInternal(fieldString + '.' + RawRecord.FIELD_NAME);
+      field = CqlIdentifier.fromInternal(fieldString + '.' + RawData.FIELD_NAME);
     } else if (!fieldString.startsWith("key.") && !fieldString.startsWith("value.")) {
       errors.add(
           String.format(
@@ -141,7 +142,7 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
       if (column.equals(EXTERNAL_TTL_VARNAME)) {
         column = INTERNAL_TTL_VARNAME;
       } else if (column.equals(EXTERNAL_TIMESTAMP_VARNAME)) {
-        column = INTERNAL_TIMESTAMP_VARNAME;
+        column = SinkUtil.TIMESTAMP_VARNAME;
       }
       return CqlIdentifier.fromInternal(column);
     }

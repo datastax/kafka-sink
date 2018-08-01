@@ -15,7 +15,8 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.jetbrains.annotations.NotNull;
 
-public class StructRecordMetadata implements RecordMetadata {
+/** Metadata associated with a {@link StructData}. */
+public class StructDataMetadata implements RecordMetadata {
   private static final ImmutableMap<Schema, GenericType<?>> TYPE_MAP =
       ImmutableMap.<Schema, GenericType<?>>builder()
           .put(Schema.BOOLEAN_SCHEMA, GenericType.BOOLEAN)
@@ -30,13 +31,13 @@ public class StructRecordMetadata implements RecordMetadata {
           .build();
   private final Schema schema;
 
-  public StructRecordMetadata(@NotNull Schema schema) {
+  public StructDataMetadata(@NotNull Schema schema) {
     this.schema = schema;
   }
 
   @Override
   public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
-    if (field.equals(RawRecord.FIELD_NAME)) {
+    if (field.equals(RawData.FIELD_NAME)) {
       return GenericType.of(Struct.class);
     }
     Schema fieldType = schema.field(field).schema();

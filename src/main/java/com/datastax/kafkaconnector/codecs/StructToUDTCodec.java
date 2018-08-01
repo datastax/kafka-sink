@@ -9,7 +9,7 @@
 package com.datastax.kafkaconnector.codecs;
 
 import com.datastax.dsbulk.commons.codecs.ConvertingCodec;
-import com.datastax.kafkaconnector.StructRecordMetadata;
+import com.datastax.kafkaconnector.StructDataMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;
@@ -22,6 +22,7 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
+/** Codec to convert a Kafka {@link Struct} to a UDT. */
 public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
   private final KafkaCodecRegistry codecRegistry;
   private final UserDefinedType definition;
@@ -42,7 +43,7 @@ public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
 
     int size = definition.getFieldNames().size();
     Schema schema = external.schema();
-    StructRecordMetadata structMetadata = new StructRecordMetadata(schema);
+    StructDataMetadata structMetadata = new StructDataMetadata(schema);
     Set<String> structFieldNames =
         schema.fields().stream().map(Field::name).collect(Collectors.toSet());
     if (structFieldNames.size() != size) {

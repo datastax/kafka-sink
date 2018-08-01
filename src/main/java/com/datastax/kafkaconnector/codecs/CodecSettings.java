@@ -46,6 +46,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/** Copied from dsbulk. Convenient for initializing the {@link KafkaCodecRegistry}. */
 public class CodecSettings {
 
   /**

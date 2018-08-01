@@ -8,10 +8,12 @@
  */
 package com.datastax.kafkaconnector;
 
-import java.util.Set;
+import org.apache.kafka.connect.sink.SinkRecord;
 
-public interface Record {
-  Set<String> fields();
-
-  Object getFieldValue(String field);
+/**
+ * A parsed {@link SinkRecord} that is ready to have field mapping applied to it for inserting into
+ * DSE.
+ */
+public interface Record extends KeyOrValue {
+  Long getTimestamp();
 }

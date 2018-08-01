@@ -8,11 +8,12 @@
  */
 package com.datastax.kafkaconnector;
 
+import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
 
-/** Exception for when {@link SinkRecord}s fail to parse. */
-class InvalidRecordException extends RuntimeException {
-  InvalidRecordException(String message, Throwable cause) {
-    super(message, cause);
-  }
+/** The key or value part of a Kafka {@link SinkRecord}. */
+public interface KeyOrValue {
+  Set<String> fields();
+
+  Object getFieldValue(String field);
 }

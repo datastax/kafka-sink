@@ -13,6 +13,7 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+/** Metadata associated with a {@link KeyValueRecord}. */
 class KeyValueRecordMetadata implements RecordMetadata {
 
   private final RecordMetadata keyMetadata;

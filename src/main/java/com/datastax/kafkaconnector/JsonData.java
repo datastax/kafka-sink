@@ -19,8 +19,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.apache.kafka.connect.sink.SinkRecord;
 
-public class JsonData implements Record {
+/** The key or value of a {@link SinkRecord} when it is a JSON string. */
+public class JsonData implements KeyOrValue {
   private final Map<String, JsonNode> data;
   private final String json;
   private final Set<String> fields;
@@ -42,7 +44,7 @@ public class JsonData implements Record {
       }
     }
     fields = new HashSet<>(data.keySet());
-    fields.add(RawRecord.FIELD_NAME);
+    fields.add(RawData.FIELD_NAME);
   }
 
   @Override
@@ -52,7 +54,7 @@ public class JsonData implements Record {
 
   @Override
   public Object getFieldValue(String field) {
-    if (field.equals(RawRecord.FIELD_NAME)) {
+    if (field.equals(RawData.FIELD_NAME)) {
       return json;
     }
     return data.get(field);

@@ -26,6 +26,7 @@ import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
@@ -165,8 +166,8 @@ class DseSinkConnectorTest {
     assertThat(DseSinkConnector.makeInsertStatement(config.getTopicConfigs().get("mytopic")))
         .isEqualTo(
             String.format(
-                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s)",
-                C1, C2, C3, C1, C2, C3));
+                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) USING TIMESTAMP :%s",
+                C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME));
   }
 
   @Test
@@ -181,8 +182,8 @@ class DseSinkConnectorTest {
         .isEqualTo(
             String.format(
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
-                    + "USING TTL 1234",
-                C1, C2, C3, C1, C2, C3));
+                    + "USING TIMESTAMP :%s AND TTL 1234",
+                C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME));
   }
 
   private static DseSinkConfig makeConfig(String keyspaceName, String tableName, String mapping) {

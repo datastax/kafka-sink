@@ -13,6 +13,7 @@ import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import java.util.Map;
 
+/** Container for a session, its codec-registry, etc. */
 class SessionState {
   private final DseSession session;
   private final KafkaCodecRegistry codecRegistry;

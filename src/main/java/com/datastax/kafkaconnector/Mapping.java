@@ -22,8 +22,8 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Modeled after the DefaultMapping class in DSBulk. A few key diffs: "variable" in dsbulk =>
- * "column" here the mapping in dsbulk is 1:1, whereas here we support many (columns) to 1 field.
+ * Modeled after the DefaultMapping class in DSBulk. A few key diffs: 1. "variable" in dsbulk =>
+ * "column" here 2. the mapping in dsbulk is 1:1, whereas here we support many (columns) to 1 field.
  */
 public class Mapping {
 
