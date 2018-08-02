@@ -2,7 +2,7 @@ name=dse-sink
 connector.class=com.datastax.kafkaconnector.DseSinkConnector
 tasks.max=1
 
-# Topics to subscribe to.
+# Topics to subscribe to, comma-delimited
 topics=my_topic
 
 # Local datacenter name
