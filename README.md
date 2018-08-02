@@ -6,7 +6,7 @@ Kafka sink for transferring events/messages from Kafka topics to DSE
 
 First build the uber jar: `mvn clean package -DskipTests`
 
-Edit the `conf/dse-sink.properties` config file in this project to meet your needs,
+Edit the `conf/dse-sink.properties.sample` config file in this project to meet your needs,
 or copy it out and edit elsewhere.
 
 Update the plugin search path in the Connect worker config `config/connect-standalone.properties`
@@ -16,7 +16,7 @@ to include the uber-jar:
 
 Run connect-standalone and specify the path to the config file:
 
-`bin/connect-standalone.sh config/connect-standalone.properties ~/kafka-sink/conf/dse-sink.properties`
+`bin/connect-standalone.sh config/connect-standalone.properties ~/kafka-sink/conf/dse-sink.properties.sample`
 
 In Confluent, you would do this:
 

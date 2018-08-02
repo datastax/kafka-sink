@@ -11,3 +11,4 @@
 - [improvement] KAF-7: Support mapping raw values in records (e.g. mycol=value or mycol=key)
 - [improvement] KAF-12: Fix setting names to conform to design doc
 - [improvement] KAF-8: Use batch requests to load data
+- [improvement] KAF-27: Produce a tarball deliverable in build process
