@@ -32,6 +32,9 @@ import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -95,12 +98,16 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "setCol set<int>, "
             + "setNestedCol frozen<set<list<int>>>, "
             + "tupleCol tuple<smallint, int, int>, "
-            + "udtCol myudt, "
-            + "udtFromListCol myudt, "
+            + "udtCol frozen<myudt>, "
+            + "udtFromListCol frozen<myudt>, "
             + "blobCol blob, "
             + "pointCol 'PointType', "
             + "linestringCol 'LineStringType', "
-            + "polygonCol 'PolygonType'"
+            + "polygonCol 'PolygonType', "
+            + "dateCol date, "
+            + "timeCol time, "
+            + "timestampCol timestamp, "
+            + "secondsCol timestamp"
             + ")");
   }
 
@@ -693,6 +700,46 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void timezone_and_locale() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.key, "
+                + "datecol=value.vdate, "
+                + "timecol=value.vtime, "
+                + "timestampcol=value.vtimestamp, "
+                + "secondscol=value.vseconds",
+            ImmutableMap.<String, String>builder()
+                .put("codec.timeZone", "Europe/Paris")
+                .put("codec.locale", "fr_FR")
+                .put("codec.date", "cccc, d MMMM uuuu")
+                .put("codec.time", "HHmmssSSS")
+                .put("codec.timestamp", "ISO_ZONED_DATE_TIME")
+                .put("codec.unit", "SECONDS")
+                .build()));
+
+    String value =
+        "{\n"
+            + "  \"key\": 4376,\n"
+            + "  \"vdate\": \"vendredi, 9 mars 2018\",\n"
+            + "  \"vtime\": 171232584,\n"
+            + "  \"vtimestamp\": \"2018-03-09T17:12:32.584+01:00[Europe/Paris]\",\n"
+            + "  \"vseconds\": 1520611952\n"
+            + "}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results =
+        session.execute("SELECT datecol, timecol, timestampcol, secondscol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLocalDate("datecol")).isEqualTo(LocalDate.of(2018, 3, 9));
+    assertThat(row.getLocalTime("timecol")).isEqualTo(LocalTime.of(17, 12, 32, 584_000_000));
+    assertThat(row.getInstant("timestampcol")).isEqualTo(Instant.parse("2018-03-09T16:12:32.584Z"));
+    assertThat(row.getInstant("secondscol")).isEqualTo(Instant.parse("2018-03-09T16:12:32Z"));
+  }
+
+  @Test
   void multiple_records_multiple_topics() {
     conn.start(
         makeConnectorProperties(
@@ -751,26 +798,43 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
-    return makeConnectorProperties(mappingString, "bigintcol=value.f1");
+    return makeConnectorProperties(mappingString, "bigintcol=value.f1", null);
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private Map<String, String> makeConnectorProperties(
+      String mappingString, Map<String, String> extras) {
+    return makeConnectorProperties(mappingString, "bigintcol=value.f1", extras);
+  }
+
+  @SuppressWarnings("SameParameterValue")
+  private Map<String, String> makeConnectorProperties(
+      String mappingString, String yourMappingString) {
+    return makeConnectorProperties(mappingString, yourMappingString, null);
   }
 
   private Map<String, String> makeConnectorProperties(
-      String myTopicMappingString, String yourTopicMappingString) {
-    return ImmutableMap.<String, String>builder()
-        .put(
-            "contactPoints",
-            ccm.getInitialContactPoints()
-                .stream()
-                .map(addr -> String.format("%s", addr.getHostAddress()))
-                .collect(Collectors.joining(",")))
-        .put("port", String.format("%d", ccm.getBinaryPort()))
-        .put("loadBalancing.localDc", "Cassandra")
-        .put("topic.mytopic.keyspace", session.getKeyspace().get().asCql(true))
-        .put("topic.mytopic.table", "types")
-        .put("topic.mytopic.mapping", myTopicMappingString)
-        .put("topic.yourtopic.keyspace", session.getKeyspace().get().asCql(true))
-        .put("topic.yourtopic.table", "types")
-        .put("topic.yourtopic.mapping", yourTopicMappingString)
-        .build();
+      String myTopicMappingString, String yourTopicMappingString, Map<String, String> extras) {
+    ImmutableMap.Builder<String, String> builder =
+        ImmutableMap.<String, String>builder()
+            .put(
+                "contactPoints",
+                ccm.getInitialContactPoints()
+                    .stream()
+                    .map(addr -> String.format("%s", addr.getHostAddress()))
+                    .collect(Collectors.joining(",")))
+            .put("port", String.format("%d", ccm.getBinaryPort()))
+            .put("loadBalancing.localDc", "Cassandra")
+            .put("topic.mytopic.keyspace", session.getKeyspace().get().asCql(true))
+            .put("topic.mytopic.table", "types")
+            .put("topic.mytopic.mapping", myTopicMappingString)
+            .put("topic.yourtopic.keyspace", session.getKeyspace().get().asCql(true))
+            .put("topic.yourtopic.table", "types")
+            .put("topic.yourtopic.mapping", yourTopicMappingString);
+
+    if (extras != null) {
+      builder.putAll(extras);
+    }
+    return builder.build();
   }
 }

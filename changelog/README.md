@@ -12,3 +12,4 @@
 - [improvement] KAF-12: Fix setting names to conform to design doc
 - [improvement] KAF-8: Use batch requests to load data
 - [improvement] KAF-27: Produce a tarball deliverable in build process
+- [improvement] KAF-26: Support configurable time-zone and locale for date/time parsing

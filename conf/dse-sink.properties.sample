@@ -6,13 +6,48 @@ tasks.max=1
 topics=my_topic
 
 # Local datacenter name
-loadBalancing.localDc=Cassandra
+#loadBalancing.localDc=Cassandra
 
 # Initial DSE contact points
-contactPoints=[127.0.0.1]
+#contactPoints=[127.0.0.1]
 
 # Port to connect to on DSE nodes
-port=9042
+#port=9042
+
+# Locale to use for locale-sensitive conversions.
+#codec.locale=en_US
+
+# The time zone to use for temporal conversions that do not convey any explicit time zone
+# information.
+#codec.timeZone=UTC
+
+# The temporal pattern to use for `String` to CQL `timestamp` conversion. Valid choices:
+#
+# - A date-time pattern such as `yyyy-MM-dd HH:mm:ss`.
+# - A pre-defined formatter such as `ISO_ZONED_DATE_TIME` or `ISO_INSTANT`. Any public static
+#   field in `java.time.format.DateTimeFormatter` can be used.
+# - The special formatter `CQL_TIMESTAMP`, which is a special parser that accepts all valid CQL
+#   literal formats for the `timestamp` type.
+#codec.timestamp=CQL_TIMESTAMP
+
+# The temporal pattern to use for `String` to CQL `date` conversion. Valid choices:
+#
+# - A date-time pattern such as `yyyy-MM-dd`.
+# - A pre-defined formatter such as `ISO_LOCAL_DATE`. Any public static field in
+#   `java.time.format.DateTimeFormatter` can be used.
+#codec.date=ISO_LOCAL_DATE
+
+# The temporal pattern to use for `String` to CQL `time` conversion. Valid choices:
+#
+# - A date-time pattern, such as `HH:mm:ss`.
+# - A pre-defined formatter, such as `ISO_LOCAL_TIME`. Any public static field in
+#   `java.time.format.DateTimeFormatter` can be used.
+#codec.time=ISO_LOCAL_TIME
+
+# If the input is a string containing only digits that cannot be parsed using the
+# `codec.timestamp` format, the specified time unit is applied to the parsed value. All
+# `TimeUnit` enum constants are valid choices.
+#codec.unit=MILLISECONDS
 
 ### Settings for topic my_topic ###
 
