@@ -280,7 +280,9 @@ public class DseSinkConnector extends SinkConnector {
 
     Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
     CodecSettings codecSettings =
-        new CodecSettings(new DefaultLoaderConfig(dsbulkConfig.getConfig("codec")));
+        new CodecSettings(
+            new DefaultLoaderConfig(config.getConfigOverrides())
+                .withFallback(dsbulkConfig.getConfig("codec")));
     codecSettings.init();
 
     if (configLoader != null) {
