@@ -291,31 +291,33 @@ public class DseSinkConnector extends SinkConnector {
               .build();
     }
 
-    Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
-    CodecSettings codecSettings =
-        new CodecSettings(
-            new DefaultLoaderConfig(config.getConfigOverrides())
-                .withFallback(dsbulkConfig.getConfig("codec")));
-    codecSettings.init();
-
     if (configLoader != null) {
       builder.withConfigLoader(configLoader);
     }
     DseSession session = builder.build();
 
-    KafkaCodecRegistry codecRegistry =
-        codecSettings.createCodecRegistry(session.getContext().codecRegistry());
-
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
 
+    Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
+
     Map<String, CompletionStage<PreparedStatement>> prepareFutures = new HashMap<>();
+    Map<String, KafkaCodecRegistry> codecRegistries = new HashMap<>();
     config
         .getTopicConfigs()
         .forEach(
-            (topicName, topicConfig) ->
-                prepareFutures.put(
-                    topicName, session.prepareAsync(makeInsertStatement(topicConfig))));
+            (topicName, topicConfig) -> {
+              prepareFutures.put(topicName, session.prepareAsync(makeInsertStatement(topicConfig)));
+              CodecSettings codecSettings =
+                  new CodecSettings(
+                      new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
+                          .withFallback(dsbulkConfig.getConfig("codec")));
+              codecSettings.init();
+
+              codecRegistries.put(
+                  topicName,
+                  codecSettings.createCodecRegistry(session.getContext().codecRegistry()));
+            });
     Map<String, PreparedStatement> preparedStatements = new HashMap<>();
     prepareFutures.forEach(
         (topicName, future) -> {
@@ -331,7 +333,7 @@ public class DseSinkConnector extends SinkConnector {
     // Configure the json object mapper
     objectMapper.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
 
-    instanceState = new InstanceState(session, codecRegistry, preparedStatements, config);
+    instanceState = new InstanceState(session, codecRegistries, preparedStatements, config);
     instanceStates.put(config.getInstanceName(), instanceState);
     CountDownLatch latch = getLatch(config.getInstanceName());
     latch.countDown();

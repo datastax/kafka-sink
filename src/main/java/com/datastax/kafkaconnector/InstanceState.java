@@ -17,17 +17,17 @@ import java.util.Map;
 /** Container for a session, its codec-registry, etc. */
 class InstanceState {
   private final DseSession session;
-  private final KafkaCodecRegistry codecRegistry;
+  private final Map<String, KafkaCodecRegistry> codecRegistries;
   private final Map<String, PreparedStatement> insertStatements;
   private final DseSinkConfig config;
 
   InstanceState(
       DseSession session,
-      KafkaCodecRegistry codecRegistry,
+      Map<String, KafkaCodecRegistry> codecRegistries,
       Map<String, PreparedStatement> insertStatements,
       DseSinkConfig config) {
     this.session = session;
-    this.codecRegistry = codecRegistry;
+    this.codecRegistries = codecRegistries;
     this.insertStatements = insertStatements;
     this.config = config;
   }
@@ -40,8 +40,8 @@ class InstanceState {
     return session;
   }
 
-  KafkaCodecRegistry getCodecRegistry() {
-    return codecRegistry;
+  KafkaCodecRegistry getCodecRegistry(String topicName) {
+    return codecRegistries.get(topicName);
   }
 
   PreparedStatement getInsertStatement(String topicName) {

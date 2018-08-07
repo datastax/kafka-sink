@@ -12,9 +12,6 @@ import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.google.common.base.Splitter;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,12 +29,6 @@ public class DseSinkConfig {
   static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
-  static final String LOCALE_OPT = "codec.locale";
-  static final String TIMEZONE_OPT = "codec.timeZone";
-  static final String TIMESTAMP_PAT_OPT = "codec.timestamp";
-  static final String DATE_PAT_OPT = "codec.date";
-  static final String TIME_PAT_OPT = "codec.time";
-  static final String TIME_UNIT_OPT = "codec.unit";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -58,43 +49,7 @@ public class DseSinkConfig {
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
-              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running")
-          .define(
-              LOCALE_OPT,
-              ConfigDef.Type.STRING,
-              "en_US",
-              ConfigDef.Importance.HIGH,
-              "The locale to use for locale-sensitive conversions.")
-          .define(
-              TIMEZONE_OPT,
-              ConfigDef.Type.STRING,
-              "UTC",
-              ConfigDef.Importance.HIGH,
-              "The time zone to use for temporal conversions that do not convey any explicit time zone information")
-          .define(
-              TIMESTAMP_PAT_OPT,
-              ConfigDef.Type.STRING,
-              "CQL_TIMESTAMP",
-              ConfigDef.Importance.HIGH,
-              "The temporal pattern to use for `String` to CQL `timestamp` conversion")
-          .define(
-              DATE_PAT_OPT,
-              ConfigDef.Type.STRING,
-              "ISO_LOCAL_DATE",
-              ConfigDef.Importance.HIGH,
-              "The temporal pattern to use for `String` to CQL `date` conversion")
-          .define(
-              TIME_PAT_OPT,
-              ConfigDef.Type.STRING,
-              "ISO_LOCAL_TIME",
-              ConfigDef.Importance.HIGH,
-              "The temporal pattern to use for `String` to CQL `time` conversion")
-          .define(
-              TIME_UNIT_OPT,
-              ConfigDef.Type.STRING,
-              "MILLISECONDS",
-              ConfigDef.Importance.HIGH,
-              "If the input is a string containing only digits that cannot be parsed using the `codec.timestamp` format, the specified time unit is applied to the parsed value. All `TimeUnit` enum constants are valid choices.");
+              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running");
   private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -171,20 +126,6 @@ public class DseSinkConfig {
 
   public Map<String, TopicConfig> getTopicConfigs() {
     return topicConfigs;
-  }
-
-  public Config getConfigOverrides() {
-    String[] settingNames = {
-      LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
-    };
-    String config =
-        Arrays.stream(settingNames)
-            .map(
-                s ->
-                    String.format(
-                        "%s=\"%s\"", s.substring("codec.".length()), globalConfig.getString(s)))
-            .collect(Collectors.joining("\n"));
-    return ConfigFactory.parseString(config);
   }
 
   @Override

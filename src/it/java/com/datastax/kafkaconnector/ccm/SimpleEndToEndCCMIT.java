@@ -750,12 +750,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "timestampcol=value.vtimestamp, "
                 + "secondscol=value.vseconds",
             ImmutableMap.<String, String>builder()
-                .put("codec.timeZone", "Europe/Paris")
-                .put("codec.locale", "fr_FR")
-                .put("codec.date", "cccc, d MMMM uuuu")
-                .put("codec.time", "HHmmssSSS")
-                .put("codec.timestamp", "ISO_ZONED_DATE_TIME")
-                .put("codec.unit", "SECONDS")
+                .put("topic.mytopic.codec.timeZone", "Europe/Paris")
+                .put("topic.mytopic.codec.locale", "fr_FR")
+                .put("topic.mytopic.codec.date", "cccc, d MMMM uuuu")
+                .put("topic.mytopic.codec.time", "HHmmssSSS")
+                .put("topic.mytopic.codec.timestamp", "ISO_ZONED_DATE_TIME")
+                .put("topic.mytopic.codec.unit", "SECONDS")
                 .build()));
 
     String value =

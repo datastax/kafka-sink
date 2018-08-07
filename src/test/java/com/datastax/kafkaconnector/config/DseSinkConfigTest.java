@@ -11,7 +11,6 @@ package com.datastax.kafkaconnector.config;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
-import static com.datastax.kafkaconnector.config.DseSinkConfig.TIME_PAT_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
@@ -22,7 +21,6 @@ import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.typesafe.config.Config;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
@@ -68,25 +66,6 @@ class DseSinkConfigTest {
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
     assertThat(d.getLocalDc()).isEqualTo("local");
-  }
-
-  @Test
-  void should_produce_config_overrides() {
-    Map<String, String> props =
-        ImmutableMap.<String, String>builder()
-            .put(CONTACT_POINTS_OPT, "127.0.0.1, 127.0.1.1")
-            .put(DC_OPT, "local")
-            .put(TIME_PAT_OPT, "foo")
-            .build();
-
-    DseSinkConfig d = new DseSinkConfig(props);
-    Config configOverrides = d.getConfigOverrides();
-    assertThat(configOverrides.getString("locale")).isEqualTo("en_US");
-    assertThat(configOverrides.getString("timeZone")).isEqualTo("UTC");
-    assertThat(configOverrides.getString("timestamp")).isEqualTo("CQL_TIMESTAMP");
-    assertThat(configOverrides.getString("date")).isEqualTo("ISO_LOCAL_DATE");
-    assertThat(configOverrides.getString("time")).isEqualTo("foo");
-    assertThat(configOverrides.getString("unit")).isEqualTo("MILLISECONDS");
   }
 
   @Test
