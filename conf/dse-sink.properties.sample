@@ -2,23 +2,23 @@ name=dse-sink
 connector.class=com.datastax.kafkaconnector.DseSinkConnector
 tasks.max=1
 
-# Topics to subscribe to, comma-delimited
+# Topics to subscribe to, comma-delimited.
 topics=my_topic
 
-# Local datacenter name
-#loadBalancing.localDc=Cassandra
+# Initial DSE contact points; defaults to localhost implicitly.
+#contactPoints=[]
 
-# Initial DSE contact points
-#contactPoints=[127.0.0.1]
+# Local datacenter name, required if contactPoints is specified.
+#loadBalancing.localDc=
 
-# Port to connect to on DSE nodes
+# Port to connect to on DSE nodes; defaults to 9042.
 #port=9042
 
-# Locale to use for locale-sensitive conversions.
+# Locale to use for locale-sensitive conversions. Defaults to en_US.
 #codec.locale=en_US
 
 # The time zone to use for temporal conversions that do not convey any explicit time zone
-# information.
+# information. Defaults to UTC.
 #codec.timeZone=UTC
 
 # The temporal pattern to use for `String` to CQL `timestamp` conversion. Valid choices:
@@ -28,6 +28,7 @@ topics=my_topic
 #   field in `java.time.format.DateTimeFormatter` can be used.
 # - The special formatter `CQL_TIMESTAMP`, which is a special parser that accepts all valid CQL
 #   literal formats for the `timestamp` type.
+# Defaults to CQL_TIMESTAMP.
 #codec.timestamp=CQL_TIMESTAMP
 
 # The temporal pattern to use for `String` to CQL `date` conversion. Valid choices:
@@ -35,6 +36,7 @@ topics=my_topic
 # - A date-time pattern such as `yyyy-MM-dd`.
 # - A pre-defined formatter such as `ISO_LOCAL_DATE`. Any public static field in
 #   `java.time.format.DateTimeFormatter` can be used.
+# Defaults to ISO_LOCAL_DATE.
 #codec.date=ISO_LOCAL_DATE
 
 # The temporal pattern to use for `String` to CQL `time` conversion. Valid choices:
@@ -42,23 +44,28 @@ topics=my_topic
 # - A date-time pattern, such as `HH:mm:ss`.
 # - A pre-defined formatter, such as `ISO_LOCAL_TIME`. Any public static field in
 #   `java.time.format.DateTimeFormatter` can be used.
+# Defaults to ISO_LOCAL_TIME.
 #codec.time=ISO_LOCAL_TIME
 
 # If the input is a string containing only digits that cannot be parsed using the
 # `codec.timestamp` format, the specified time unit is applied to the parsed value. All
 # `TimeUnit` enum constants are valid choices.
+# Defaults to MILLISECONDS.
 #codec.unit=MILLISECONDS
 
 ### Settings for topic my_topic ###
 
-# Keyspace to insert to in DSE
+# Keyspace to insert to in DSE.
 topic.my_topic.keyspace=my_ks
 
-# Table to insert to in DSE
+# Table to insert to in DSE.
 topic.my_topic.table=my_table
 
-# Mapping of record fields to DSE columns, in the form 'col1=value.f1, col2=key.f1'
+# Mapping of record fields to DSE columns, in the form 'col1=value.f1, col2=key.f1'.
 topic.my_topic.mapping=col1=value.f1, col2=key.f1
 
-# TTL for rows inserted in DSE
-topic.my_topic.ttl=-1
+# TTL for rows inserted in DSE; defaults to -1, meaning there is no TTL.
+#topic.my_topic.ttl=-1
+
+# Whether nulls in Kafka should be treated as UNSET in DSE; defaults to true.
+#topic.my_topic.nullToUnset=true

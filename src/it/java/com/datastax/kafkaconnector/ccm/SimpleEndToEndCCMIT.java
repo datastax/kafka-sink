@@ -80,7 +80,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @BeforeAll
   void createTables() {
-    session.execute("CREATE TYPE IF NOT EXISTS myudt (" + "udtmem1 int, " + "udtmem2 text" + ")");
+    session.execute("CREATE TYPE IF NOT EXISTS myudt (udtmem1 int, udtmem2 text)");
     session.execute(
         "CREATE TABLE IF NOT EXISTS types ("
             + "bigintCol bigint PRIMARY KEY, "
@@ -700,6 +700,47 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void null_to_unset_true() {
+    // Make a row with some value for textcol to start with.
+    session.execute("INSERT INTO types (bigintcol, textcol) VALUES (1234567, 'got here')");
+
+    conn.start(makeConnectorProperties("bigintcol=key, textcol=value"));
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 1234567L, null, null, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE; textcol should be unchanged.
+    List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getString("textcol")).isEqualTo("got here");
+  }
+
+  @Test
+  void null_to_unset_false() {
+    // Make a row with some value for textcol to start with.
+    session.execute("INSERT INTO types (bigintcol, textcol) VALUES (1234567, 'got here')");
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key, textcol=value",
+            ImmutableMap.<String, String>builder()
+                .put("topic.mytopic.nullToUnset", "false")
+                .build()));
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 1234567L, null, null, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE; textcol should be unchanged.
+    List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getString("textcol")).isNull();
+  }
+
+  @Test
   void timezone_and_locale() {
     conn.start(
         makeConnectorProperties(
@@ -817,6 +858,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
       String myTopicMappingString, String yourTopicMappingString, Map<String, String> extras) {
     ImmutableMap.Builder<String, String> builder =
         ImmutableMap.<String, String>builder()
+            .put("name", "myinstance")
             .put(
                 "contactPoints",
                 ccm.getInitialContactPoints()

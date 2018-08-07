@@ -13,3 +13,4 @@
 - [improvement] KAF-8: Use batch requests to load data
 - [improvement] KAF-27: Produce a tarball deliverable in build process
 - [improvement] KAF-26: Support configurable time-zone and locale for date/time parsing
+- [improvement] KAF-11: Add nullToUnset topic setting to allow nulls to be treated as nulls

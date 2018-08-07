@@ -8,6 +8,8 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
+
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.google.common.base.Splitter;
 import com.typesafe.config.Config;
@@ -94,10 +96,12 @@ public class DseSinkConfig {
               ConfigDef.Importance.HIGH,
               "If the input is a string containing only digits that cannot be parsed using the `codec.timestamp` format, the specified time unit is applied to the parsed value. All `TimeUnit` enum constants are valid choices.");
   private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
+  private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
 
   public DseSinkConfig(Map<String, String> settings) {
+    instanceName = settings.get(NAME_OPT);
     // Walk through the settings and separate out "globals" from "topics".
     Map<String, String> globalSettings = new HashMap<>();
     Map<String, Map<String, String>> topicSettings = new HashMap<>();
@@ -147,6 +151,10 @@ public class DseSinkConfig {
           contactPoints,
           String.format("When contact points is provided, %s must also be specified", DC_OPT));
     }
+  }
+
+  public String getInstanceName() {
+    return instanceName;
   }
 
   public int getPort() {
