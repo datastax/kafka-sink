@@ -8,12 +8,11 @@
  */
 package com.datastax.kafkaconnector;
 
-import static com.datastax.kafkaconnector.DseSinkConnector.MAPPINGS_OPT;
+import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
-import com.datastax.kafkaconnector.util.SinkUtil;
-import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -36,8 +35,8 @@ import org.slf4j.LoggerFactory;
 /** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
 public class DseSinkTask extends SinkTask {
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
-  private SessionState sessionState;
-  private Map<String, Map<CqlIdentifier, CqlIdentifier>> topicMappings;
+  private static final RawData NULL_DATA = new RawData(null);
+  private InstanceState instanceState;
   private Cache<String, Mapping> mappingObjects;
 
   @Override
@@ -47,13 +46,8 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
+    instanceState = DseSinkConnector.getInstanceState(props.get(NAME_OPT));
     mappingObjects = Caffeine.newBuilder().build();
-    topicMappings = SinkUtil.deserializeTopicMappings(props.get(MAPPINGS_OPT));
-    log.debug("Task will run with mapping: {}", topicMappings.toString());
-
-    // TODO: Use a caffeine cache keyed on "session attributes" to allow us to
-    // get/create a session with particular attributes.
-    sessionState = DseSinkConnector.getSessionState();
   }
 
   @Override
@@ -62,26 +56,28 @@ public class DseSinkTask extends SinkTask {
     sinkRecords.forEach(
         r ->
             log.debug(
-                "SANDMAN: offset={} key={} value={} timestamp={}",
+                "SANDMAN: topic={} offset={} key={} value={} timestamp={}",
+                r.topic(),
                 r.kafkaOffset(),
                 r.key(),
                 r.value(),
                 r.timestamp()));
 
-    DseSession session = sessionState.getSession();
-    KafkaCodecRegistry codecRegistry = sessionState.getCodecRegistry();
+    DseSession session = instanceState.getSession();
+    KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry();
 
     try {
       BatchStatementBuilder bsb = BatchStatement.builder(DefaultBatchType.UNLOGGED);
       for (SinkRecord record : sinkRecords) {
         String topicName = record.topic();
-        PreparedStatement preparedStatement = sessionState.getInsertStatement(topicName);
+        PreparedStatement preparedStatement = instanceState.getInsertStatement(topicName);
+        TopicConfig topicConfig = instanceState.getConfig().getTopicConfigs().get(topicName);
         Mapping mapping =
             mappingObjects.get(
                 topicName,
                 t -> {
-                  if (topicMappings.containsKey(t)) {
-                    return new Mapping(topicMappings.get(t), codecRegistry);
+                  if (topicConfig != null) {
+                    return new Mapping(topicConfig.getMapping(), codecRegistry);
                   } else {
                     throw new KafkaException(
                         String.format(
@@ -98,7 +94,7 @@ public class DseSinkTask extends SinkTask {
                 preparedStatement,
                 mapping,
                 new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
-                true,
+                topicConfig.isNullToUnset(),
                 true,
                 false);
         BoundStatement boundStatement = mapper.map(keyValueRecord);
@@ -111,8 +107,8 @@ public class DseSinkTask extends SinkTask {
   }
 
   private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
-    KeyOrValue innerData = null;
-    RecordMetadata innerMetadata = null;
+    KeyOrValue innerData;
+    RecordMetadata innerMetadata;
 
     if (keyOrValue instanceof Struct) {
       Struct innerRecordStruct = (Struct) keyOrValue;
@@ -135,6 +131,10 @@ public class DseSinkTask extends SinkTask {
     } else if (keyOrValue != null) {
       innerData = new RawData(keyOrValue);
       innerMetadata = (RecordMetadata) innerData;
+    } else {
+      // The key or value is null
+      innerData = NULL_DATA;
+      innerMetadata = NULL_DATA;
     }
     return new InnerDataAndMetadata(innerData, innerMetadata);
   }

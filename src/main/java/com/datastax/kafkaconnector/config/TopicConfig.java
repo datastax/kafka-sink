@@ -27,6 +27,7 @@ public class TopicConfig extends AbstractConfig {
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
 
+  private static final String NULL_TO_UNSET_OPT = "nullToUnset";
   private static final Pattern DELIM_PAT = Pattern.compile(", *");
 
   private final String topicName;
@@ -35,6 +36,7 @@ public class TopicConfig extends AbstractConfig {
   private final String mappingString;
   private final Map<CqlIdentifier, CqlIdentifier> mapping;
   private final int ttl;
+  private final boolean nullToUnset;
 
   TopicConfig(String topicName, Map<String, String> settings) {
     super(makeTopicConfigDef(topicName), settings, false);
@@ -45,6 +47,7 @@ public class TopicConfig extends AbstractConfig {
     mappingString = getString(getTopicSettingName(topicName, MAPPING_OPT));
     mapping = parseMappingString(mappingString);
     ttl = getInt(getTopicSettingName(topicName, TTL_OPT));
+    nullToUnset = getBoolean(getTopicSettingName(topicName, NULL_TO_UNSET_OPT));
   }
 
   private Map<CqlIdentifier, CqlIdentifier> parseMappingString(String mappingString) {
@@ -93,14 +96,19 @@ public class TopicConfig extends AbstractConfig {
     return ttl;
   }
 
+  public boolean isNullToUnset() {
+    return nullToUnset;
+  }
+
   @Override
   public String toString() {
     return String.format(
-        "{name: %s, keyspace: %s, table: %s, ttl: %d, mapping:\n%s}",
+        "{name: %s, keyspace: %s, table: %s, ttl: %d, nullToUnset: %b, mapping:\n%s}",
         topicName,
         keyspace,
         table,
         ttl,
+        nullToUnset,
         Splitter.on(DELIM_PAT)
             .splitToList(mappingString)
             .stream()
@@ -135,6 +143,12 @@ public class TopicConfig extends AbstractConfig {
             -1,
             ConfigDef.Range.atLeast(-1),
             ConfigDef.Importance.HIGH,
-            "TTL of rows inserted in DSE nodes");
+            "TTL of rows inserted in DSE nodes")
+        .define(
+            getTopicSettingName(topicName, NULL_TO_UNSET_OPT),
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.HIGH,
+            "Whether nulls in Kafka should be treated as UNSET in DSE");
   }
 }

@@ -27,9 +27,13 @@ public class RawData implements KeyOrValue, RecordMetadata {
   private final GenericType<?> type;
   private final Object value;
 
-  RawData(@NotNull Object keyOrValue) {
+  RawData(Object keyOrValue) {
     value = keyOrValue;
-    type = GenericType.of(keyOrValue.getClass());
+    if (keyOrValue != null) {
+      type = GenericType.of(keyOrValue.getClass());
+    } else {
+      type = GenericType.STRING;
+    }
   }
 
   @Override

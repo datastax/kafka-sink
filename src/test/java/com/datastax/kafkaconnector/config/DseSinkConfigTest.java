@@ -18,6 +18,7 @@ import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -95,6 +96,15 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getPort()).isEqualTo(5725);
+  }
+
+  @Test
+  void should_handle_instance_name() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder().put(SinkUtil.NAME_OPT, "myinst").build();
+
+    DseSinkConfig d = new DseSinkConfig(props);
+    assertThat(d.getInstanceName()).isEqualTo("myinst");
   }
 
   @Test

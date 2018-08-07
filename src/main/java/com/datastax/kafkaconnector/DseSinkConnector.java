@@ -36,6 +36,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.typesafe.config.Config;
@@ -51,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -63,7 +67,6 @@ import org.slf4j.LoggerFactory;
 
 /** Sink connector to insert Kafka records into DSE. */
 public class DseSinkConnector extends SinkConnector {
-  static final String MAPPINGS_OPT = "mappings";
   static final RecordMetadata JSON_RECORD_METADATA =
       (field, cqlType) ->
           field.equals(RawData.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
@@ -72,25 +75,35 @@ public class DseSinkConnector extends SinkConnector {
       objectMapper.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
   private static final Logger log = LoggerFactory.getLogger(DseSinkConnector.class);
 
-  // TODO: Handle multiple clusters, sessions, and prepared statements (one set for
-  // each instance of the connector).
-  private static CountDownLatch statementReady = new CountDownLatch(1);
-  private static SessionState sessionState;
+  // We do a lot of heavy lifting at the Connector level and want to allow tasks to leverage
+  // what is already done. However, particularly in distributed mode, tasks can start up
+  // before the actual connector. Thus, we need a latch for every connector instance to
+  // make sure "instance state" for an instance of the connector is ready before a task
+  // can have it.
+  private static ConcurrentMap<String, InstanceState> instanceStates = new ConcurrentHashMap<>();
+  private static Cache<String, CountDownLatch> instanceStateLatches = Caffeine.newBuilder().build();
+
   private String version;
+  private InstanceState instanceState;
 
-  private DseSinkConfig config;
-
-  static SessionState getSessionState() {
-    if (sessionState != null) {
-      return sessionState;
+  static InstanceState getInstanceState(String instanceName) {
+    InstanceState state = instanceStates.get(instanceName);
+    if (state != null) {
+      return state;
     }
 
+    CountDownLatch latch = getLatch(instanceName);
+    assert (latch != null);
     try {
-      statementReady.await();
+      latch.await();
     } catch (InterruptedException e) {
-      log.error("getSessionState got excp", e);
+      log.error("getInstanceState got excp", e);
     }
-    return sessionState;
+    return instanceStates.get(instanceName);
+  }
+
+  private static CountDownLatch getLatch(String instanceName) {
+    return instanceStateLatches.get(instanceName, name -> new CountDownLatch(1));
   }
 
   private static void closeQuietly(AutoCloseable closeable) {
@@ -262,7 +275,7 @@ public class DseSinkConnector extends SinkConnector {
 
   @Override
   public void start(Map<String, String> props) {
-    config = new DseSinkConfig(props);
+    DseSinkConfig config = new DseSinkConfig(props);
     log.info(String.format("%s\n", config.toString()));
     DseSessionBuilder builder = DseSession.builder();
     config
@@ -296,10 +309,6 @@ public class DseSinkConnector extends SinkConnector {
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
 
-    // TODO: Multiple sink connectors (say for different topics/tables) may be created at the same
-    // time. They can all share the same session, but we must make sure only one connector
-    // creates the session.
-
     Map<String, CompletionStage<PreparedStatement>> prepareFutures = new HashMap<>();
     config
         .getTopicConfigs()
@@ -322,9 +331,10 @@ public class DseSinkConnector extends SinkConnector {
     // Configure the json object mapper
     objectMapper.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
 
-    sessionState = new SessionState(session, codecRegistry, preparedStatements);
-
-    statementReady.countDown();
+    instanceState = new InstanceState(session, codecRegistry, preparedStatements, config);
+    instanceStates.put(config.getInstanceName(), instanceState);
+    CountDownLatch latch = getLatch(config.getInstanceName());
+    latch.countDown();
   }
 
   @Override
@@ -337,7 +347,7 @@ public class DseSinkConnector extends SinkConnector {
     ArrayList<Map<String, String>> configs = new ArrayList<>();
     Map<String, String> taskConfig =
         ImmutableMap.<String, String>builder()
-            .put(MAPPINGS_OPT, SinkUtil.serializeTopicMappings(config))
+            .put(SinkUtil.NAME_OPT, instanceState.getConfig().getInstanceName())
             .build();
     for (int i = 0; i < maxTasks; i++) {
       configs.add(taskConfig);
@@ -347,9 +357,8 @@ public class DseSinkConnector extends SinkConnector {
 
   @Override
   public void stop() {
-    // TODO: When is it safe to close the (shared) session?
-    if (sessionState != null) {
-      closeQuietly(sessionState.getSession());
+    if (instanceState != null) {
+      closeQuietly(instanceState.getSession());
     }
   }
 
