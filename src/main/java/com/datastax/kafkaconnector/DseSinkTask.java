@@ -64,12 +64,12 @@ public class DseSinkTask extends SinkTask {
                 r.timestamp()));
 
     DseSession session = instanceState.getSession();
-    KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry();
 
     try {
       BatchStatementBuilder bsb = BatchStatement.builder(DefaultBatchType.UNLOGGED);
       for (SinkRecord record : sinkRecords) {
         String topicName = record.topic();
+        KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry(topicName);
         PreparedStatement preparedStatement = instanceState.getInsertStatement(topicName);
         TopicConfig topicConfig = instanceState.getConfig().getTopicConfigs().get(topicName);
         Mapping mapping =

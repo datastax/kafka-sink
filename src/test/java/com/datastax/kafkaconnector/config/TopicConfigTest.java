@@ -8,9 +8,15 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.TopicConfig.DATE_PAT_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.LOCALE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TIMESTAMP_PAT_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TIMEZONE_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TIME_PAT_OPT;
+import static com.datastax.kafkaconnector.config.TopicConfig.TIME_UNIT_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TTL_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -18,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.typesafe.config.Config;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
@@ -208,5 +215,30 @@ class TopicConfigTest {
         .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("key.b"))
         .containsEntry(
             CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("value.good"));
+  }
+
+  @Test
+  void should_produce_config_overrides() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), "myks")
+            .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), "mytable")
+            .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), "c1=value.f1")
+            .put(TopicConfig.getTopicSettingName("mytopic", TIME_PAT_OPT), "time-pat")
+            .put(TopicConfig.getTopicSettingName("mytopic", LOCALE_OPT), "locale")
+            .put(TopicConfig.getTopicSettingName("mytopic", TIMEZONE_OPT), "timezone")
+            .put(TopicConfig.getTopicSettingName("mytopic", TIMESTAMP_PAT_OPT), "timestamp-pat")
+            .put(TopicConfig.getTopicSettingName("mytopic", DATE_PAT_OPT), "date-pat")
+            .put(TopicConfig.getTopicSettingName("mytopic", TIME_UNIT_OPT), "time-unit")
+            .build();
+
+    TopicConfig config = new TopicConfig("mytopic", props);
+    Config configOverrides = config.getCodecConfigOverrides();
+    assertThat(configOverrides.getString("locale")).isEqualTo("locale");
+    assertThat(configOverrides.getString("timeZone")).isEqualTo("timezone");
+    assertThat(configOverrides.getString("timestamp")).isEqualTo("timestamp-pat");
+    assertThat(configOverrides.getString("date")).isEqualTo("date-pat");
+    assertThat(configOverrides.getString("time")).isEqualTo("time-pat");
+    assertThat(configOverrides.getString("unit")).isEqualTo("time-unit");
   }
 }

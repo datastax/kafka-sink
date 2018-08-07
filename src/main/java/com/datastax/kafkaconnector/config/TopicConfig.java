@@ -12,6 +12,9 @@ import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.base.Splitter;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -26,6 +29,13 @@ public class TopicConfig extends AbstractConfig {
   public static final String TABLE_OPT = "table";
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
+
+  static final String TIME_PAT_OPT = "codec.time";
+  static final String LOCALE_OPT = "codec.locale";
+  static final String TIMEZONE_OPT = "codec.timeZone";
+  static final String TIMESTAMP_PAT_OPT = "codec.timestamp";
+  static final String DATE_PAT_OPT = "codec.date";
+  static final String TIME_UNIT_OPT = "codec.unit";
 
   private static final String NULL_TO_UNSET_OPT = "nullToUnset";
   private static final Pattern DELIM_PAT = Pattern.compile(", *");
@@ -102,8 +112,22 @@ public class TopicConfig extends AbstractConfig {
 
   @Override
   public String toString() {
+    String[] codecSettings = {
+      LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
+    };
+    String codecString =
+        Arrays.stream(codecSettings)
+            .map(
+                s ->
+                    String.format(
+                        "%s: %s",
+                        s.substring("codec.".length()),
+                        getString(getTopicSettingName(topicName, s))))
+            .collect(Collectors.joining(", "));
+
     return String.format(
-        "{name: %s, keyspace: %s, table: %s, ttl: %d, nullToUnset: %b, mapping:\n%s}",
+        "{name: %s, keyspace: %s, table: %s, ttl: %d, nullToUnset: %b, mapping:\n%s\n"
+            + " codec settings: %s}",
         topicName,
         keyspace,
         table,
@@ -113,11 +137,28 @@ public class TopicConfig extends AbstractConfig {
             .splitToList(mappingString)
             .stream()
             .map(m -> "      " + m)
-            .collect(Collectors.joining("\n")));
+            .collect(Collectors.joining("\n")),
+        codecString);
   }
 
   public static String getTopicSettingName(String topicName, String setting) {
     return String.format("topic.%s.%s", topicName, setting);
+  }
+
+  public Config getCodecConfigOverrides() {
+    String[] settingNames = {
+      LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
+    };
+    String config =
+        Arrays.stream(settingNames)
+            .map(
+                s ->
+                    String.format(
+                        "%s=\"%s\"",
+                        s.substring("codec.".length()),
+                        getString(getTopicSettingName(topicName, s))))
+            .collect(Collectors.joining("\n"));
+    return ConfigFactory.parseString(config);
   }
 
   private static ConfigDef makeTopicConfigDef(String topicName) {
@@ -149,6 +190,42 @@ public class TopicConfig extends AbstractConfig {
             ConfigDef.Type.BOOLEAN,
             true,
             ConfigDef.Importance.HIGH,
-            "Whether nulls in Kafka should be treated as UNSET in DSE");
+            "Whether nulls in Kafka should be treated as UNSET in DSE")
+        .define(
+            getTopicSettingName(topicName, LOCALE_OPT),
+            ConfigDef.Type.STRING,
+            "en_US",
+            ConfigDef.Importance.HIGH,
+            "The locale to use for locale-sensitive conversions.")
+        .define(
+            getTopicSettingName(topicName, TIMEZONE_OPT),
+            ConfigDef.Type.STRING,
+            "UTC",
+            ConfigDef.Importance.HIGH,
+            "The time zone to use for temporal conversions that do not convey any explicit time zone information")
+        .define(
+            getTopicSettingName(topicName, TIMESTAMP_PAT_OPT),
+            ConfigDef.Type.STRING,
+            "CQL_TIMESTAMP",
+            ConfigDef.Importance.HIGH,
+            "The temporal pattern to use for `String` to CQL `timestamp` conversion")
+        .define(
+            getTopicSettingName(topicName, DATE_PAT_OPT),
+            ConfigDef.Type.STRING,
+            "ISO_LOCAL_DATE",
+            ConfigDef.Importance.HIGH,
+            "The temporal pattern to use for `String` to CQL `date` conversion")
+        .define(
+            getTopicSettingName(topicName, TIME_PAT_OPT),
+            ConfigDef.Type.STRING,
+            "ISO_LOCAL_TIME",
+            ConfigDef.Importance.HIGH,
+            "The temporal pattern to use for `String` to CQL `time` conversion")
+        .define(
+            getTopicSettingName(topicName, TIME_UNIT_OPT),
+            ConfigDef.Type.STRING,
+            "MILLISECONDS",
+            ConfigDef.Importance.HIGH,
+            "If the input is a string containing only digits that cannot be parsed using the `codec.timestamp` format, the specified time unit is applied to the parsed value. All `TimeUnit` enum constants are valid choices.");
   }
 }
