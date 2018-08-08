@@ -363,6 +363,7 @@ https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
               <goal>shade</goal>
             </goals>
             <configuration>
+              <minimizeJar>true</minimizeJar>
               <artifactSet>
                 <excludes>
                   <exclude>org.apache.kafka:*</exclude>

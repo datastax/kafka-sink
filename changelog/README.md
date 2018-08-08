@@ -15,3 +15,4 @@
 - [improvement] KAF-26: Support configurable time-zone and locale for date/time parsing
 - [new feature] KAF-11: Add nullToUnset topic setting to allow nulls to be treated as nulls
 - [improvement] KAF-29: Date/Time conversion settings should be topic-scoped
+- [improvement] KAF-13: Exclude unnecessary classes from uberjar
