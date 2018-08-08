@@ -53,6 +53,7 @@ public class DseSinkTask extends SinkTask {
   @Override
   public void put(Collection<SinkRecord> sinkRecords) {
     // TODO: Consider removing this logging.
+    log.debug("Received {} records", sinkRecords.size());
     sinkRecords.forEach(
         r ->
             log.debug(
