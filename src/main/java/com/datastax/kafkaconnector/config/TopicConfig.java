@@ -10,7 +10,9 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.google.common.base.Splitter;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -29,6 +31,7 @@ public class TopicConfig extends AbstractConfig {
   public static final String TABLE_OPT = "table";
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
+  public static final String CL_OPT = "consistencyLevel";
 
   static final String TIME_PAT_OPT = "codec.time";
   static final String LOCALE_OPT = "codec.locale";
@@ -45,6 +48,7 @@ public class TopicConfig extends AbstractConfig {
   private final CqlIdentifier table;
   private final String mappingString;
   private final Map<CqlIdentifier, CqlIdentifier> mapping;
+  private final ConsistencyLevel consistencyLevel;
   private final int ttl;
   private final boolean nullToUnset;
 
@@ -56,6 +60,21 @@ public class TopicConfig extends AbstractConfig {
     table = parseLoosely(getString(getTopicSettingName(topicName, TABLE_OPT)));
     mappingString = getString(getTopicSettingName(topicName, MAPPING_OPT));
     mapping = parseMappingString(mappingString);
+    String clOptName = getTopicSettingName(topicName, CL_OPT);
+    String clString = getString(clOptName);
+    try {
+      consistencyLevel = DefaultConsistencyLevel.valueOf(clString.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      // Must be a non-existing enum value.
+      throw new ConfigException(
+          clOptName,
+          singleQuote(clString),
+          String.format(
+              "valid values include: %s",
+              Arrays.stream(DefaultConsistencyLevel.values())
+                  .map(DefaultConsistencyLevel::name)
+                  .collect(Collectors.joining(", "))));
+    }
     ttl = getInt(getTopicSettingName(topicName, TTL_OPT));
     nullToUnset = getBoolean(getTopicSettingName(topicName, NULL_TO_UNSET_OPT));
   }
@@ -102,6 +121,10 @@ public class TopicConfig extends AbstractConfig {
     return mappingString;
   }
 
+  public ConsistencyLevel getConsistencyLevel() {
+    return consistencyLevel;
+  }
+
   public int getTtl() {
     return ttl;
   }
@@ -126,11 +149,12 @@ public class TopicConfig extends AbstractConfig {
             .collect(Collectors.joining(", "));
 
     return String.format(
-        "{name: %s, keyspace: %s, table: %s, ttl: %d, nullToUnset: %b, mapping:\n%s\n"
+        "{name: %s, keyspace: %s, table: %s, cl: %s, ttl: %d, nullToUnset: %b, mapping:\n%s\n"
             + " codec settings: %s}",
         topicName,
         keyspace,
         table,
+        consistencyLevel,
         ttl,
         nullToUnset,
         Splitter.on(DELIM_PAT)
@@ -178,6 +202,12 @@ public class TopicConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             ConfigDef.Importance.HIGH,
             "Mapping of record fields to dse columns, in the form of 'col1=value.f1, col2=key.f1'")
+        .define(
+            getTopicSettingName(topicName, CL_OPT),
+            ConfigDef.Type.STRING,
+            "LOCAL_ONE",
+            ConfigDef.Importance.HIGH,
+            "Query consistency level")
         .define(
             getTopicSettingName(topicName, TTL_OPT),
             ConfigDef.Type.INT,

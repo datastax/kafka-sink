@@ -14,6 +14,9 @@ topics=my_topic
 # Port to connect to on DSE nodes; defaults to 9042.
 #port=9042
 
+# Maximum number of requests to send to DSE at once. Defaults to 500.
+#maxConcurrentRequests=500
+
 # Locale to use for locale-sensitive conversions. Defaults to en_US.
 #codec.locale=en_US
 
@@ -63,6 +66,9 @@ topic.my_topic.table=my_table
 
 # Mapping of record fields to DSE columns, in the form 'col1=value.f1, col2=key.f1'.
 topic.my_topic.mapping=col1=value.f1, col2=key.f1
+
+# Query consistency level; defaults to LOCAL_ONE.
+#topic.my_topic.consistencyLevel=LOCAL_ONE
 
 # TTL for rows inserted in DSE; defaults to -1, meaning there is no TTL.
 #topic.my_topic.ttl=-1

@@ -29,6 +29,7 @@ public class DseSinkConfig {
   static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
+  static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -49,7 +50,15 @@ public class DseSinkConfig {
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
-              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running");
+              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running")
+          .define(
+              CONCURRENT_REQUESTS_OPT,
+              ConfigDef.Type.INT,
+              500,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "The maximum number of requests to send to DSE at once");
+
   private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -116,6 +125,10 @@ public class DseSinkConfig {
     return globalConfig.getInt(PORT_OPT);
   }
 
+  public int getMaxConcurrentRequests() {
+    return globalConfig.getInt(CONCURRENT_REQUESTS_OPT);
+  }
+
   public List<String> getContactPoints() {
     return globalConfig.getList(CONTACT_POINTS_OPT);
   }
@@ -135,10 +148,12 @@ public class DseSinkConfig {
             + "        contactPoints: %s%n"
             + "        port: %d%n"
             + "        localDc: %s%n"
+            + "        maxConcurrentRequests: %d%n"
             + "Topic configurations:%n%s",
         getContactPoints(),
         getPort(),
         getLocalDc(),
+        getMaxConcurrentRequests(),
         topicConfigs
             .values()
             .stream()
