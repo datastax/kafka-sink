@@ -21,13 +21,15 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.RetriableException;
@@ -82,10 +84,10 @@ public class DseSinkTask extends SinkTask {
     failureOffsets.clear();
     DseSession session = instanceState.getSession();
 
-    int concurrentRequests = instanceState.getConfig().getMaxConcurrentRequests();
     Instant start = Instant.now();
+    List<CompletionStage<AsyncResultSet>> futures = new ArrayList<>(sinkRecords.size());
     try {
-      Semaphore semaphore = new Semaphore(concurrentRequests);
+      Semaphore requestBarrier = instanceState.getRequestBarrier();
       for (SinkRecord record : sinkRecords) {
         String topicName = record.topic();
         TopicPartition topicPartition = new TopicPartition(topicName, record.kafkaPartition());
@@ -97,7 +99,8 @@ public class DseSinkTask extends SinkTask {
           // a bit off and we don't see an entry that is actually there, we'll process one
           // more record from the collection unnecessarily. Not really a big deal. Better to not
           // lock and be more efficient in the common case (where there is no error and thus
-          // failureOffsets is empty).
+          // failureOffsets is empty). Besides, we use a ConcurrentHashMap, so the entry will
+          // either be there or not; no inconsistent state.
           log.debug(
               "Skipping record with offset {} for topic/partition {} because a failure occurred when processing a previous record from this topic/partition",
               record.kafkaOffset(),
@@ -105,21 +108,11 @@ public class DseSinkTask extends SinkTask {
           continue;
         }
         KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry(topicName);
-        PreparedStatement preparedStatement = instanceState.getInsertStatement(topicName);
-        TopicConfig topicConfig = instanceState.getConfig().getTopicConfigs().get(topicName);
+        PreparedStatement preparedStatement = instanceState.getPreparedInsertStatement(topicName);
+        TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
         Mapping mapping =
             mappingObjects.get(
-                topicName,
-                t -> {
-                  if (topicConfig != null) {
-                    return new Mapping(topicConfig.getMapping(), codecRegistry);
-                  } else {
-                    throw new KafkaException(
-                        String.format(
-                            "Connector has no configuration for record topic '%s'. Please update the configuration and restart.",
-                            topicName));
-                  }
-                });
+                topicName, t -> new Mapping(topicConfig.getMapping(), codecRegistry));
         try {
           InnerDataAndMetadata key = makeMeta(record.key());
           InnerDataAndMetadata value = makeMeta(record.value());
@@ -133,16 +126,17 @@ public class DseSinkTask extends SinkTask {
                   topicConfig.isNullToUnset(),
                   true,
                   false);
-          BoundStatement boundStatement = mapper.map(keyValueRecord);
-          boundStatement.setConsistencyLevel(topicConfig.getConsistencyLevel());
-          semaphore.acquire();
+          BoundStatement boundStatement =
+              mapper.map(keyValueRecord).setConsistencyLevel(topicConfig.getConsistencyLevel());
+          requestBarrier.acquire();
           CompletionStage<AsyncResultSet> future = session.executeAsync(boundStatement);
+          futures.add(future);
           future.whenComplete(
               (result, ex) -> {
-                semaphore.release();
+                requestBarrier.release();
                 if (ex != null) {
-                  maybeUpdateFailureOffsets(topicPartition, record.kafkaOffset());
-                  log.warn("Error inserting row for Kafka record {}: {}", record, ex.getMessage());
+                  handleFailure(
+                      topicPartition, record, ex, instanceState.getInsertStatement(topicName));
                 }
               });
         } catch (IOException e) {
@@ -150,26 +144,42 @@ public class DseSinkTask extends SinkTask {
           // in this exception. We're not pulling data from a file or any other kind of IO.
           // Most likely this error can't occur in this application...but we try to protect
           // ourselves anyway just in case.
-          maybeUpdateFailureOffsets(topicPartition, record.kafkaOffset());
-          log.warn("Error inserting row for Kafka record {}: {}", record, e.getMessage());
+          handleFailure(topicPartition, record, e, instanceState.getInsertStatement(topicName));
         }
       }
 
       // Wait for outstanding requests to complete.
-      while (semaphore.availablePermits() < concurrentRequests) {
-        Thread.sleep(100);
+      for (CompletionStage<AsyncResultSet> f : futures) {
+        try {
+          f.toCompletableFuture().get();
+        } catch (ExecutionException e) {
+          // If any requests failed, they were handled by the "whenComplete" of the individual
+          // future, so nothing to do here.
+        }
       }
+
       Instant end = Instant.now();
       long ns = Duration.between(start, end).toNanos();
       log.debug("Completed {} inserts in {} microsecs", sinkRecords.size(), ns / 1000);
 
       context.requestCommit();
     } catch (InterruptedException e) {
+      futures.forEach(
+          f -> {
+            f.toCompletableFuture().cancel(true);
+            try {
+              f.toCompletableFuture().get();
+            } catch (InterruptedException | ExecutionException e1) {
+              // swallow
+            }
+          });
+
       throw new RetriableException("Interrupted while issuing queries");
     }
   }
 
-  private synchronized void maybeUpdateFailureOffsets(TopicPartition topicPartition, long offset) {
+  private synchronized void handleFailure(
+      TopicPartition topicPartition, SinkRecord record, Throwable e, String cql) {
     // Store the topic-partition and offset that had an error. However, we want
     // to keep track of the *lowest* offset in a topic-partiton that failed. Because
     // requests are sent in parallel and response ordering is non-deterministic,
@@ -185,9 +195,15 @@ public class DseSinkTask extends SinkTask {
     if (failureOffsets.containsKey(topicPartition)) {
       currentOffset = failureOffsets.get(topicPartition).offset();
     }
-    if (offset < currentOffset) {
-      failureOffsets.put(topicPartition, new OffsetAndMetadata(offset));
+    if (record.kafkaOffset() < currentOffset) {
+      failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
     }
+
+    log.warn(
+        "Error inserting row for Kafka record {}: {}\n   statement: {}",
+        record,
+        e.getMessage(),
+        cql);
   }
 
   private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {

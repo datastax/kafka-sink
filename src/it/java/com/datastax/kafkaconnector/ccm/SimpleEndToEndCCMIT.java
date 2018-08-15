@@ -61,25 +61,24 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   private DseSinkConnector conn = new DseSinkConnector();
   private DseSinkTask task = new DseSinkTask();
   private AttachmentPoint attachmentPoint;
-  private SinkTaskContext taskContext;
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    taskContext = mock(SinkTaskContext.class);
+    SinkTaskContext taskContext = mock(SinkTaskContext.class);
     task.initialize(taskContext);
 
     attachmentPoint =
         new AttachmentPoint() {
           @NotNull
           @Override
-          public ProtocolVersion protocolVersion() {
-            return session.getContext().protocolVersion();
+          public ProtocolVersion getProtocolVersion() {
+            return session.getContext().getProtocolVersion();
           }
 
           @NotNull
           @Override
-          public CodecRegistry codecRegistry() {
-            return session.getContext().codecRegistry();
+          public CodecRegistry getCodecRegistry() {
+            return session.getContext().getCodecRegistry();
           }
         };
   }

@@ -11,40 +11,80 @@ package com.datastax.kafkaconnector;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import org.apache.kafka.common.KafkaException;
+import org.jetbrains.annotations.NotNull;
 
-/** Container for a session, its codec-registry, etc. */
+/** Container for a session, config, etc. */
 class InstanceState {
   private final DseSession session;
-  private final Map<String, KafkaCodecRegistry> codecRegistries;
-  private final Map<String, PreparedStatement> insertStatements;
   private final DseSinkConfig config;
+  private final Map<String, TopicState> topicStates;
+  private final Semaphore requestBarrier;
 
   InstanceState(
-      DseSession session,
-      Map<String, KafkaCodecRegistry> codecRegistries,
-      Map<String, PreparedStatement> insertStatements,
-      DseSinkConfig config) {
+      @NotNull DseSinkConfig config,
+      @NotNull DseSession session,
+      @NotNull Map<String, TopicState> topicStates) {
     this.session = session;
-    this.codecRegistries = codecRegistries;
-    this.insertStatements = insertStatements;
     this.config = config;
+    this.topicStates = topicStates;
+    this.requestBarrier = new Semaphore(getConfig().getMaxConcurrentRequests());
   }
 
+  @NotNull
   DseSinkConfig getConfig() {
     return config;
   }
 
+  @NotNull
   DseSession getSession() {
     return session;
   }
 
-  KafkaCodecRegistry getCodecRegistry(String topicName) {
-    return codecRegistries.get(topicName);
+  @NotNull
+  Semaphore getRequestBarrier() {
+    return requestBarrier;
   }
 
-  PreparedStatement getInsertStatement(String topicName) {
-    return insertStatements.get(topicName);
+  @NotNull
+  TopicConfig getTopicConfig(String topicName) {
+    TopicConfig topicConfig = this.config.getTopicConfigs().get(topicName);
+    if (topicConfig == null) {
+      throw new KafkaException(
+          String.format(
+              "Connector has no configuration for record topic '%s'. Please update the configuration and restart.",
+              topicName));
+    }
+    return topicConfig;
+  }
+
+  @NotNull
+  KafkaCodecRegistry getCodecRegistry(String topicName) {
+    return getTopicState(topicName).getCodecRegistry();
+  }
+
+  @NotNull
+  String getInsertStatement(String topicName) {
+    return getTopicState(topicName).getInsertStatement();
+  }
+
+  @NotNull
+  PreparedStatement getPreparedInsertStatement(String topicName) {
+    return getTopicState(topicName).getPreparedStatement();
+  }
+
+  private TopicState getTopicState(String topicName) {
+    TopicState topicState = topicStates.get(topicName);
+    if (topicState == null) {
+      throw new KafkaException(
+          String.format(
+              "Connector has no configuration for record topic '%s'. Please update the configuration and restart.",
+              topicName));
+    }
+    return topicState;
   }
 }
