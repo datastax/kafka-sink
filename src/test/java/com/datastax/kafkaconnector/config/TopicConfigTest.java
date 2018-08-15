@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.TopicConfig.CL_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.DATE_PAT_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.LOCALE_OPT;
@@ -124,6 +125,23 @@ class TopicConfigTest {
     assertThatThrownBy(() -> new TopicConfig("mytopic", props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least -1");
+  }
+
+  @Test
+  void should_error_invalid_consistencyLevel() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), "myks")
+                .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), "mytable")
+                .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), "c1=value.f1")
+                .put(TopicConfig.getTopicSettingName("mytopic", CL_OPT), "foo")
+                .build());
+    assertThatThrownBy(() -> new TopicConfig("mytopic", props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Invalid value 'foo' for configuration topic.mytopic.consistencyLevel")
+        .hasMessageContaining("valid values include: ANY, ONE, TWO");
   }
 
   @Test

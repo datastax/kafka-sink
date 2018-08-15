@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
@@ -46,6 +47,26 @@ class DseSinkConfigTest {
   }
 
   @Test
+  void should_error_invalid_maxConcurrentRequests() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(CONCURRENT_REQUESTS_OPT, "foo").build());
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Invalid value foo for configuration maxConcurrentRequests");
+
+    props.put(CONCURRENT_REQUESTS_OPT, "0");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least 1");
+
+    props.put(CONCURRENT_REQUESTS_OPT, "-1");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
   void should_error_missing_dc_with_contactPoints() {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(CONTACT_POINTS_OPT, "127.0.0.1").build();
@@ -75,6 +96,15 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getPort()).isEqualTo(5725);
+  }
+
+  @Test
+  void should_handle_maxConcurrentRequests() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder().put(CONCURRENT_REQUESTS_OPT, "129").build();
+
+    DseSinkConfig d = new DseSinkConfig(props);
+    assertThat(d.getMaxConcurrentRequests()).isEqualTo(129);
   }
 
   @Test

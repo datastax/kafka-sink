@@ -22,6 +22,7 @@ import com.datastax.oss.driver.internal.core.metadata.token.Murmur3TokenRange;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
 import java.util.Arrays;
+import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("SameParameterValue")
 public class DriverCoreEngineTestHooks {
@@ -46,13 +47,15 @@ public class DriverCoreEngineTestHooks {
     return new DefaultTupleType(
         Arrays.asList(types),
         new AttachmentPoint() {
+          @NotNull
           @Override
-          public ProtocolVersion protocolVersion() {
+          public ProtocolVersion getProtocolVersion() {
             return protocolVersion;
           }
 
+          @NotNull
           @Override
-          public CodecRegistry codecRegistry() {
+          public CodecRegistry getCodecRegistry() {
             return codecRegistry;
           }
         });

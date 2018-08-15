@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dse.driver.api.core.type.geometry.LineString;
@@ -48,6 +49,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -62,18 +64,21 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
+    SinkTaskContext taskContext = mock(SinkTaskContext.class);
+    task.initialize(taskContext);
+
     attachmentPoint =
         new AttachmentPoint() {
           @NotNull
           @Override
-          public ProtocolVersion protocolVersion() {
-            return session.getContext().protocolVersion();
+          public ProtocolVersion getProtocolVersion() {
+            return session.getContext().getProtocolVersion();
           }
 
           @NotNull
           @Override
-          public CodecRegistry codecRegistry() {
-            return session.getContext().codecRegistry();
+          public CodecRegistry getCodecRegistry() {
+            return session.getContext().getCodecRegistry();
           }
         };
   }
@@ -738,6 +743,25 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getString("textcol")).isNull();
+  }
+
+  @Test
+  void null_in_json() {
+    // Make a row with some value for textcol to start with.
+    session.execute("INSERT INTO types (bigintcol, textcol) VALUES (1234567, 'got here')");
+
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, textcol=value.text"));
+
+    String json = "{\"bigint\": 1234567, \"text\": null}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE; textcol should be unchanged.
+    List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getString("textcol")).isEqualTo("got here");
   }
 
   @Test

@@ -57,6 +57,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -294,46 +295,76 @@ public class DseSinkConnector extends SinkConnector {
     if (configLoader != null) {
       builder.withConfigLoader(configLoader);
     }
-    DseSession session = builder.build();
+    DseSession maybeSession;
 
+    long sleepTime = 1;
+    while (true) {
+      try {
+        maybeSession = builder.build();
+        break;
+      } catch (RuntimeException e) {
+        log.warn(String.format("DSE connection failed; retrying in %d seconds", sleepTime), e);
+        try {
+          Thread.sleep(TimeUnit.SECONDS.toMillis(sleepTime));
+          sleepTime *= 2;
+          if (sleepTime > 30) {
+            sleepTime = 30;
+          }
+        } catch (InterruptedException e1) {
+          Thread.currentThread().interrupt();
+          return;
+        }
+      }
+    }
+
+    DseSession session = maybeSession;
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
 
     Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
 
     Map<String, CompletionStage<PreparedStatement>> prepareFutures = new HashMap<>();
-    Map<String, KafkaCodecRegistry> codecRegistries = new HashMap<>();
+    config
+        .getTopicConfigs()
+        .forEach(
+            (topicName, topicConfig) ->
+                prepareFutures.put(
+                    topicName, session.prepareAsync(makeInsertStatement(topicConfig))));
+
+    Map<String, TopicState> topicStates = new HashMap<>();
     config
         .getTopicConfigs()
         .forEach(
             (topicName, topicConfig) -> {
-              prepareFutures.put(topicName, session.prepareAsync(makeInsertStatement(topicConfig)));
-              CodecSettings codecSettings =
-                  new CodecSettings(
-                      new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
-                          .withFallback(dsbulkConfig.getConfig("codec")));
-              codecSettings.init();
-
-              codecRegistries.put(
-                  topicName,
-                  codecSettings.createCodecRegistry(session.getContext().codecRegistry()));
+              try {
+                PreparedStatement preparedStatement =
+                    Uninterruptibles.getUninterruptibly(
+                        prepareFutures.get(topicName).toCompletableFuture());
+                CodecSettings codecSettings =
+                    new CodecSettings(
+                        new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
+                            .withFallback(dsbulkConfig.getConfig("codec")));
+                codecSettings.init();
+                KafkaCodecRegistry codecRegistry =
+                    codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
+                topicStates.put(
+                    topicName,
+                    new TopicState(
+                        makeInsertStatement(topicConfig), preparedStatement, codecRegistry));
+              } catch (ExecutionException e) {
+                // TODO: Depending on the exception, we may want to retry...
+                throw new RuntimeException(
+                    String.format(
+                        "Prepare failed for statement: %s",
+                        makeInsertStatement(config.getTopicConfigs().get(topicName))),
+                    e.getCause());
+              }
             });
-    Map<String, PreparedStatement> preparedStatements = new HashMap<>();
-    prepareFutures.forEach(
-        (topicName, future) -> {
-          try {
-            preparedStatements.put(
-                topicName, Uninterruptibles.getUninterruptibly(future.toCompletableFuture()));
-          } catch (ExecutionException e) {
-            // TODO: Is this ok??
-            throw new RuntimeException(e);
-          }
-        });
 
     // Configure the json object mapper
     objectMapper.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
 
-    instanceState = new InstanceState(session, codecRegistries, preparedStatements, config);
+    instanceState = new InstanceState(config, session, topicStates);
     instanceStates.put(config.getInstanceName(), instanceState);
     CountDownLatch latch = getLatch(config.getInstanceName());
     latch.countDown();
