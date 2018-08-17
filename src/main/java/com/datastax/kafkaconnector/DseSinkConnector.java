@@ -81,8 +81,10 @@ public class DseSinkConnector extends SinkConnector {
   // before the actual connector. Thus, we need a latch for every connector instance to
   // make sure "instance state" for an instance of the connector is ready before a task
   // can have it.
-  private static ConcurrentMap<String, InstanceState> instanceStates = new ConcurrentHashMap<>();
-  private static Cache<String, CountDownLatch> instanceStateLatches = Caffeine.newBuilder().build();
+  private static final ConcurrentMap<String, InstanceState> instanceStates =
+      new ConcurrentHashMap<>();
+  private static final Cache<String, CountDownLatch> instanceStateLatches =
+      Caffeine.newBuilder().build();
 
   private String version;
   private InstanceState instanceState;
@@ -277,7 +279,7 @@ public class DseSinkConnector extends SinkConnector {
   @Override
   public void start(Map<String, String> props) {
     DseSinkConfig config = new DseSinkConfig(props);
-    log.info(String.format("%s\n", config.toString()));
+    log.info("DseSinkConnector starting with config:\n{}\n", config.toString());
     DseSessionBuilder builder = DseSession.builder();
     config
         .getContactPoints()
@@ -390,9 +392,19 @@ public class DseSinkConnector extends SinkConnector {
 
   @Override
   public void stop() {
+    log.info("Stopping connector");
     if (instanceState != null) {
+      // Wait for all of our tasks to complete.
+      for (DseSinkTask task : instanceState.getTasks()) {
+        task.stop();
+      }
       closeQuietly(instanceState.getSession());
+      String instanceName = instanceState.getConfig().getInstanceName();
+      instanceStateLatches.invalidate(instanceName);
+      instanceStates.remove(instanceName);
+      instanceState = null;
     }
+    log.info("Connector is stopped");
   }
 
   @Override

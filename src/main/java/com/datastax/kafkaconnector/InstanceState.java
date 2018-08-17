@@ -13,7 +13,9 @@ import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.google.common.collect.Sets;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Semaphore;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +26,7 @@ class InstanceState {
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
   private final Semaphore requestBarrier;
+  private final Set<DseSinkTask> tasks;
 
   InstanceState(
       @NotNull DseSinkConfig config,
@@ -33,6 +36,19 @@ class InstanceState {
     this.config = config;
     this.topicStates = topicStates;
     this.requestBarrier = new Semaphore(getConfig().getMaxConcurrentRequests());
+    tasks = Sets.newConcurrentHashSet();
+  }
+
+  void registerTask(DseSinkTask task) {
+    tasks.add(task);
+  }
+
+  void unregisterTask(DseSinkTask task) {
+    tasks.remove(task);
+  }
+
+  Set<DseSinkTask> getTasks() {
+    return tasks;
   }
 
   @NotNull
