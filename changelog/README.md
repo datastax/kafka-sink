@@ -18,3 +18,4 @@
 - [improvement] KAF-13: Exclude unnecessary classes from uberjar
 - [new feature] KAF-9: Support specifying consistency level for statements
 - [bug] KAF-30: Connector throws "event executor terminated" with multiple workers in distributed mode
+- [improvement] KAF-31: Support DSE DateRange Type
