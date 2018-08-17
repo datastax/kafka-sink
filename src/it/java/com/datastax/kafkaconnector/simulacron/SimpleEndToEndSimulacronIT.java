@@ -8,6 +8,8 @@
  */
 package com.datastax.kafkaconnector.simulacron;
 
+import static com.datastax.dsbulk.commons.tests.logging.StreamType.STDERR;
+import static com.datastax.dsbulk.commons.tests.logging.StreamType.STDOUT;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.noRows;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.serverError;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.when;
@@ -22,6 +24,9 @@ import ch.qos.logback.core.joran.spi.JoranException;
 import com.datastax.dsbulk.commons.tests.logging.LogCapture;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
+import com.datastax.dsbulk.commons.tests.logging.StreamCapture;
+import com.datastax.dsbulk.commons.tests.logging.StreamInterceptingExtension;
+import com.datastax.dsbulk.commons.tests.logging.StreamInterceptor;
 import com.datastax.dsbulk.commons.tests.simulacron.SimulacronExtension;
 import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils;
 import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils.Column;
@@ -60,6 +65,7 @@ import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"SameParameterValue", "deprecation"})
 @ExtendWith(SimulacronExtension.class)
+@ExtendWith(StreamInterceptingExtension.class)
 @ExtendWith(LogInterceptingExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @SimulacronConfig(version = "5.0.8")
@@ -80,7 +86,13 @@ class SimpleEndToEndSimulacronIT {
           .put("kafka_internal_timestamp", "bigint")
           .build();
 
-  SimpleEndToEndSimulacronIT(BoundCluster simulacron, @LogCapture LogInterceptor logs) {
+  @SuppressWarnings("unused")
+  SimpleEndToEndSimulacronIT(
+      BoundCluster simulacron,
+      @LogCapture LogInterceptor logs,
+      @StreamCapture(STDOUT) StreamInterceptor stdOut,
+      @StreamCapture(STDERR) StreamInterceptor stdErr) {
+
     this.simulacron = simulacron;
     this.logs = logs;
 
