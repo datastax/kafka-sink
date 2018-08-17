@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dse.driver.api.core.data.time.DateRange;
 import com.datastax.dse.driver.api.core.type.geometry.LineString;
 import com.datastax.dse.driver.api.core.type.geometry.Point;
 import com.datastax.dse.driver.api.core.type.geometry.Polygon;
@@ -33,6 +34,7 @@ import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -112,7 +114,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "dateCol date, "
             + "timeCol time, "
             + "timestampCol timestamp, "
-            + "secondsCol timestamp"
+            + "secondsCol timestamp, "
+            + "dateRangeCol 'DateRangeType'"
             + ")");
   }
 
@@ -128,7 +131,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void struct_value_only() {
+  void struct_value_only() throws ParseException {
     // We skip testing the following datatypes, since in Kafka messages values for these
     // types would simply be strings or numbers, and we'd just pass these right through to
     // the ExtendedCodecRegistry for encoding:
@@ -166,7 +169,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "blobcol=value.blob, "
                 + "pointcol=value.point, "
                 + "linestringcol=value.linestring, "
-                + "polygoncol=value.polygon"));
+                + "polygoncol=value.polygon, "
+                + "daterangecol=value.daterange"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -201,6 +205,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("point", Schema.STRING_SCHEMA)
             .field("linestring", Schema.STRING_SCHEMA)
             .field("polygon", Schema.STRING_SCHEMA)
+            .field("daterange", Schema.STRING_SCHEMA)
             .build();
 
     Map<String, Integer> mapValue =
@@ -255,7 +260,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .put("blob", blobValue)
             .put("point", "POINT (32.0 64.0)")
             .put("linestring", "LINESTRING (32.0 64.0, 48.5 96.5)")
-            .put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))");
+            .put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))")
+            .put("daterange", "[* TO 2014-12-01]");
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
@@ -307,6 +313,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 new DefaultPoint(25, 25),
                 new DefaultPoint(0, 25),
                 new DefaultPoint(0, 0)));
+    assertThat(row.get("daterangecol", GenericType.of(DateRange.class)))
+        .isEqualTo(DateRange.parse("[* TO 2014-12-01]"));
   }
 
   @Test
