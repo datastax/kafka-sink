@@ -8,6 +8,9 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.DseSinkTask.State.RUN;
+import static com.datastax.kafkaconnector.DseSinkTask.State.STOP;
+import static com.datastax.kafkaconnector.DseSinkTask.State.WAIT;
 import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.dse.driver.api.core.DseSession;
@@ -27,8 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.data.Struct;
@@ -45,6 +50,8 @@ public class DseSinkTask extends SinkTask {
   private InstanceState instanceState;
   private Cache<String, Mapping> mappingObjects;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
+  private AtomicReference<State> state;
+  private CountDownLatch stopLatch;
 
   @Override
   public String version() {
@@ -53,9 +60,14 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
+    log.debug("Task DseSinkTask starting with props: {}", props);
+    state = new AtomicReference<>();
+    state.set(State.WAIT);
     instanceState = DseSinkConnector.getInstanceState(props.get(NAME_OPT));
     mappingObjects = Caffeine.newBuilder().build();
     failureOffsets = new ConcurrentHashMap<>();
+    stopLatch = new CountDownLatch(1);
+    instanceState.registerTask(this);
   }
 
   @Override
@@ -70,16 +82,8 @@ public class DseSinkTask extends SinkTask {
   @Override
   public void put(Collection<SinkRecord> sinkRecords) {
     log.debug("Received {} records", sinkRecords.size());
-    // TODO: Consider removing this logging.
-    sinkRecords.forEach(
-        r ->
-            log.debug(
-                "SANDMAN: topic={} offset={} key={} value={} timestamp={}",
-                r.topic(),
-                r.kafkaOffset(),
-                r.key(),
-                r.value(),
-                r.timestamp()));
+
+    state.compareAndSet(State.WAIT, State.RUN);
 
     failureOffsets.clear();
     DseSession session = instanceState.getSession();
@@ -89,6 +93,10 @@ public class DseSinkTask extends SinkTask {
     try {
       Semaphore requestBarrier = instanceState.getRequestBarrier();
       for (SinkRecord record : sinkRecords) {
+        if (state.get() == STOP) {
+          // If the task is stopping abandon what we're doing.
+          break;
+        }
         String topicName = record.topic();
         TopicPartition topicPartition = new TopicPartition(topicName, record.kafkaPartition());
         if (failureOffsets.containsKey(topicPartition)) {
@@ -160,7 +168,7 @@ public class DseSinkTask extends SinkTask {
 
       Instant end = Instant.now();
       long ns = Duration.between(start, end).toNanos();
-      log.debug("Completed {} inserts in {} microsecs", sinkRecords.size(), ns / 1000);
+      log.debug("Completed {} inserts in {} microsecs", futures.size(), ns / 1000);
 
       context.requestCommit();
     } catch (InterruptedException e) {
@@ -175,6 +183,44 @@ public class DseSinkTask extends SinkTask {
           });
 
       throw new RetriableException("Interrupted while issuing queries");
+    } finally {
+      state.compareAndSet(State.RUN, State.WAIT);
+      if (state.get() == STOP) {
+        // Task is stopping. Notify the caller of stop() that we're done working.
+        stopLatch.countDown();
+      }
+    }
+  }
+
+  @Override
+  public void stop() {
+    // Stopping has a few scenarios:
+    // 1. We're not currently processing records (e.g. we are in the WAIT state).
+    //    Just transition to the STOP state and return. Signal stopLatch
+    //    since we are effectively the entity declaring that this task is stopped.
+    // 2. We're currently processing records (e.g. we are in the RUN state).
+    //    Transition to the STOP state and wait for the thread processing records
+    //    (e.g. running put()) to signal stopLatch.
+    // 3. We're currently in the STOP state. This could mean that no work is occurring
+    //    (because a previous call to stop occurred when we were in the WAIT state or
+    //    a previous call to put completed and signaled the latch) or that a thread
+    //    is running put and hasn't completed yet. Either way, this thread waits on the
+    //    latch. If the latch has been opened already, there's nothing to wait for
+    //    and we immediately return.
+    try {
+      if (state.compareAndSet(WAIT, STOP)) {
+        // Clean stop; nothing running/in-progress.
+        stopLatch.countDown();
+        return;
+      }
+      state.compareAndSet(RUN, STOP);
+      stopLatch.await();
+    } catch (InterruptedException e) {
+      // "put" is likely also interrupted, so we're effectively stopped.
+      Thread.currentThread().interrupt();
+    } finally {
+      log.info("Task is stopped.");
+      instanceState.unregisterTask(this);
     }
   }
 
@@ -239,13 +285,11 @@ public class DseSinkTask extends SinkTask {
     return new InnerDataAndMetadata(innerData, innerMetadata);
   }
 
-  @Override
-  public void flush(Map<TopicPartition, OffsetAndMetadata> offsets) {
-    // TODO: Implement. Probably flush pending batches.
+  enum State {
+    WAIT,
+    RUN,
+    STOP
   }
-
-  @Override
-  public void stop() {}
 
   private static class InnerDataAndMetadata {
     final KeyOrValue innerData;

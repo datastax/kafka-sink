@@ -17,3 +17,4 @@
 - [improvement] KAF-29: Date/Time conversion settings should be topic-scoped
 - [improvement] KAF-13: Exclude unnecessary classes from uberjar
 - [new feature] KAF-9: Support specifying consistency level for statements
+- [bug] KAF-30: Connector throws "event executor terminated" with multiple workers in distributed mode
