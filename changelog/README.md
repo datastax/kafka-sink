@@ -20,3 +20,5 @@
 - [bug] KAF-30: Connector throws "event executor terminated" with multiple workers in distributed mode
 - [improvement] KAF-31: Support DSE DateRange Type
 - [improvement] KAF-13: Exclude unnecessary classes from uberjar
+- [bug] KAF-32: Connector is unkillable after encountering a connectivity issue with DSE
+- [bug] KAF-33: Connector loses records when DSE connection is lost

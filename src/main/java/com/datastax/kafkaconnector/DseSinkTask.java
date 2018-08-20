@@ -81,6 +81,11 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void put(Collection<SinkRecord> sinkRecords) {
+    if (sinkRecords.isEmpty()) {
+      // Nothing to process.
+      return;
+    }
+
     log.debug("Received {} records", sinkRecords.size());
 
     state.compareAndSet(State.WAIT, State.RUN);
@@ -109,7 +114,7 @@ public class DseSinkTask extends SinkTask {
           // lock and be more efficient in the common case (where there is no error and thus
           // failureOffsets is empty). Besides, we use a ConcurrentHashMap, so the entry will
           // either be there or not; no inconsistent state.
-          log.debug(
+          log.trace(
               "Skipping record with offset {} for topic/partition {} because a failure occurred when processing a previous record from this topic/partition",
               record.kafkaOffset(),
               topicPartition);
@@ -167,10 +172,8 @@ public class DseSinkTask extends SinkTask {
       }
 
       Instant end = Instant.now();
-      long ns = Duration.between(start, end).toNanos();
-      log.debug("Completed {} inserts in {} microsecs", futures.size(), ns / 1000);
-
-      context.requestCommit();
+      long ms = Duration.between(start, end).toMillis();
+      log.debug("Completed {} inserts in {} ms", futures.size() - failureOffsets.size(), ms);
     } catch (InterruptedException e) {
       futures.forEach(
           f -> {
@@ -243,6 +246,7 @@ public class DseSinkTask extends SinkTask {
     }
     if (record.kafkaOffset() < currentOffset) {
       failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
+      context.offset(topicPartition, record.kafkaOffset());
     }
 
     log.warn(
