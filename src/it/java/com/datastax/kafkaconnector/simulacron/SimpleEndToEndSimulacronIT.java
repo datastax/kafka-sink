@@ -39,7 +39,6 @@ import com.datastax.oss.simulacron.common.cluster.QueryLog;
 import com.datastax.oss.simulacron.common.codec.ConsistencyLevel;
 import com.datastax.oss.simulacron.common.request.Query;
 import com.datastax.oss.simulacron.server.BoundCluster;
-import com.datastax.oss.simulacron.server.RejectScope;
 import com.google.common.collect.ImmutableMap;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -48,7 +47,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -151,43 +149,6 @@ class SimpleEndToEndSimulacronIT {
     assertThatThrownBy(() -> conn.start(connectorProperties))
         .isInstanceOf(RuntimeException.class)
         .hasMessageStartingWith("Prepare failed for statement: " + INSERT_STATEMENT);
-  }
-
-  @Test
-  void fail_connect() throws InterruptedException {
-    SimulacronUtils.primeTables(simulacron, schema);
-
-    // Stop the node from listening.
-    simulacron.node(0).rejectConnections(0, RejectScope.UNBIND);
-
-    Thread t = null;
-    try {
-      AtomicBoolean done = new AtomicBoolean(false);
-      t =
-          new Thread(
-              () -> {
-                conn.start(connectorProperties);
-                done.set(true);
-              });
-      t.start();
-
-      // Wait upto 1 second for the thread to complete; it shouldn't complete.
-      t.join(1000);
-      assertThat(done.get()).isFalse();
-
-      // Start the node listener. The connector should connect successfully without error.
-      simulacron.node(0).acceptConnections();
-      t.join();
-      assertThat(done.get()).isTrue();
-    } finally {
-      if (t != null) {
-        t.interrupt();
-        t.join();
-      }
-    }
-
-    assertThat(logs.getAllMessagesAsString())
-        .contains("DSE connection failed; retrying in 1 seconds");
   }
 
   @Test

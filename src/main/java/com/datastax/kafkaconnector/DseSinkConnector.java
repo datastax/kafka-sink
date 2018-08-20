@@ -57,7 +57,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
@@ -297,29 +296,8 @@ public class DseSinkConnector extends SinkConnector {
     if (configLoader != null) {
       builder.withConfigLoader(configLoader);
     }
-    DseSession maybeSession;
 
-    long sleepTime = 1;
-    while (true) {
-      try {
-        maybeSession = builder.build();
-        break;
-      } catch (RuntimeException e) {
-        log.warn(String.format("DSE connection failed; retrying in %d seconds", sleepTime), e);
-        try {
-          Thread.sleep(TimeUnit.SECONDS.toMillis(sleepTime));
-          sleepTime *= 2;
-          if (sleepTime > 30) {
-            sleepTime = 30;
-          }
-        } catch (InterruptedException e1) {
-          Thread.currentThread().interrupt();
-          return;
-        }
-      }
-    }
-
-    DseSession session = maybeSession;
+    DseSession session = builder.build();
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
 
