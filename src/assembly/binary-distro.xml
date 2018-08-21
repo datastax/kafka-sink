@@ -51,4 +51,12 @@
       </includes>
     </fileSet>
   </fileSets>
+
+  <files>
+    <file>
+      <source>${project.basedir}/README_public.md</source>
+      <destName>README.md</destName>
+    </file>
+  </files>
+
 </assembly>

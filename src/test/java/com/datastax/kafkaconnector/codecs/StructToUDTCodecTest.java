@@ -69,7 +69,7 @@ class StructToUDTCodecTest {
   }
 
   private KafkaCodecRegistry newCodecRegistry() {
-    LoaderConfig config = new DefaultLoaderConfig(ConfigFactory.load().getConfig("dsbulk.codec"));
+    LoaderConfig config = new DefaultLoaderConfig(ConfigFactory.load().getConfig("kafka.codec"));
     CodecSettings settings = new CodecSettings(config);
     settings.init();
     return settings.createCodecRegistry(new DefaultCodecRegistry("test"));
