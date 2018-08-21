@@ -301,7 +301,7 @@ public class DseSinkConnector extends SinkConnector {
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
 
-    Config dsbulkConfig = ConfigFactory.load().getConfig("dsbulk");
+    Config kafkaConfig = ConfigFactory.load().getConfig("kafka");
 
     Map<String, CompletionStage<PreparedStatement>> prepareFutures = new HashMap<>();
     config
@@ -323,7 +323,7 @@ public class DseSinkConnector extends SinkConnector {
                 CodecSettings codecSettings =
                     new CodecSettings(
                         new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
-                            .withFallback(dsbulkConfig.getConfig("codec")));
+                            .withFallback(kafkaConfig.getConfig("codec")));
                 codecSettings.init();
                 KafkaCodecRegistry codecRegistry =
                     codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
