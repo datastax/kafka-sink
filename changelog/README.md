@@ -22,3 +22,5 @@
 - [improvement] KAF-13: Exclude unnecessary classes from uberjar
 - [bug] KAF-32: Connector is unkillable after encountering a connectivity issue with DSE
 - [bug] KAF-33: Connector loses records when DSE connection is lost
+- [bug] KAF-34: Package a simple README.md in the Kafka connector bundle
+- [bug] KAF-35: Connector causes spurious DEBUG logging in Confluent 3.2.1 connect infrastructure
