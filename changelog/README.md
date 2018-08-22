@@ -1,7 +1,6 @@
 ## Changelog
 
-
-### 1.0.0 (in progress)
+### 1.0.0-alpha1
 - [new feature] KAF-1: Support JSON Records
 - [improvement] KAF-2: Replace duped dsbulk commons code with a ref to the new dsbulk-commons-1.2.0-ng
 - [improvement] KAF-3: Expand Kafka Struct support to handle complex objects
