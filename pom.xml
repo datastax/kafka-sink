@@ -637,4 +637,18 @@ https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
       <url>https://datastax.jfrog.io/datastax/datastax-snapshots-local/</url>
     </snapshotRepository>
   </distributionManagement>
+
+  <scm>
+    <connection>scm:git:git@github.com:riptano/kafka-sink.git</connection>
+    <developerConnection>scm:git:git@github.com:riptano/kafka-sink.git</developerConnection>
+    <url>https://github.com/riptano/kafka-sink</url>
+    <tag>HEAD</tag>
+  </scm>
+
+  <developers>
+    <developer>
+      <name>Various</name>
+      <organization>DataStax</organization>
+    </developer>
+  </developers>
 </project>
