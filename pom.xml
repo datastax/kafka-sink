@@ -363,33 +363,23 @@ https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
               <goal>shade</goal>
             </goals>
             <configuration>
-              <minimizeJar>true</minimizeJar>
               <artifactSet>
                 <excludes>
+                  <exclude>ch.qos.logback:*</exclude>
+                  <exclude>com.datastax.oss.simulacron:*</exclude>
+                  <exclude>net.bytebuddy:*</exclude>
                   <exclude>org.apache.kafka:*</exclude>
                   <exclude>org.assertj:*</exclude>
-                  <exclude>org.mockito:*</exclude>
-                  <exclude>org.checkerframework:*</exclude>
                   <exclude>org.junit.jupiter:*</exclude>
                   <exclude>org.junit.platform:*</exclude>
+                  <exclude>org.lz4:*</exclude>
+                  <exclude>org.objenesis:*</exclude>
                   <exclude>org.opentest4j:*</exclude>
-                  <exclude>com.datastax.oss.simulacron:*</exclude>
+                  <exclude>org.mockito:*</exclude>
+                  <exclude>org.slf4j:*</exclude>
+                  <exclude>org.xerial.snappy:*</exclude>
                 </excludes>
               </artifactSet>
-              <filters>
-                <filter>
-                  <artifact>com.datastax.oss:java-driver-core</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-                <filter>
-                  <artifact>com.datastax.dse:dse-java-driver-core</artifact>
-                  <includes>
-                    <include>**</include>
-                  </includes>
-                </filter>
-              </filters>
               <transformers>
                 <transformer
                     implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
