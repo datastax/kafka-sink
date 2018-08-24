@@ -28,6 +28,15 @@ public class StructDataMetadata implements RecordMetadata {
           .put(Schema.INT32_SCHEMA, GenericType.INTEGER)
           .put(Schema.STRING_SCHEMA, GenericType.STRING)
           .put(Schema.BYTES_SCHEMA, GenericType.BYTE_BUFFER)
+          .put(Schema.OPTIONAL_BOOLEAN_SCHEMA, GenericType.BOOLEAN)
+          .put(Schema.OPTIONAL_FLOAT64_SCHEMA, GenericType.DOUBLE)
+          .put(Schema.OPTIONAL_INT64_SCHEMA, GenericType.LONG)
+          .put(Schema.OPTIONAL_FLOAT32_SCHEMA, GenericType.FLOAT)
+          .put(Schema.OPTIONAL_INT8_SCHEMA, GenericType.BYTE)
+          .put(Schema.OPTIONAL_INT16_SCHEMA, GenericType.SHORT)
+          .put(Schema.OPTIONAL_INT32_SCHEMA, GenericType.INTEGER)
+          .put(Schema.OPTIONAL_STRING_SCHEMA, GenericType.STRING)
+          .put(Schema.OPTIONAL_BYTES_SCHEMA, GenericType.BYTE_BUFFER)
           .build();
   private final Schema schema;
 
