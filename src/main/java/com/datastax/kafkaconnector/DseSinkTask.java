@@ -28,8 +28,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -94,75 +96,127 @@ public class DseSinkTask extends SinkTask {
     DseSession session = instanceState.getSession();
 
     Instant start = Instant.now();
-    List<CompletionStage<AsyncResultSet>> futures = new ArrayList<>(sinkRecords.size());
+    long totalMappingTimeMs = 0;
+    long waitTime = 0;
+    List<CompletableFuture<Void>> futures = new ArrayList<>();
+    Collection<CompletionStage<AsyncResultSet>> queryFutures = new ConcurrentLinkedQueue<>();
     try {
       Semaphore requestBarrier = instanceState.getRequestBarrier();
       for (SinkRecord record : sinkRecords) {
-        if (state.get() == STOP) {
-          // If the task is stopping abandon what we're doing.
-          break;
-        }
         String topicName = record.topic();
         TopicPartition topicPartition = new TopicPartition(topicName, record.kafkaPartition());
-        if (failureOffsets.containsKey(topicPartition)) {
-          // We've had a failure on this topic/partition already, so we don't want to process
-          // more records for this topic/partition.
-          // NB: We could lock failureOffsets before access, as we do for writes in query result
-          // callbacks; but at it is, having this check is an optimization. If our timing is just
-          // a bit off and we don't see an entry that is actually there, we'll process one
-          // more record from the collection unnecessarily. Not really a big deal. Better to not
-          // lock and be more efficient in the common case (where there is no error and thus
-          // failureOffsets is empty). Besides, we use a ConcurrentHashMap, so the entry will
-          // either be there or not; no inconsistent state.
-          log.trace(
-              "Skipping record with offset {} for topic/partition {} because a failure occurred when processing a previous record from this topic/partition",
-              record.kafkaOffset(),
-              topicPartition);
-          continue;
-        }
-        KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry(topicName);
-        PreparedStatement preparedStatement = instanceState.getPreparedInsertStatement(topicName);
-        TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
-        Mapping mapping =
-            mappingObjects.get(
-                topicName, t -> new Mapping(topicConfig.getMapping(), codecRegistry));
-        try {
-          InnerDataAndMetadata key = makeMeta(record.key());
-          InnerDataAndMetadata value = makeMeta(record.value());
-          KeyValueRecord keyValueRecord =
-              new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
-          RecordMapper mapper =
-              new RecordMapper(
-                  preparedStatement,
-                  mapping,
-                  new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
-                  topicConfig.isNullToUnset(),
-                  true,
-                  false);
-          BoundStatement boundStatement =
-              mapper.map(keyValueRecord).setConsistencyLevel(topicConfig.getConsistencyLevel());
-          requestBarrier.acquire();
-          CompletionStage<AsyncResultSet> future = session.executeAsync(boundStatement);
-          futures.add(future);
-          future.whenComplete(
-              (result, ex) -> {
-                requestBarrier.release();
-                if (ex != null) {
-                  handleFailure(
-                      topicPartition, record, ex, instanceState.getInsertStatement(topicName));
-                }
-              });
-        } catch (IOException e) {
-          // This can only theoretically happen when processing json data. But bad json won't result
-          // in this exception. We're not pulling data from a file or any other kind of IO.
-          // Most likely this error can't occur in this application...but we try to protect
-          // ourselves anyway just in case.
-          handleFailure(topicPartition, record, e, instanceState.getInsertStatement(topicName));
-        }
+        CompletableFuture<BoundStatement> res =
+            CompletableFuture.supplyAsync(
+                () -> {
+                  Instant startMapping = Instant.now();
+                  //          if (state.get() == STOP) {
+                  //            // If the task is stopping abandon what we're doing.
+                  //            break;
+                  //          }
+                  //          if (failureOffsets.containsKey(topicPartition)) {
+                  //            // We've had a failure on this topic/partition already, so we don't
+                  // want to process
+                  //            // more records for this topic/partition.
+                  //            // NB: We could lock failureOffsets before access, as we do for
+                  // writes in query result
+                  //            // callbacks; but at it is, having this check is an optimization. If
+                  // our timing is just
+                  //            // a bit off and we don't see an entry that is actually there, we'll
+                  // process one
+                  //            // more record from the collection unnecessarily. Not really a big
+                  // deal. Better to not
+                  //            // lock and be more efficient in the common case (where there is no
+                  // error and thus
+                  //            // failureOffsets is empty). Besides, we use a ConcurrentHashMap, so
+                  // the entry will
+                  //            // either be there or not; no inconsistent state.
+                  //            log.trace(
+                  //                "Skipping record with offset {} for topic/partition {} because a
+                  // failure occurred when processing a previous record from this topic/partition",
+                  //                record.kafkaOffset(),
+                  //                topicPartition);
+                  //            continue;
+                  //          }
+                  KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry(topicName);
+                  PreparedStatement preparedStatement =
+                      instanceState.getPreparedInsertStatement(topicName);
+                  TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
+                  Mapping mapping =
+                      mappingObjects.get(
+                          topicName, t -> new Mapping(topicConfig.getMapping(), codecRegistry));
+                  try {
+                    InnerDataAndMetadata key = makeMeta(record.key());
+                    InnerDataAndMetadata value = makeMeta(record.value());
+                    KeyValueRecord keyValueRecord =
+                        new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
+                    RecordMapper mapper =
+                        new RecordMapper(
+                            preparedStatement,
+                            mapping,
+                            new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
+                            topicConfig.isNullToUnset(),
+                            true,
+                            false);
+                    BoundStatement boundStatement =
+                        mapper
+                            .map(keyValueRecord)
+                            .setConsistencyLevel(topicConfig.getConsistencyLevel());
+                    //            totalMappingTimeMs += Duration.between(startMapping,
+                    // Instant.now()).toNanos();
+                    return boundStatement;
+                  } catch (IOException e) {
+                    // This can only theoretically happen when processing json data. But bad json
+                    // won't result
+                    // in this exception. We're not pulling data from a file or any other kind of
+                    // IO.
+                    // Most likely this error can't occur in this application...but we try to
+                    // protect
+                    // ourselves anyway just in case.
+                    handleFailure(
+                        topicPartition, record, e, instanceState.getInsertStatement(topicName));
+                  }
+                  return null;
+                });
+        futures.add(
+            res.thenAccept(
+                boundStatement -> {
+                  try {
+                    Instant waitStart = Instant.now();
+                    requestBarrier.acquire();
+                    //            waitTime += Duration.between(waitStart, Instant.now()).toNanos();
+                    CompletionStage<AsyncResultSet> future = session.executeAsync(boundStatement);
+                    queryFutures.add(future);
+                    future.whenComplete(
+                        (result, ex) -> {
+                          requestBarrier.release();
+                          if (ex != null) {
+                            handleFailure(
+                                topicPartition,
+                                record,
+                                ex,
+                                instanceState.getInsertStatement(topicName));
+                          }
+                        });
+                    //          } catch (IOException e) {
+                    //            // This can only theoretically happen when processing json data.
+                    // But bad json won't result
+                    //            // in this exception. We're not pulling data from a file or any
+                    // other kind of IO.
+                    //            // Most likely this error can't occur in this application...but we
+                    // try to protect
+                    //            // ourselves anyway just in case.
+                    //            handleFailure(topicPartition, record, e,
+                    // instanceState.getInsertStatement(topicName));
+                  } catch (InterruptedException e) {
+                    e.printStackTrace();
+                  }
+                }));
       }
 
-      // Wait for outstanding requests to complete.
-      for (CompletionStage<AsyncResultSet> f : futures) {
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[1])).get();
+      //      CompletableFuture.allOf(queryFutures.toArray(new CompletableFuture[1])).get();
+      //      // Wait for outstanding requests to complete.
+      for (CompletionStage<AsyncResultSet> f : queryFutures) {
         try {
           f.toCompletableFuture().get();
         } catch (ExecutionException e) {
@@ -173,9 +227,17 @@ public class DseSinkTask extends SinkTask {
 
       Instant end = Instant.now();
       long ms = Duration.between(start, end).toMillis();
-      log.debug("Completed {} inserts in {} ms", futures.size() - failureOffsets.size(), ms);
+      log.debug(
+          "Completed {} inserts in {} ms", // \nmappingTime: {} ns\nwaitTime: {} ns\nfinalWait: {}
+          // ns",
+          queryFutures.size() - failureOffsets.size(),
+          ms // ,
+          //          totalMappingTimeMs,
+          //          waitTime,
+          //          Duration.between(finalWaitStart, end).toNanos()
+          );
     } catch (InterruptedException e) {
-      futures.forEach(
+      queryFutures.forEach(
           f -> {
             f.toCompletableFuture().cancel(true);
             try {
@@ -186,6 +248,8 @@ public class DseSinkTask extends SinkTask {
           });
 
       throw new RetriableException("Interrupted while issuing queries");
+    } catch (ExecutionException e) {
+      e.printStackTrace();
     } finally {
       state.compareAndSet(State.RUN, State.WAIT);
       if (state.get() == STOP) {
