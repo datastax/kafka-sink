@@ -14,8 +14,11 @@ import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
@@ -27,6 +30,7 @@ class InstanceState {
   private final Map<String, TopicState> topicStates;
   private final Semaphore requestBarrier;
   private final Set<DseSinkTask> tasks;
+  private final Executor mappingExecutor;
 
   InstanceState(
       @NotNull DseSinkConfig config,
@@ -37,6 +41,9 @@ class InstanceState {
     this.topicStates = topicStates;
     this.requestBarrier = new Semaphore(getConfig().getMaxConcurrentRequests());
     tasks = Sets.newConcurrentHashSet();
+    mappingExecutor =
+        Executors.newFixedThreadPool(
+            8, new ThreadFactoryBuilder().setNameFormat("mapping-%d").build());
   }
 
   void registerTask(DseSinkTask task) {
@@ -86,6 +93,11 @@ class InstanceState {
   @NotNull
   String getInsertStatement(String topicName) {
     return getTopicState(topicName).getInsertStatement();
+  }
+
+  @NotNull
+  Executor getMappingExecutor() {
+    return mappingExecutor;
   }
 
   @NotNull

@@ -9,7 +9,6 @@
 package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
@@ -22,6 +21,7 @@ import com.datastax.dse.driver.internal.core.type.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultPolygon;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -853,17 +852,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     }
   }
 
-  @Test
-  void undefined_topic() {
-    conn.start(makeConnectorProperties("bigintcol=key, intcol=value"));
-
-    SinkRecord record = new SinkRecord("unknown", 0, null, 42L, null, 42, 1234L);
-    assertThatThrownBy(() -> runTaskWithRecords(record))
-        .isInstanceOf(KafkaException.class)
-        .hasMessage(
-            "Connector has no configuration for record topic 'unknown'. Please update the configuration and restart.");
-  }
-
   private void runTaskWithRecords(SinkRecord... records) {
     List<Map<String, String>> taskProps = conn.taskConfigs(1);
     task.start(taskProps.get(0));
@@ -899,7 +887,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     .collect(Collectors.joining(",")))
             .put("port", String.format("%d", ccm.getBinaryPort()))
             .put("loadBalancing.localDc", "Cassandra")
-            .put("topic.mytopic.keyspace", session.getKeyspace().get().asCql(true))
+            .put(
+                "topic.mytopic.keyspace",
+                session.getKeyspace().orElse(CqlIdentifier.fromInternal("UNKNOWN")).asCql(true))
             .put("topic.mytopic.table", "types")
             .put("topic.mytopic.mapping", myTopicMappingString)
             .put("topic.yourtopic.keyspace", session.getKeyspace().get().asCql(true))
