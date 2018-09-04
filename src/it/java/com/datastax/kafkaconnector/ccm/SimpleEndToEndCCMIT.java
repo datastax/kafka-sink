@@ -354,6 +354,136 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void struct_optional_fields_missing() throws ParseException {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, "
+                + "intcol=value.int, "
+                + "smallintcol=value.smallint"
+    ));
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.OPTIONAL_INT64_SCHEMA)
+            .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .field("float", Schema.OPTIONAL_FLOAT32_SCHEMA)
+            .field("int", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("smallint", Schema.OPTIONAL_INT16_SCHEMA)
+            .field("text", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("tinyint", Schema.OPTIONAL_INT8_SCHEMA)
+            .field("blob", Schema.OPTIONAL_BYTES_SCHEMA)
+            .build();
+
+    Long baseValue = 98761234L;
+    Struct value =
+        new Struct(schema)
+            .put("bigint", baseValue)
+            .put("int", baseValue.intValue());
+
+    runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
+    assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
+  }
+
+  @Test
+  void struct_optional_fields_with_values() throws ParseException {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, "
+                + "booleancol=value.boolean, "
+                + "doublecol=value.double, "
+                + "floatcol=value.float, "
+                + "intcol=value.int, "
+                + "smallintcol=value.smallint, "
+                + "textcol=value.text, "
+                + "tinyintcol=value.tinyint, "
+                + "blobcol=value.blob"
+        ));
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.OPTIONAL_INT64_SCHEMA)
+            .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
+            .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .field("float", Schema.OPTIONAL_FLOAT32_SCHEMA)
+            .field("int", Schema.OPTIONAL_INT32_SCHEMA)
+            .field("smallint", Schema.OPTIONAL_INT16_SCHEMA)
+            .field("text", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("tinyint", Schema.OPTIONAL_INT8_SCHEMA)
+            .field("blob", Schema.OPTIONAL_BYTES_SCHEMA)
+            .build();
+
+    byte[] blobValue = new byte[] {12, 22, 32};
+
+    Long baseValue = 98761234L;
+    Struct value =
+        new Struct(schema)
+            .put("bigint", baseValue)
+            .put("boolean", (baseValue.intValue() & 1) == 1)
+            .put("double", (double) baseValue + 0.123)
+            .put("float", baseValue.floatValue() + 0.987f)
+            .put("int", baseValue.intValue())
+            .put("smallint", baseValue.shortValue())
+            .put("text", baseValue.toString())
+            .put("tinyint", baseValue.byteValue())
+            .put("blob", blobValue);
+
+    runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
+    assertThat(row.getBoolean("booleancol")).isEqualTo((baseValue.intValue() & 1) == 1);
+    assertThat(row.getDouble("doublecol")).isEqualTo((double) baseValue + 0.123);
+    assertThat(row.getFloat("floatcol")).isEqualTo(baseValue.floatValue() + 0.987f);
+    assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
+    assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
+    assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
+    assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
+    assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
+  }
+
+  @Test
+  void struct_optional_field_with_default_value() throws ParseException {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, "
+                + "intcol=value.int"
+        ));
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.OPTIONAL_INT64_SCHEMA)
+            .field("int", SchemaBuilder.int32().optional().defaultValue(42).build())
+            .build();
+
+    Long baseValue = 98761234L;
+    Struct value =
+        new Struct(schema)
+            .put("bigint", baseValue);
+
+    runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
+    assertThat(row.getInt("intcol")).isEqualTo(42);
+  }
+
+  @Test
   void raw_bigint_value() {
     conn.start(makeConnectorProperties("bigintcol=value"));
 
