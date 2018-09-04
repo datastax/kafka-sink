@@ -23,3 +23,4 @@
 - [bug] KAF-33: Connector loses records when DSE connection is lost
 - [bug] KAF-34: Package a simple README.md in the Kafka connector bundle
 - [bug] KAF-35: Connector causes spurious DEBUG logging in Confluent 3.2.1 connect infrastructure
+- [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible
