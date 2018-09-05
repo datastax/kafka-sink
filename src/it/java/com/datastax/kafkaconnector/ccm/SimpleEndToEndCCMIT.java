@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dsbulk.commons.tests.utils.Version;
 import com.datastax.dse.driver.api.core.data.time.DateRange;
 import com.datastax.dse.driver.api.core.type.geometry.LineString;
 import com.datastax.dse.driver.api.core.type.geometry.Point;
@@ -59,6 +60,7 @@ import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("ConstantConditions")
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
+  private final boolean dse50;
   private DseSinkConnector conn = new DseSinkConnector();
   private DseSinkTask task = new DseSinkTask();
   private AttachmentPoint attachmentPoint;
@@ -82,12 +84,16 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             return session.getContext().getCodecRegistry();
           }
         };
+
+    // DSE 5.0 doesn't have the DateRange type, so we need to account for that in our testing.
+    dse50 = Version.isWithinRange(Version.parse("5.0.0"), Version.parse("5.1.0"), ccm.getVersion());
   }
 
   @BeforeAll
   void createTables() {
     session.execute("CREATE TYPE IF NOT EXISTS myudt (udtmem1 int, udtmem2 text)");
     session.execute("CREATE TYPE IF NOT EXISTS mybooleanudt (udtmem1 boolean, udtmem2 text)");
+    String withDateRange = dse50 ? "" : ", dateRangeCol 'DateRangeType'";
     session.execute(
         "CREATE TABLE IF NOT EXISTS types ("
             + "bigintCol bigint PRIMARY KEY, "
@@ -116,8 +122,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "dateCol date, "
             + "timeCol time, "
             + "timestampCol timestamp, "
-            + "secondsCol timestamp, "
-            + "dateRangeCol 'DateRangeType'"
+            + "secondsCol timestamp"
+            + withDateRange
             + ")");
   }
 
@@ -134,7 +140,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void struct_value_only() throws ParseException {
-    // We skip testing the following datatypes, since in Kafka messages values for these
+    // We skip testing the following datatypes, since in Kafka messages, values for these
     // types would simply be strings or numbers, and we'd just pass these right through to
     // the ExtendedCodecRegistry for encoding:
     //
@@ -149,6 +155,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     // uuid
     // varint
 
+    String withDateRange = dse50 ? "" : ", daterangecol=value.daterange";
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -173,8 +180,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "blobcol=value.blob, "
                 + "pointcol=value.point, "
                 + "linestringcol=value.linestring, "
-                + "polygoncol=value.polygon, "
-                + "daterangecol=value.daterange"));
+                + "polygoncol=value.polygon"
+                + withDateRange));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -337,8 +344,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 new DefaultPoint(25, 25),
                 new DefaultPoint(0, 25),
                 new DefaultPoint(0, 0)));
-    assertThat(row.get("daterangecol", GenericType.of(DateRange.class)))
-        .isEqualTo(DateRange.parse("[* TO 2014-12-01]"));
+    if (!dse50) {
+      assertThat(row.get("daterangecol", GenericType.of(DateRange.class)))
+          .isEqualTo(DateRange.parse("[* TO 2014-12-01]"));
+    }
   }
 
   @Test
