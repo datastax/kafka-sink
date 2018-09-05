@@ -150,7 +150,7 @@ public class DseSinkTask extends SinkTask {
 
       Instant end = Instant.now();
       long ms = Duration.between(start, end).toMillis();
-      log.info(
+      log.debug(
           "Completed {}/{} inserts in {} ms",
           boundStatementProcessor.getSuccessfulRecordCount(),
           sinkRecords.size(),

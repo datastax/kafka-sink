@@ -4,6 +4,7 @@
 - [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible
 - [bug] KAF-36: Kafka Sink fails when optional schema types are used in Avro schema
 - [bug] KAF-37: Using a boolean field in a UDT causes CodecNotFoundException
+- [bug] KAF-40: When testing against DSE 5.0, tests fail because DateRange type doesn't exist
 
 ### 1.0.0-alpha1
 - [new feature] KAF-1: Support JSON Records
