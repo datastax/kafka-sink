@@ -87,6 +87,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   @BeforeAll
   void createTables() {
     session.execute("CREATE TYPE IF NOT EXISTS myudt (udtmem1 int, udtmem2 text)");
+    session.execute("CREATE TYPE IF NOT EXISTS mybooleanudt (udtmem1 boolean, udtmem2 text)");
     session.execute(
         "CREATE TABLE IF NOT EXISTS types ("
             + "bigintCol bigint PRIMARY KEY, "
@@ -106,6 +107,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "tupleCol tuple<smallint, int, int>, "
             + "udtCol frozen<myudt>, "
             + "udtFromListCol frozen<myudt>, "
+            + "booleanUdtCol frozen<mybooleanudt>, "
+            + "booleanUdtFromListCol frozen<mybooleanudt>, "
             + "blobCol blob, "
             + "pointCol 'PointType', "
             + "linestringCol 'LineStringType', "
@@ -165,6 +168,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "tuplecol=value.tuple, "
                 + "udtcol=value.udt, "
                 + "udtfromlistcol=value.udtfromlist, "
+                + "booleanudtcol=value.booleanudt, "
+                + "booleanudtfromlistcol=value.booleanudtfromlist, "
                 + "blobcol=value.blob, "
                 + "pointcol=value.point, "
                 + "linestringcol=value.linestring, "
@@ -200,6 +205,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("tuple", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
             .field("udt", SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
             .field("udtfromlist", SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .field(
+                "booleanudt",
+                SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build())
+            .field("booleanudtfromlist", SchemaBuilder.array(Schema.BOOLEAN_SCHEMA).build())
             .field("blob", Schema.BYTES_SCHEMA)
             .field("point", Schema.STRING_SCHEMA)
             .field("linestring", Schema.STRING_SCHEMA)
@@ -234,6 +243,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Map<String, Integer> udtValue =
         ImmutableMap.<String, Integer>builder().put("udtmem1", 47).put("udtmem2", 90).build();
 
+    Map<String, Boolean> booleanUdtValue =
+        ImmutableMap.<String, Boolean>builder().put("udtmem1", true).put("udtmem2", false).build();
+
     byte[] blobValue = new byte[] {12, 22, 32};
 
     Long baseValue = 98761234L;
@@ -256,6 +268,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .put("tuple", listValue)
             .put("udt", udtValue)
             .put("udtfromlist", udtValue.values())
+            .put("booleanudt", booleanUdtValue)
+            .put("booleanudtfromlist", booleanUdtValue.values())
             .put("blob", blobValue)
             .put("point", "POINT (32.0 64.0)")
             .put("linestring", "LINESTRING (32.0 64.0, 48.5 96.5)")
@@ -298,6 +312,17 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(47, "90"));
     assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
+
+    UserDefinedType booleanUdt =
+        new UserDefinedTypeBuilder("ks1", "mybooleanudt")
+            .withField("udtmem1", DataTypes.BOOLEAN)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    booleanUdt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "false"));
+    assertThat(row.getUdtValue("booleanudtfromlistcol"))
+        .isEqualTo(booleanUdt.newValue(true, "false"));
+
     assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
     assertThat(row.get("pointcol", GenericType.of(Point.class)))
         .isEqualTo(new DefaultPoint(32.0, 64.0));
@@ -318,7 +343,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void struct_value_struct_field() {
-    conn.start(makeConnectorProperties("bigintcol=value.bigint, udtcol=value.struct"));
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, "
+                + "udtcol=value.struct, "
+                + "booleanudtcol=value.booleanstruct"));
 
     Schema fieldSchema =
         SchemaBuilder.struct()
@@ -327,14 +356,27 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
     Struct fieldValue = new Struct(fieldSchema).put("udtmem1", 42).put("udtmem2", "the answer");
 
+    Schema booleanFieldSchema =
+        SchemaBuilder.struct()
+            .field("udtmem1", Schema.BOOLEAN_SCHEMA)
+            .field("udtmem2", Schema.STRING_SCHEMA)
+            .build();
+    Struct booleanFieldValue =
+        new Struct(booleanFieldSchema).put("udtmem1", true).put("udtmem2", "the answer");
+
     Schema schema =
         SchemaBuilder.struct()
             .name("Kafka")
             .field("bigint", Schema.INT64_SCHEMA)
             .field("struct", fieldSchema)
+            .field("booleanstruct", booleanFieldSchema)
             .build();
 
-    Struct value = new Struct(schema).put("bigint", 1234567L).put("struct", fieldValue);
+    Struct value =
+        new Struct(schema)
+            .put("bigint", 1234567L)
+            .put("struct", fieldValue)
+            .put("booleanstruct", booleanFieldValue);
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
@@ -351,16 +393,21 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
     udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+
+    UserDefinedType booleanUdt =
+        new UserDefinedTypeBuilder("ks1", "mybooleanudt")
+            .withField("udtmem1", DataTypes.BOOLEAN)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    booleanUdt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "the answer"));
   }
 
   @Test
-  void struct_optional_fields_missing() throws ParseException {
+  void struct_optional_fields_missing() {
     conn.start(
         makeConnectorProperties(
-            "bigintcol=value.bigint, "
-                + "intcol=value.int, "
-                + "smallintcol=value.smallint"
-    ));
+            "bigintcol=value.bigint, intcol=value.int, smallintcol=value.smallint"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -377,10 +424,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
 
     Long baseValue = 98761234L;
-    Struct value =
-        new Struct(schema)
-            .put("bigint", baseValue)
-            .put("int", baseValue.intValue());
+    Struct value = new Struct(schema).put("bigint", baseValue).put("int", baseValue.intValue());
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
@@ -393,7 +437,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void struct_optional_fields_with_values() throws ParseException {
+  void struct_optional_fields_with_values() {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -404,8 +448,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "smallintcol=value.smallint, "
                 + "textcol=value.text, "
                 + "tinyintcol=value.tinyint, "
-                + "blobcol=value.blob"
-        ));
+                + "blobcol=value.blob"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -454,12 +497,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void struct_optional_field_with_default_value() throws ParseException {
-    conn.start(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, "
-                + "intcol=value.int"
-        ));
+  void struct_optional_field_with_default_value() {
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, intcol=value.int"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -469,9 +508,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
 
     Long baseValue = 98761234L;
-    Struct value =
-        new Struct(schema)
-            .put("bigint", baseValue);
+    Struct value = new Struct(schema).put("bigint", baseValue);
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
