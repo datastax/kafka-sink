@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.0.0-alpha3 (in progress)
+
+
 ### 1.0.0-alpha2
 - [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible
 - [bug] KAF-36: Kafka Sink fails when optional schema types are used in Avro schema
