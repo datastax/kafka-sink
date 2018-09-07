@@ -11,10 +11,14 @@ package com.datastax.kafkaconnector;
 import static com.datastax.kafkaconnector.DseSinkTask.State.RUN;
 import static com.datastax.kafkaconnector.DseSinkTask.State.STOP;
 import static com.datastax.kafkaconnector.DseSinkTask.State.WAIT;
-import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
+import static com.datastax.kafkaconnector.util.SinkUtil.JSON_NODE_MAP_TYPE;
+import static com.datastax.kafkaconnector.util.SinkUtil.JSON_RECORD_METADATA;
+import static com.datastax.kafkaconnector.util.SinkUtil.OBJECT_MAPPER;
 
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.util.InstanceState;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
@@ -83,11 +87,10 @@ public class DseSinkTask extends SinkTask {
     log.debug("Task DseSinkTask starting with props: {}", props);
     state = new AtomicReference<>();
     state.set(State.WAIT);
-    instanceState = DseSinkConnector.getInstanceState(props.get(NAME_OPT));
+    instanceState = SinkUtil.startTask(this, props);
     mappingObjects = Caffeine.newBuilder().build();
     failureOffsets = new ConcurrentHashMap<>();
     stopLatch = new CountDownLatch(1);
-    instanceState.registerTask(this);
   }
 
   @Override
@@ -244,7 +247,7 @@ public class DseSinkTask extends SinkTask {
       Thread.currentThread().interrupt();
     } finally {
       log.info("Task is stopped.");
-      instanceState.unregisterTask(this);
+      SinkUtil.stopTask(instanceState, this);
     }
   }
 
@@ -287,13 +290,9 @@ public class DseSinkTask extends SinkTask {
       innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
       innerData = new StructData(innerRecordStruct);
     } else if (keyOrValue instanceof String) {
-      innerMetadata = DseSinkConnector.JSON_RECORD_METADATA;
+      innerMetadata = JSON_RECORD_METADATA;
       try {
-        innerData =
-            new JsonData(
-                DseSinkConnector.objectMapper,
-                DseSinkConnector.jsonNodeMapType,
-                (String) keyOrValue);
+        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, (String) keyOrValue);
       } catch (RuntimeException e) {
         // Json parsing failed. Treat as raw string.
         innerData = new RawData(keyOrValue);

@@ -6,9 +6,10 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.util;
 
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
@@ -24,7 +25,7 @@ import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
 
 /** Container for a session, config, etc. */
-class InstanceState {
+public class InstanceState {
   private final DseSession session;
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
@@ -64,17 +65,17 @@ class InstanceState {
   }
 
   @NotNull
-  DseSession getSession() {
+  public DseSession getSession() {
     return session;
   }
 
   @NotNull
-  Semaphore getRequestBarrier() {
+  public Semaphore getRequestBarrier() {
     return requestBarrier;
   }
 
   @NotNull
-  TopicConfig getTopicConfig(String topicName) {
+  public TopicConfig getTopicConfig(String topicName) {
     TopicConfig topicConfig = this.config.getTopicConfigs().get(topicName);
     if (topicConfig == null) {
       throw new KafkaException(
@@ -86,22 +87,22 @@ class InstanceState {
   }
 
   @NotNull
-  KafkaCodecRegistry getCodecRegistry(String topicName) {
+  public KafkaCodecRegistry getCodecRegistry(String topicName) {
     return getTopicState(topicName).getCodecRegistry();
   }
 
   @NotNull
-  String getInsertStatement(String topicName) {
+  public String getInsertStatement(String topicName) {
     return getTopicState(topicName).getInsertStatement();
   }
 
   @NotNull
-  Executor getMappingExecutor() {
+  public Executor getMappingExecutor() {
     return mappingExecutor;
   }
 
   @NotNull
-  PreparedStatement getPreparedInsertStatement(String topicName) {
+  public PreparedStatement getPreparedInsertStatement(String topicName) {
     return getTopicState(topicName).getPreparedStatement();
   }
 
