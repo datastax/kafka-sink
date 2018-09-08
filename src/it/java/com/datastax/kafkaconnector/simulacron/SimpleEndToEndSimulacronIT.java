@@ -151,7 +151,7 @@ class SimpleEndToEndSimulacronIT {
     Query bad1 = makeQuery(32, "fail", 153000987000L);
     simulacron.prime(when(bad1).then(serverError("bad thing")).applyToPrepare());
 
-    assertThatThrownBy(() -> conn.start(connectorProperties))
+    assertThatThrownBy(() -> task.start(connectorProperties))
         .isInstanceOf(RuntimeException.class)
         .hasMessageStartingWith("Prepare failed for statement: " + INSERT_STATEMENT);
   }
