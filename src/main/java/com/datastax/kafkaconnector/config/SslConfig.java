@@ -20,9 +20,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.kafka.common.KafkaException;
@@ -100,11 +104,11 @@ public class SslConfig extends AbstractConfig {
               ConfigDef.Importance.HIGH,
               "The path to the truststore file");
 
-  private SslContext sslContext;
   private final Path keystorePath;
   private final Path truststorePath;
   private final Path certFilePath;
   private final Path privateKeyPath;
+  private final SslContext sslContext;
 
   SslConfig(Map<String, String> sslSettings) {
     super(CONFIG_DEF, sslSettings, false);
@@ -166,6 +170,8 @@ public class SslConfig extends AbstractConfig {
         throw new KafkaException(
             String.format("Could not initialize OpenSSL context: %s", e.getMessage()), e);
       }
+    } else {
+      sslContext = null;
     }
   }
 
@@ -205,6 +211,36 @@ public class SslConfig extends AbstractConfig {
 
   public SslContext getSslContext() {
     return sslContext;
+  }
+
+  @Override
+  public String toString() {
+    Set<String> secureSslSettings =
+        new HashSet<>(Arrays.asList(KEYSTORE_PASSWORD_OPT, TRUSTSTORE_PASSWORD_OPT));
+    String[] sslSettings = {
+      PROVIDER_OPT,
+      KEYSTORE_PATH_OPT,
+      KEYSTORE_PASSWORD_OPT,
+      TRUSTSTORE_PATH_OPT,
+      TRUSTSTORE_PASSWORD_OPT,
+      OPENSSL_KEY_CERT_CHAIN_OPT,
+      OPENSSL_PRIVATE_KEY_OPT
+    };
+    String sslString =
+        Arrays.stream(sslSettings)
+            .map(
+                s ->
+                    String.format(
+                        "%s: %s",
+                        s.substring("ssl.".length()),
+                        secureSslSettings.contains(s) ? "<hidden>" : getString(s)))
+            .collect(Collectors.joining("\n"));
+
+    return String.format(
+        "%s%n%s: %s",
+        sslString,
+        HOSTNAME_VALIDATION_OPT.substring("ssl.".length()),
+        getBoolean(HOSTNAME_VALIDATION_OPT));
   }
 
   Path getOpenSslKeyCertChain() {

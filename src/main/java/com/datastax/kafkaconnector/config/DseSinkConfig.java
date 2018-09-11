@@ -158,11 +158,17 @@ public class DseSinkConfig {
             + "        port: %d%n"
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
+            + "SSL configuration:%n%s%n"
             + "Topic configurations:%n%s",
         getContactPoints(),
         getPort(),
         getLocalDc(),
         getMaxConcurrentRequests(),
+        Splitter.on("\n")
+            .splitToList(sslConfig.toString())
+            .stream()
+            .map(line -> "        " + line)
+            .collect(Collectors.joining("\n")),
         topicConfigs
             .values()
             .stream()
