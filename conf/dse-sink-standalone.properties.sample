@@ -19,6 +19,37 @@ topics=my_topic
 # Maximum number of requests to send to DSE at a single time. Defaults to 500.
 #maxConcurrentRequests=500
 
+### SSL Settings ###
+
+# SSL provider to use, if any. Valid choices: None, JDK, OpenSSL.
+# Defaults to None.
+#ssl.provider=None
+
+# Comma-separated list of cipher suites to enable.
+#ssl.cipherSuites=
+
+# Whether or not to validate DSE node hostnames when using SSL.
+# Defaults to true.
+#ssl.hostnameValidation=true
+
+# Keystore password.
+#ssl.keystore.password=
+
+# Path to the keystore file.
+#ssl.keystore.path=
+
+# Truststore password.
+#ssl.truststore.password=
+
+# Path to the truststore file.
+#ssl.truststore.path=
+
+# Path to the SSL certificate file, when using OpenSSL.
+#ssl.openssl.keyCertChain=
+
+# Path to the private key file, when using OpenSSL.
+#ssl.openssl.privateKey=
+
 ### Settings for topic my_topic ###
 
 # The DSE keyspace to use.

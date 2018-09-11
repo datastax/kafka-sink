@@ -87,10 +87,10 @@ public class DseSinkTask extends SinkTask {
     log.debug("Task DseSinkTask starting with props: {}", props);
     state = new AtomicReference<>();
     state.set(State.WAIT);
-    instanceState = SinkUtil.startTask(this, props);
     mappingObjects = Caffeine.newBuilder().build();
     failureOffsets = new ConcurrentHashMap<>();
     stopLatch = new CountDownLatch(1);
+    instanceState = SinkUtil.startTask(this, props);
   }
 
   @Override
@@ -235,13 +235,20 @@ public class DseSinkTask extends SinkTask {
     //    latch. If the latch has been opened already, there's nothing to wait for
     //    and we immediately return.
     try {
-      if (state.compareAndSet(WAIT, STOP)) {
-        // Clean stop; nothing running/in-progress.
+      if (state != null) {
+        if (state.compareAndSet(WAIT, STOP)) {
+          // Clean stop; nothing running/in-progress.
+          stopLatch.countDown();
+          return;
+        }
+        state.compareAndSet(RUN, STOP);
+        stopLatch.await();
+      } else if (stopLatch != null) {
+        // There is no state, so we didn't get far in starting up the task. If by some chance
+        // there is a stopLatch initialized, decrement it to indicate to any callers that
+        // we're done and they need not wait on us.
         stopLatch.countDown();
-        return;
       }
-      state.compareAndSet(RUN, STOP);
-      stopLatch.await();
     } catch (InterruptedException e) {
       // "put" is likely also interrupted, so we're effectively stopped.
       Thread.currentThread().interrupt();
