@@ -12,11 +12,17 @@ import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.getTopicSettingName;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_KEYSTORE_PASSWORD;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_KEYSTORE_PATH;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PASSWORD;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PATH;
 import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
 
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.RawData;
@@ -24,15 +30,17 @@ import com.datastax.kafkaconnector.RecordMetadata;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.ssl.SessionBuilder;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoaderBuilder;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -42,6 +50,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -235,23 +244,33 @@ public class SinkUtil {
   private static InstanceState buildInstanceState(Map<String, String> props) {
     DseSinkConfig config = new DseSinkConfig(props);
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
-    DseSessionBuilder builder = DseSession.builder();
+    SslConfig sslConfig = config.getSslConfig();
+    SessionBuilder builder = new SessionBuilder(sslConfig);
     config
         .getContactPoints()
         .forEach(
             hostStr -> builder.addContactPoint(new InetSocketAddress(hostStr, config.getPort())));
 
-    DriverConfigLoader configLoader = null;
+    DefaultDriverConfigLoaderBuilder configLoaderBuilder = DefaultDseDriverConfigLoader.builder();
     if (!config.getLocalDc().isEmpty()) {
-      configLoader =
-          DefaultDseDriverConfigLoader.builder()
-              .withString(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc())
-              .build();
+      configLoaderBuilder.withString(
+          DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
     }
 
-    if (configLoader != null) {
-      builder.withConfigLoader(configLoader);
+    if (sslConfig.getProvider() == SslConfig.Provider.JDK) {
+      configLoaderBuilder.withString(SSL_ENGINE_FACTORY_CLASS, "DefaultSslEngineFactory");
+      List<String> cipherSuites = sslConfig.getCipherSuites();
+      if (!cipherSuites.isEmpty()) {
+        configLoaderBuilder.withStringList(SSL_CIPHER_SUITES, cipherSuites);
+      }
+      configLoaderBuilder.withBoolean(
+          SSL_HOSTNAME_VALIDATION, sslConfig.requireHostnameValidation());
+      configLoaderBuilder.withString(SSL_TRUSTSTORE_PATH, sslConfig.getTruststorePath().toString());
+      configLoaderBuilder.withString(SSL_TRUSTSTORE_PASSWORD, sslConfig.getTruststorePassword());
+      configLoaderBuilder.withString(SSL_KEYSTORE_PATH, sslConfig.getKeystorePath().toString());
+      configLoaderBuilder.withString(SSL_KEYSTORE_PASSWORD, sslConfig.getKeystorePassword());
     }
+    builder.withConfigLoader(configLoaderBuilder.build());
 
     DseSession session = builder.build();
     validateKeyspaceAndTable(session, config);

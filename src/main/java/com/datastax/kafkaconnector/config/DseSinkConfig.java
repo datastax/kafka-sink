@@ -63,11 +63,13 @@ public class DseSinkConfig {
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
+  private final SslConfig sslConfig;
 
   public DseSinkConfig(Map<String, String> settings) {
     instanceName = settings.get(NAME_OPT);
-    // Walk through the settings and separate out "globals" from "topics".
+    // Walk through the settings and separate out "globals" from "topics" and "ssl".
     Map<String, String> globalSettings = new HashMap<>();
+    Map<String, String> sslSettings = new HashMap<>();
     Map<String, Map<String, String>> topicSettings = new HashMap<>();
     for (Map.Entry<String, String> entry : settings.entrySet()) {
       String name = entry.getKey();
@@ -79,6 +81,8 @@ public class DseSinkConfig {
         Map<String, String> topicMap =
             topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
         topicMap.put(name, entry.getValue());
+      } else if (name.startsWith("ssl.")) {
+        sslSettings.put(name, entry.getValue());
       } else {
         globalSettings.put(name, entry.getValue());
       }
@@ -87,6 +91,7 @@ public class DseSinkConfig {
     // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
+    sslConfig = new SslConfig(sslSettings);
     topicConfigs = new HashMap<>();
     topicSettings.forEach(
         (name, topicConfigMap) -> topicConfigs.put(name, new TopicConfig(name, topicConfigMap)));
@@ -139,6 +144,10 @@ public class DseSinkConfig {
 
   public Map<String, TopicConfig> getTopicConfigs() {
     return topicConfigs;
+  }
+
+  public SslConfig getSslConfig() {
+    return sslConfig;
   }
 
   @Override

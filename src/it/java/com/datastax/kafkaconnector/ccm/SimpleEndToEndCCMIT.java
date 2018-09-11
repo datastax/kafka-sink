@@ -9,10 +9,8 @@
 package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
-import com.datastax.dsbulk.commons.tests.utils.Version;
 import com.datastax.dse.driver.api.core.data.time.DateRange;
 import com.datastax.dse.driver.api.core.type.geometry.LineString;
 import com.datastax.dse.driver.api.core.type.geometry.Point;
@@ -20,8 +18,6 @@ import com.datastax.dse.driver.api.core.type.geometry.Polygon;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultLineString;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultPolygon;
-import com.datastax.kafkaconnector.DseSinkConnector;
-import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -51,25 +47,15 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("ConstantConditions")
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
-  private final boolean dse50;
-  private DseSinkConnector conn = new DseSinkConnector();
-  private DseSinkTask task = new DseSinkTask();
   private AttachmentPoint attachmentPoint;
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    SinkTaskContext taskContext = mock(SinkTaskContext.class);
-    task.initialize(taskContext);
-
     attachmentPoint =
         new AttachmentPoint() {
           @NotNull
@@ -84,58 +70,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             return session.getContext().getCodecRegistry();
           }
         };
-
-    // DSE 5.0 doesn't have the DateRange type, so we need to account for that in our testing.
-    dse50 = Version.isWithinRange(Version.parse("5.0.0"), Version.parse("5.1.0"), ccm.getVersion());
-  }
-
-  @BeforeAll
-  void createTables() {
-    session.execute("CREATE TYPE IF NOT EXISTS myudt (udtmem1 int, udtmem2 text)");
-    session.execute("CREATE TYPE IF NOT EXISTS mybooleanudt (udtmem1 boolean, udtmem2 text)");
-    String withDateRange = dse50 ? "" : ", dateRangeCol 'DateRangeType'";
-    session.execute(
-        "CREATE TABLE IF NOT EXISTS types ("
-            + "bigintCol bigint PRIMARY KEY, "
-            + "booleanCol boolean, "
-            + "doubleCol double, "
-            + "floatCol float, "
-            + "intCol int, "
-            + "smallintCol smallint, "
-            + "textCol text, "
-            + "tinyIntCol tinyint, "
-            + "mapCol map<text, int>, "
-            + "mapNestedCol frozen<map<text, map<int, text>>>, "
-            + "listCol list<int>, "
-            + "listNestedCol frozen<list<set<int>>>, "
-            + "setCol set<int>, "
-            + "setNestedCol frozen<set<list<int>>>, "
-            + "tupleCol tuple<smallint, int, int>, "
-            + "udtCol frozen<myudt>, "
-            + "udtFromListCol frozen<myudt>, "
-            + "booleanUdtCol frozen<mybooleanudt>, "
-            + "booleanUdtFromListCol frozen<mybooleanudt>, "
-            + "blobCol blob, "
-            + "pointCol 'PointType', "
-            + "linestringCol 'LineStringType', "
-            + "polygonCol 'PolygonType', "
-            + "dateCol date, "
-            + "timeCol time, "
-            + "timestampCol timestamp, "
-            + "secondsCol timestamp"
-            + withDateRange
-            + ")");
-  }
-
-  @BeforeEach
-  void truncateTable() {
-    session.execute("TRUNCATE types");
-  }
-
-  @AfterEach
-  void stopConnector() {
-    task.stop();
-    conn.stop();
   }
 
   @Test
