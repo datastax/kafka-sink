@@ -53,9 +53,12 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("ConstantConditions")
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   private AttachmentPoint attachmentPoint;
+  private String keyspaceName;
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
+    assert session.getKeyspace().isPresent();
+    keyspaceName = session.getKeyspace().get().asInternal();
     attachmentPoint =
         new AttachmentPoint() {
           @NotNull
@@ -255,7 +258,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
 
     UserDefinedType booleanUdt =
-        new UserDefinedTypeBuilder("ks1", "mybooleanudt")
+        new UserDefinedTypeBuilder(keyspaceName, "mybooleanudt")
             .withField("udtmem1", DataTypes.BOOLEAN)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
@@ -330,7 +333,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder("ks1", "myudt")
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
@@ -338,7 +341,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
 
     UserDefinedType booleanUdt =
-        new UserDefinedTypeBuilder("ks1", "mybooleanudt")
+        new UserDefinedTypeBuilder(keyspaceName, "mybooleanudt")
             .withField("udtmem1", DataTypes.BOOLEAN)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
@@ -547,7 +550,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder("ks1", "myudt")
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
@@ -577,7 +580,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder("ks1", "myudt")
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
@@ -608,7 +611,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder("ks1", "myudt")
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
@@ -638,7 +641,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder("ks1", "myudt")
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
