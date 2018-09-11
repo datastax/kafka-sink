@@ -249,7 +249,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getTupleValue("tuplecol")).isEqualTo(tupleType.newValue((short) 37, 96, 90));
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder("ks1", "myudt")
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
