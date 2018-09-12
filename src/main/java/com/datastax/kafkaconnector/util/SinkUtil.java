@@ -12,6 +12,9 @@ import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.getTopicSettingName;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
@@ -23,12 +26,14 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECI
 
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.dse.driver.api.core.auth.DsePlainTextAuthProvider;
 import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.RawData;
 import com.datastax.kafkaconnector.RecordMetadata;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
+import com.datastax.kafkaconnector.config.AuthenticatorConfig;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
@@ -257,18 +262,26 @@ public class SinkUtil {
           DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
     }
 
+    AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
+    if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
+      configLoaderBuilder
+          .withClass(AUTH_PROVIDER_CLASS, DsePlainTextAuthProvider.class)
+          .with(AUTH_PROVIDER_USER_NAME, authConfig.getUsername())
+          .with(AUTH_PROVIDER_PASSWORD, authConfig.getPassword());
+    }
+
     if (sslConfig.getProvider() == SslConfig.Provider.JDK) {
       configLoaderBuilder.withString(SSL_ENGINE_FACTORY_CLASS, "DefaultSslEngineFactory");
       List<String> cipherSuites = sslConfig.getCipherSuites();
       if (!cipherSuites.isEmpty()) {
         configLoaderBuilder.withStringList(SSL_CIPHER_SUITES, cipherSuites);
       }
-      configLoaderBuilder.withBoolean(
-          SSL_HOSTNAME_VALIDATION, sslConfig.requireHostnameValidation());
-      configLoaderBuilder.withString(SSL_TRUSTSTORE_PATH, sslConfig.getTruststorePath().toString());
-      configLoaderBuilder.withString(SSL_TRUSTSTORE_PASSWORD, sslConfig.getTruststorePassword());
-      configLoaderBuilder.withString(SSL_KEYSTORE_PATH, sslConfig.getKeystorePath().toString());
-      configLoaderBuilder.withString(SSL_KEYSTORE_PASSWORD, sslConfig.getKeystorePassword());
+      configLoaderBuilder
+          .withBoolean(SSL_HOSTNAME_VALIDATION, sslConfig.requireHostnameValidation())
+          .withString(SSL_TRUSTSTORE_PATH, sslConfig.getTruststorePath().toString())
+          .withString(SSL_TRUSTSTORE_PASSWORD, sslConfig.getTruststorePassword())
+          .withString(SSL_KEYSTORE_PATH, sslConfig.getKeystorePath().toString())
+          .withString(SSL_KEYSTORE_PASSWORD, sslConfig.getKeystorePassword());
     }
     builder.withConfigLoader(configLoaderBuilder.build());
 

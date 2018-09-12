@@ -64,12 +64,14 @@ public class DseSinkConfig {
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
   private final SslConfig sslConfig;
+  private final AuthenticatorConfig authConfig;
 
   public DseSinkConfig(Map<String, String> settings) {
     instanceName = settings.get(NAME_OPT);
-    // Walk through the settings and separate out "globals" from "topics" and "ssl".
+    // Walk through the settings and separate out "globals" from "topics", "ssl", and "auth".
     Map<String, String> globalSettings = new HashMap<>();
     Map<String, String> sslSettings = new HashMap<>();
+    Map<String, String> authSettings = new HashMap<>();
     Map<String, Map<String, String>> topicSettings = new HashMap<>();
     for (Map.Entry<String, String> entry : settings.entrySet()) {
       String name = entry.getKey();
@@ -83,6 +85,8 @@ public class DseSinkConfig {
         topicMap.put(name, entry.getValue());
       } else if (name.startsWith("ssl.")) {
         sslSettings.put(name, entry.getValue());
+      } else if (name.startsWith("auth.")) {
+        authSettings.put(name, entry.getValue());
       } else {
         globalSettings.put(name, entry.getValue());
       }
@@ -92,6 +96,7 @@ public class DseSinkConfig {
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
     sslConfig = new SslConfig(sslSettings);
+    authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
     topicSettings.forEach(
         (name, topicConfigMap) -> topicConfigs.put(name, new TopicConfig(name, topicConfigMap)));
@@ -146,6 +151,10 @@ public class DseSinkConfig {
     return topicConfigs;
   }
 
+  public AuthenticatorConfig getAuthenticatorConfig() {
+    return authConfig;
+  }
+
   public SslConfig getSslConfig() {
     return sslConfig;
   }
@@ -159,6 +168,7 @@ public class DseSinkConfig {
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "SSL configuration:%n%s%n"
+            + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s",
         getContactPoints(),
         getPort(),
@@ -166,6 +176,11 @@ public class DseSinkConfig {
         getMaxConcurrentRequests(),
         Splitter.on("\n")
             .splitToList(sslConfig.toString())
+            .stream()
+            .map(line -> "        " + line)
+            .collect(Collectors.joining("\n")),
+        Splitter.on("\n")
+            .splitToList(authConfig.toString())
             .stream()
             .map(line -> "        " + line)
             .collect(Collectors.joining("\n")),
