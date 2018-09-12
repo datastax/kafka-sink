@@ -8,12 +8,18 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigException;
+import org.jetbrains.annotations.Nullable;
 
 /** Helper methods useful for performing common tasks in *Config classes. */
-public class ConfigUtil {
+class ConfigUtil {
+
   /** This is a utility class; no one should instantiate it. */
   private ConfigUtil() {}
 
@@ -35,5 +41,28 @@ public class ConfigUtil {
                     "%s: %s",
                     s.substring(prefixToExcise.length()), config.values().get(s).toString()))
         .collect(Collectors.joining("\n"));
+  }
+
+  static @Nullable Path getFilePath(@Nullable String settingValue) {
+    return settingValue == null || settingValue.isEmpty()
+        ? null
+        : Paths.get(settingValue).toAbsolutePath().normalize();
+  }
+
+  static void assertAccessibleFile(@Nullable Path filePath, String settingName) {
+    if (filePath == null) {
+      // There's no path to check.
+      return;
+    }
+
+    if (!Files.exists(filePath)) {
+      throw new ConfigException(settingName, filePath.toString(), "does not exist");
+    }
+    if (!Files.isRegularFile(filePath)) {
+      throw new ConfigException(settingName, filePath.toString(), "is not a file");
+    }
+    if (!Files.isReadable(filePath)) {
+      throw new ConfigException(settingName, filePath.toString(), "is not readable");
+    }
   }
 }

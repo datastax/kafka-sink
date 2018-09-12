@@ -31,6 +31,16 @@ topics=my_topic
 # Password for DSE provider authentication
 #auth.password=
 
+# Kerberos keytab file
+#auth.gssapi.keyTab=
+
+# Kerberos principal
+#auth.gssapi.principal=
+
+# SASL service name to use for GSSAPI provider authentication.
+# Defautls to dse.
+#auth.gssapi.service=dse
+
 ### SSL Settings ###
 
 # SSL provider to use, if any. Valid choices: None, JDK, OpenSSL.
