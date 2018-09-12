@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.config.ConfigUtil.configToString;
+import static com.datastax.kafkaconnector.config.ConfigUtil.getFilePath;
 
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -17,9 +18,7 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.Collections;
@@ -31,8 +30,9 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
+import org.jetbrains.annotations.Nullable;
 
-/** Topic-specific connector configuration. */
+/** SSL configuration */
 public class SslConfig extends AbstractConfig {
   public static final String PROVIDER_OPT = "ssl.provider";
   public static final String HOSTNAME_VALIDATION_OPT = "ssl.hostnameValidation";
@@ -44,7 +44,6 @@ public class SslConfig extends AbstractConfig {
   public static final String TRUSTSTORE_PATH_OPT = "ssl.truststore.path";
   static final String CIPHER_SUITES_OPT = "ssl.cipherSuites";
 
-  private static final Path EMPTY_PATH = Paths.get("");
   private static final ConfigDef CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -102,30 +101,39 @@ public class SslConfig extends AbstractConfig {
               ConfigDef.Importance.HIGH,
               "The path to the truststore file");
 
-  private final Path keystorePath;
-  private final Path truststorePath;
-  private final Path certFilePath;
-  private final Path privateKeyPath;
+  private final @Nullable Path keystorePath;
+  private final @Nullable Path truststorePath;
+  private final @Nullable Path certFilePath;
+  private final @Nullable Path privateKeyPath;
   private final SslContext sslContext;
 
   SslConfig(Map<String, String> sslSettings) {
     super(CONFIG_DEF, sslSettings, false);
 
-    keystorePath = getFilePath(KEYSTORE_PATH_OPT);
-    truststorePath = getFilePath(TRUSTSTORE_PATH_OPT);
-    privateKeyPath = getFilePath(OPENSSL_PRIVATE_KEY_OPT);
-    certFilePath = getFilePath(OPENSSL_KEY_CERT_CHAIN_OPT);
+    keystorePath = getFilePath(getString(KEYSTORE_PATH_OPT));
+    truststorePath = getFilePath(getString(TRUSTSTORE_PATH_OPT));
+    privateKeyPath = getFilePath(getString(OPENSSL_PRIVATE_KEY_OPT));
+    certFilePath = getFilePath(getString(OPENSSL_KEY_CERT_CHAIN_OPT));
 
-    assertAccessibleFile(keystorePath, KEYSTORE_PATH_OPT);
-    assertAccessibleFile(truststorePath, TRUSTSTORE_PATH_OPT);
-    assertAccessibleFile(privateKeyPath, OPENSSL_PRIVATE_KEY_OPT);
-    assertAccessibleFile(certFilePath, OPENSSL_KEY_CERT_CHAIN_OPT);
+    ConfigUtil.assertAccessibleFile(keystorePath, KEYSTORE_PATH_OPT);
+    ConfigUtil.assertAccessibleFile(truststorePath, TRUSTSTORE_PATH_OPT);
+    ConfigUtil.assertAccessibleFile(privateKeyPath, OPENSSL_PRIVATE_KEY_OPT);
+    ConfigUtil.assertAccessibleFile(certFilePath, OPENSSL_KEY_CERT_CHAIN_OPT);
 
     if (getProvider() == Provider.OpenSSL) {
+      // Validate that either both or none of privateKeyPath and certFilePath are set.
+      if ((certFilePath == null) != (privateKeyPath == null)) {
+        throw new ConfigException(
+            String.format(
+                "%s cannot be set without %s and vice-versa: %s is not set",
+                OPENSSL_KEY_CERT_CHAIN_OPT,
+                OPENSSL_PRIVATE_KEY_OPT,
+                certFilePath == null ? OPENSSL_KEY_CERT_CHAIN_OPT : OPENSSL_PRIVATE_KEY_OPT));
+      }
       TrustManagerFactory tmf = null;
       String sslTrustStorePassword = getTruststorePassword();
       try {
-        if (truststorePath != EMPTY_PATH) {
+        if (truststorePath != null) {
           KeyStore ks = KeyStore.getInstance("JKS");
           try {
             ks.load(
@@ -150,11 +158,11 @@ public class SslConfig extends AbstractConfig {
         if (!cipherSuites.isEmpty()) {
           builder.ciphers(cipherSuites);
         }
-        if (getOpenSslKeyCertChain() != null) {
+        if (certFilePath != null) {
           try {
             builder.keyManager(
-                new BufferedInputStream(new FileInputStream(getOpenSslKeyCertChain().toFile())),
-                new BufferedInputStream(new FileInputStream(getOpenSslPrivateKey().toFile())));
+                new BufferedInputStream(new FileInputStream(certFilePath.toFile())),
+                new BufferedInputStream(new FileInputStream(privateKeyPath.toFile())));
           } catch (IllegalArgumentException e) {
             throw new KafkaException(
                 String.format("Invalid certificate or private key: %s", e.getMessage()), e);
@@ -191,6 +199,7 @@ public class SslConfig extends AbstractConfig {
     return getBoolean(HOSTNAME_VALIDATION_OPT);
   }
 
+  @Nullable
   public Path getKeystorePath() {
     return keystorePath;
   }
@@ -199,6 +208,7 @@ public class SslConfig extends AbstractConfig {
     return getPassword(KEYSTORE_PASSWORD_OPT).value();
   }
 
+  @Nullable
   public Path getTruststorePath() {
     return truststorePath;
   }
@@ -232,30 +242,6 @@ public class SslConfig extends AbstractConfig {
 
   Path getOpenSslPrivateKey() {
     return privateKeyPath;
-  }
-
-  private static void assertAccessibleFile(Path filePath, String settingName) {
-    if (filePath.equals(EMPTY_PATH)) {
-      // There's no path to check.
-      return;
-    }
-
-    if (!Files.exists(filePath)) {
-      throw new ConfigException(settingName, filePath.toString(), "does not exist");
-    }
-    if (!Files.isRegularFile(filePath)) {
-      throw new ConfigException(settingName, filePath.toString(), "is not a file");
-    }
-    if (!Files.isReadable(filePath)) {
-      throw new ConfigException(settingName, filePath.toString(), "is not readable");
-    }
-  }
-
-  private Path getFilePath(String setting) {
-    String settingValue = getString(setting);
-    return settingValue.isEmpty()
-        ? Paths.get("")
-        : Paths.get(settingValue).toAbsolutePath().normalize();
   }
 
   public enum Provider {

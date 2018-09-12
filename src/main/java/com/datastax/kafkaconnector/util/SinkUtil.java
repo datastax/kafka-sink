@@ -8,6 +8,8 @@
  */
 package com.datastax.kafkaconnector.util;
 
+import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
+import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROTOCOL;
 import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
@@ -26,7 +28,9 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECI
 
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.dse.driver.api.core.auth.DseGssApiAuthProvider;
 import com.datastax.dse.driver.api.core.auth.DsePlainTextAuthProvider;
+import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.RawData;
@@ -46,6 +50,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoaderBuilder;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -54,6 +59,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -268,6 +274,39 @@ public class SinkUtil {
           .withClass(AUTH_PROVIDER_CLASS, DsePlainTextAuthProvider.class)
           .with(AUTH_PROVIDER_USER_NAME, authConfig.getUsername())
           .with(AUTH_PROVIDER_PASSWORD, authConfig.getPassword());
+    } else if (authConfig.getProvider() == AuthenticatorConfig.Provider.GSSAPI) {
+      Path keyTabPath = authConfig.getKeyTabPath();
+      Map<String, String> loginConfig;
+      if (keyTabPath == null) {
+        // Rely on the ticket cache.
+        ImmutableMap.Builder<String, String> loginConfigBuilder =
+            ImmutableMap.<String, String>builder()
+                .put("useTicketCache", "true")
+                .put("refreshKrb5Config", "true")
+                .put("renewTGT", "true");
+        if (!authConfig.getPrincipal().isEmpty()) {
+          loginConfigBuilder.put("principal", authConfig.getPrincipal());
+        }
+        loginConfig = loginConfigBuilder.build();
+      } else {
+        // Authenticate with the keytab file
+        loginConfig =
+            ImmutableMap.of(
+                "principal",
+                authConfig.getPrincipal(),
+                "useKeyTab",
+                "true",
+                "refreshKrb5Config",
+                "true",
+                "keyTab",
+                authConfig.getKeyTabPath().toString());
+      }
+      configLoaderBuilder
+          .withClass(AUTH_PROVIDER_CLASS, DseGssApiAuthProvider.class)
+          .withString(AUTH_PROVIDER_SASL_PROTOCOL, authConfig.getService())
+          .withStringMap(
+              AUTH_PROVIDER_SASL_PROPERTIES, ImmutableMap.of("javax.security.sasl.qop", "auth"))
+          .withStringMap(DseDriverOption.AUTH_PROVIDER_LOGIN_CONFIGURATION, loginConfig);
     }
 
     if (sslConfig.getProvider() == SslConfig.Provider.JDK) {
@@ -278,10 +317,17 @@ public class SinkUtil {
       }
       configLoaderBuilder
           .withBoolean(SSL_HOSTNAME_VALIDATION, sslConfig.requireHostnameValidation())
-          .withString(SSL_TRUSTSTORE_PATH, sslConfig.getTruststorePath().toString())
           .withString(SSL_TRUSTSTORE_PASSWORD, sslConfig.getTruststorePassword())
-          .withString(SSL_KEYSTORE_PATH, sslConfig.getKeystorePath().toString())
           .withString(SSL_KEYSTORE_PASSWORD, sslConfig.getKeystorePassword());
+
+      Path truststorePath = sslConfig.getTruststorePath();
+      if (truststorePath != null) {
+        configLoaderBuilder.withString(SSL_TRUSTSTORE_PATH, truststorePath.toString());
+      }
+      Path keystorePath = sslConfig.getKeystorePath();
+      if (keystorePath != null) {
+        configLoaderBuilder.withString(SSL_KEYSTORE_PATH, keystorePath.toString());
+      }
     }
     builder.withConfigLoader(configLoaderBuilder.build());
 

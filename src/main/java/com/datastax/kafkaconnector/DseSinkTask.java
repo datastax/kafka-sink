@@ -28,6 +28,7 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -76,6 +77,35 @@ public class DseSinkTask extends SinkTask {
   private ExecutorService boundStatementProcessorService =
       Executors.newFixedThreadPool(
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
+
+  private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
+    KeyOrValue innerData;
+    RecordMetadata innerMetadata;
+
+    if (keyOrValue instanceof Struct) {
+      Struct innerRecordStruct = (Struct) keyOrValue;
+      // TODO: PERF: Cache these metadata objects, keyed on schema.
+      innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
+      innerData = new StructData(innerRecordStruct);
+    } else if (keyOrValue instanceof String) {
+      innerMetadata = JSON_RECORD_METADATA;
+      try {
+        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, (String) keyOrValue);
+      } catch (RuntimeException e) {
+        // Json parsing failed. Treat as raw string.
+        innerData = new RawData(keyOrValue);
+        innerMetadata = (RecordMetadata) innerData;
+      }
+    } else if (keyOrValue != null) {
+      innerData = new RawData(keyOrValue);
+      innerMetadata = (RecordMetadata) innerData;
+    } else {
+      // The key or value is null
+      innerData = NULL_DATA;
+      innerMetadata = NULL_DATA;
+    }
+    return new InnerDataAndMetadata(innerData, innerMetadata);
+  }
 
   @Override
   public String version() {
@@ -287,35 +317,6 @@ public class DseSinkTask extends SinkTask {
         "Error inserting row for Kafka record {}: {}{}", record, e.getMessage(), statementError);
   }
 
-  private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
-    KeyOrValue innerData;
-    RecordMetadata innerMetadata;
-
-    if (keyOrValue instanceof Struct) {
-      Struct innerRecordStruct = (Struct) keyOrValue;
-      // TODO: PERF: Cache these metadata objects, keyed on schema.
-      innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
-      innerData = new StructData(innerRecordStruct);
-    } else if (keyOrValue instanceof String) {
-      innerMetadata = JSON_RECORD_METADATA;
-      try {
-        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, (String) keyOrValue);
-      } catch (RuntimeException e) {
-        // Json parsing failed. Treat as raw string.
-        innerData = new RawData(keyOrValue);
-        innerMetadata = (RecordMetadata) innerData;
-      }
-    } else if (keyOrValue != null) {
-      innerData = new RawData(keyOrValue);
-      innerMetadata = (RecordMetadata) innerData;
-    } else {
-      // The key or value is null
-      innerData = NULL_DATA;
-      innerMetadata = NULL_DATA;
-    }
-    return new InnerDataAndMetadata(innerData, innerMetadata);
-  }
-
   enum State {
     WAIT,
     RUN,
@@ -329,6 +330,25 @@ public class DseSinkTask extends SinkTask {
     InnerDataAndMetadata(KeyOrValue innerData, RecordMetadata innerMetadata) {
       this.innerMetadata = innerMetadata;
       this.innerData = innerData;
+    }
+  }
+
+  /** Simple container class to hold a SinkRecord and its associated BoundStatement. */
+  private static class RecordAndStatement {
+    private final SinkRecord record;
+    private final BoundStatement statement;
+
+    RecordAndStatement(SinkRecord record, BoundStatement statement) {
+      this.record = record;
+      this.statement = statement;
+    }
+
+    SinkRecord getRecord() {
+      return record;
+    }
+
+    BoundStatement getStatement() {
+      return statement;
     }
   }
 
@@ -452,25 +472,6 @@ public class DseSinkTask extends SinkTask {
 
     void stop() {
       boundStatementsQueue.add(END_STATEMENT);
-    }
-  }
-
-  /** Simple container class to hold a SinkRecord and its associated BoundStatement. */
-  private static class RecordAndStatement {
-    private final SinkRecord record;
-    private final BoundStatement statement;
-
-    RecordAndStatement(SinkRecord record, BoundStatement statement) {
-      this.record = record;
-      this.statement = statement;
-    }
-
-    SinkRecord getRecord() {
-      return record;
-    }
-
-    BoundStatement getStatement() {
-      return statement;
     }
   }
 }

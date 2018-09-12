@@ -98,11 +98,11 @@ class SslConfigTest {
         .containsExactly("TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_256_CBC_SHA");
     assertThat(sslConfig.requireHostnameValidation()).isTrue();
     assertThat(sslConfig.getKeystorePassword()).isEqualTo("pass1");
-    assertThat(sslConfig.getKeystorePath().toString()).isEmpty();
-    assertThat(sslConfig.getOpenSslKeyCertChain().toString()).isEmpty();
-    assertThat(sslConfig.getOpenSslPrivateKey().toString()).isEmpty();
+    assertThat(sslConfig.getKeystorePath()).isNull();
+    assertThat(sslConfig.getOpenSslKeyCertChain()).isNull();
+    assertThat(sslConfig.getOpenSslPrivateKey()).isNull();
     assertThat(sslConfig.getTruststorePassword()).isEqualTo("pass2");
-    assertThat(sslConfig.getTruststorePath().toString()).isEmpty();
+    assertThat(sslConfig.getTruststorePath()).isNull();
   }
 
   @Test
@@ -125,6 +125,41 @@ class SslConfigTest {
                       String.format(
                           "Invalid value %s for configuration %s: does not exist", badPath, s));
             });
+  }
+
+  @Test
+  void should_error_private_key_without_cert() {
+    {
+      Map<String, String> props =
+          ImmutableMap.<String, String>builder()
+              .put(PROVIDER_OPT, "OpenSSL")
+              //              .put(OPENSSL_KEY_CERT_CHAIN_OPT, certfilePath.toString())
+              .put(OPENSSL_PRIVATE_KEY_OPT, privateKeyPath.toString())
+              .build();
+      assertThatThrownBy(() -> new SslConfig(props))
+          .isInstanceOf(KafkaException.class)
+          .hasMessageContaining(
+              String.format(
+                  "%s cannot be set without %s and vice-versa: %s is not set",
+                  OPENSSL_KEY_CERT_CHAIN_OPT, OPENSSL_PRIVATE_KEY_OPT, OPENSSL_KEY_CERT_CHAIN_OPT));
+    }
+  }
+
+  @Test
+  void should_error_cert_without_private_key() {
+    {
+      Map<String, String> props =
+          ImmutableMap.<String, String>builder()
+              .put(PROVIDER_OPT, "OpenSSL")
+              .put(OPENSSL_KEY_CERT_CHAIN_OPT, certfilePath.toString())
+              .build();
+      assertThatThrownBy(() -> new SslConfig(props))
+          .isInstanceOf(KafkaException.class)
+          .hasMessageContaining(
+              String.format(
+                  "%s cannot be set without %s and vice-versa: %s is not set",
+                  OPENSSL_KEY_CERT_CHAIN_OPT, OPENSSL_PRIVATE_KEY_OPT, OPENSSL_PRIVATE_KEY_OPT));
+    }
   }
 
   @Test
