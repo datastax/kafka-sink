@@ -8,6 +8,8 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.ConfigUtil.configToString;
+
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
@@ -20,13 +22,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.kafka.common.KafkaException;
@@ -69,7 +67,7 @@ public class SslConfig extends AbstractConfig {
               "Whether or not to validate DSE node hostnames when using SSL")
           .define(
               KEYSTORE_PASSWORD_OPT,
-              ConfigDef.Type.STRING,
+              ConfigDef.Type.PASSWORD,
               "",
               ConfigDef.Importance.HIGH,
               "Keystore password")
@@ -93,7 +91,7 @@ public class SslConfig extends AbstractConfig {
               "The path to the private key file")
           .define(
               TRUSTSTORE_PASSWORD_OPT,
-              ConfigDef.Type.STRING,
+              ConfigDef.Type.PASSWORD,
               "",
               ConfigDef.Importance.HIGH,
               "Truststore password")
@@ -198,7 +196,7 @@ public class SslConfig extends AbstractConfig {
   }
 
   public String getKeystorePassword() {
-    return getString(KEYSTORE_PASSWORD_OPT);
+    return getPassword(KEYSTORE_PASSWORD_OPT).value();
   }
 
   public Path getTruststorePath() {
@@ -206,7 +204,7 @@ public class SslConfig extends AbstractConfig {
   }
 
   public String getTruststorePassword() {
-    return getString(TRUSTSTORE_PASSWORD_OPT);
+    return getPassword(TRUSTSTORE_PASSWORD_OPT).value();
   }
 
   public SslContext getSslContext() {
@@ -215,32 +213,17 @@ public class SslConfig extends AbstractConfig {
 
   @Override
   public String toString() {
-    Set<String> secureSslSettings =
-        new HashSet<>(Arrays.asList(KEYSTORE_PASSWORD_OPT, TRUSTSTORE_PASSWORD_OPT));
-    String[] sslSettings = {
-      PROVIDER_OPT,
-      KEYSTORE_PATH_OPT,
-      KEYSTORE_PASSWORD_OPT,
-      TRUSTSTORE_PATH_OPT,
-      TRUSTSTORE_PASSWORD_OPT,
-      OPENSSL_KEY_CERT_CHAIN_OPT,
-      OPENSSL_PRIVATE_KEY_OPT
-    };
-    String sslString =
-        Arrays.stream(sslSettings)
-            .map(
-                s ->
-                    String.format(
-                        "%s: %s",
-                        s.substring("ssl.".length()),
-                        secureSslSettings.contains(s) ? "<hidden>" : getString(s)))
-            .collect(Collectors.joining("\n"));
-
-    return String.format(
-        "%s%n%s: %s",
-        sslString,
-        HOSTNAME_VALIDATION_OPT.substring("ssl.".length()),
-        getBoolean(HOSTNAME_VALIDATION_OPT));
+    return configToString(
+        this,
+        "ssl.",
+        PROVIDER_OPT,
+        HOSTNAME_VALIDATION_OPT,
+        KEYSTORE_PATH_OPT,
+        KEYSTORE_PASSWORD_OPT,
+        TRUSTSTORE_PATH_OPT,
+        TRUSTSTORE_PASSWORD_OPT,
+        OPENSSL_KEY_CERT_CHAIN_OPT,
+        OPENSSL_PRIVATE_KEY_OPT);
   }
 
   Path getOpenSslKeyCertChain() {

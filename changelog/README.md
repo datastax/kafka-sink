@@ -3,6 +3,7 @@
 ### 1.0.0-alpha3 (in progress)
 - [bug] KAF-39: Partitions don't rebalance in distributed mode across multiple workers
 - [new feature] KAF-18: Add SSL support
+- [new feature] KAF-19: Add plaintext authentication
 
 ### 1.0.0-alpha2
 - [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible

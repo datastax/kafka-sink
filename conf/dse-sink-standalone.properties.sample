@@ -19,6 +19,18 @@ topics=my_topic
 # Maximum number of requests to send to DSE at a single time. Defaults to 500.
 #maxConcurrentRequests=500
 
+### Authentication Setings ###
+
+# Authentication provider to use, if any. Valid choices: None, DSE, GSSAPI.
+# Defaults to None.
+#auth.provider=None
+
+# Username for DSE provider authentication
+#auth.username=
+
+# Password for DSE provider authentication
+#auth.password=
+
 ### SSL Settings ###
 
 # SSL provider to use, if any. Valid choices: None, JDK, OpenSSL.
