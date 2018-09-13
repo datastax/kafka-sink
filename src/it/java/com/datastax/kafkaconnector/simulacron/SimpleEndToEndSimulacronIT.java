@@ -111,7 +111,12 @@ class SimpleEndToEndSimulacronIT {
         new SimulacronUtils.Keyspace(
             "ks1",
             new Table("table1", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
-            new Table("table2", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)));
+            new Table("table2", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
+            new Table(
+                "mycounter",
+                new Column("a", DataTypes.INT),
+                new Column("b", DataTypes.TEXT),
+                new Column("c", DataTypes.COUNTER)));
     conn = new DseSinkConnector();
 
     connectorProperties =
@@ -145,6 +150,12 @@ class SimpleEndToEndSimulacronIT {
     configurator.doConfigure(ClassLoader.getSystemResource("logback-test.xml"));
   }
 
+  @AfterEach
+  void stopConnector() {
+    task.stop();
+    conn.stop();
+  }
+
   @Test
   void fail_prepare() {
     SimulacronUtils.primeTables(simulacron, schema);
@@ -154,6 +165,36 @@ class SimpleEndToEndSimulacronIT {
     assertThatThrownBy(() -> task.start(connectorProperties))
         .isInstanceOf(RuntimeException.class)
         .hasMessageStartingWith("Prepare failed for statement: " + INSERT_STATEMENT);
+  }
+
+  @Test
+  void fail_prepare_counter_table() {
+    SimulacronUtils.primeTables(simulacron, schema);
+
+    ImmutableMap<String, String> paramTypes =
+        ImmutableMap.<String, String>builder()
+            .put("a", "int")
+            .put("b", "varchar")
+            .put("c", "counter")
+            .build();
+
+    String query = "UPDATE ks1.mycounter SET c = c + :c WHERE a = :a AND b = :b";
+    Query bad1 = new Query(query, Collections.emptyList(), makeParams(32, "fail", 2), paramTypes);
+    simulacron.prime(when(bad1).then(serverError("bad thing")).applyToPrepare());
+
+    ImmutableMap<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put("name", "myinstance")
+            .put("contactPoints", connectorProperties.get("contactPoints"))
+            .put("port", connectorProperties.get("port"))
+            .put("loadBalancing.localDc", "dc1")
+            .put("topic.mytopic.keyspace", "ks1")
+            .put("topic.mytopic.table", "mycounter")
+            .put("topic.mytopic.mapping", "a=key, b=value, c=value.f2")
+            .build();
+    assertThatThrownBy(() -> task.start(props))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageStartingWith("Prepare failed for statement: " + query);
   }
 
   @Test

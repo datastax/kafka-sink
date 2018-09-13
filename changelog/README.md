@@ -5,6 +5,7 @@
 - [new feature] KAF-18: Add SSL support
 - [new feature] KAF-19: Add plaintext authentication
 - [new feature] KAF-20: Add Kerberos authentication
+- [new feature] KAF-5: Support Counter type
 
 ### 1.0.0-alpha2
 - [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible

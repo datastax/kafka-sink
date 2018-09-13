@@ -38,7 +38,7 @@ class InstanceStateTest {
 
   @Test
   void getInsertStatement_fail() {
-    assertTopicNotFound(() -> instanceState.getInsertStatement("unknown"));
+    assertTopicNotFound(() -> instanceState.getCqlStatement("unknown"));
   }
 
   @Test
