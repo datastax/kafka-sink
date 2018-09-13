@@ -46,8 +46,10 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
@@ -240,6 +242,61 @@ public class SinkUtil {
     return statementBuilder.toString();
   }
 
+  static String makeUpdateCounterStatement(TopicConfig config, TableMetadata table) {
+    if (config.getTtl() != -1) {
+      throw new ConfigException("Cannot set ttl when updating a counter table");
+    }
+
+    // Create an UPDATE statement that looks like this:
+    // UPDATE ks.table SET col1 = col1 + :col1, col2 = col2 + :col2, ...
+    // WHERE pk1 = :pk1 AND pk2 = :pk2 ...
+
+    Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
+    StringBuilder statementBuilder = new StringBuilder("UPDATE ");
+    statementBuilder
+        .append(config.getKeyspace())
+        .append('.')
+        .append(config.getTable())
+        .append(" SET ");
+
+    List<CqlIdentifier> pks =
+        table.getPrimaryKey().stream().map(ColumnMetadata::getName).collect(Collectors.toList());
+
+    // Walk through the columns and add the "col1 = col1 + :col1" fragments for
+    // all non-pk columns.
+    boolean isFirst = true;
+    for (CqlIdentifier col : mapping.keySet()) {
+      if (pks.contains(col)) {
+        continue;
+      }
+      if (!isFirst) {
+        statementBuilder.append(',');
+      }
+      isFirst = false;
+      String colAsCql = col.asCql(true);
+      statementBuilder
+          .append(colAsCql)
+          .append(" = ")
+          .append(colAsCql)
+          .append(" + :")
+          .append(colAsCql);
+    }
+
+    // Add the WHERE clause, covering pk columns.
+    statementBuilder.append(" WHERE ");
+    isFirst = true;
+    for (CqlIdentifier col : pks) {
+      if (!isFirst) {
+        statementBuilder.append(" AND ");
+      }
+      isFirst = false;
+      String colAsCql = col.asCql(true);
+      statementBuilder.append(colAsCql).append(" = :").append(colAsCql);
+    }
+
+    return statementBuilder.toString();
+  }
+
   private static void closeQuietly(AutoCloseable closeable) {
     if (closeable != null) {
       try {
@@ -250,6 +307,10 @@ public class SinkUtil {
         log.debug(String.format("Failed to close %s", closeable), e);
       }
     }
+  }
+
+  private static boolean isCounterTable(TableMetadata table) {
+    return table.getColumns().values().stream().anyMatch(c -> c.getType() == DataTypes.COUNTER);
   }
 
   private static InstanceState buildInstanceState(Map<String, String> props) {
@@ -338,12 +399,26 @@ public class SinkUtil {
     Config kafkaConfig = ConfigFactory.load().getConfig("kafka");
 
     Map<String, CompletionStage<PreparedStatement>> prepareFutures = new HashMap<>();
+    Map<String, String> cqlStatements = new HashMap<>();
     config
         .getTopicConfigs()
         .forEach(
-            (topicName, topicConfig) ->
-                prepareFutures.put(
-                    topicName, session.prepareAsync(SinkUtil.makeInsertStatement(topicConfig))));
+            (topicName, topicConfig) -> {
+              CqlIdentifier keyspaceName = topicConfig.getKeyspace();
+              CqlIdentifier tableName = topicConfig.getTable();
+              Metadata metadata = session.getMetadata();
+              Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+              assert (keyspace.isPresent());
+              Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
+              assert table.isPresent();
+
+              String cqlStatement =
+                  isCounterTable(table.get())
+                      ? makeUpdateCounterStatement(topicConfig, table.get())
+                      : makeInsertStatement(topicConfig);
+              cqlStatements.put(topicName, cqlStatement);
+              prepareFutures.put(topicName, session.prepareAsync(cqlStatement));
+            });
 
     Map<String, TopicState> topicStates = new HashMap<>();
     config
@@ -363,16 +438,11 @@ public class SinkUtil {
                     codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
                 topicStates.put(
                     topicName,
-                    new TopicState(
-                        SinkUtil.makeInsertStatement(topicConfig),
-                        preparedStatement,
-                        codecRegistry));
+                    new TopicState(cqlStatements.get(topicName), preparedStatement, codecRegistry));
               } catch (ExecutionException e) {
                 // TODO: Depending on the exception, we may want to retry...
                 throw new RuntimeException(
-                    String.format(
-                        "Prepare failed for statement: %s",
-                        SinkUtil.makeInsertStatement(config.getTopicConfigs().get(topicName))),
+                    String.format("Prepare failed for statement: %s", cqlStatements.get(topicName)),
                     e.getCause());
               }
             });

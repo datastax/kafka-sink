@@ -16,21 +16,19 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
  * statement, etc.)
  */
 class TopicState {
-  private final String insertStatement;
+  private final String cqlStatement;
   private final PreparedStatement preparedStatement;
   private final KafkaCodecRegistry codecRegistry;
 
   TopicState(
-      String insertStatement,
-      PreparedStatement preparedStatement,
-      KafkaCodecRegistry codecRegistry) {
-    this.insertStatement = insertStatement;
+      String cqlStatement, PreparedStatement preparedStatement, KafkaCodecRegistry codecRegistry) {
+    this.cqlStatement = cqlStatement;
     this.preparedStatement = preparedStatement;
     this.codecRegistry = codecRegistry;
   }
 
-  String getInsertStatement() {
-    return insertStatement;
+  String getCqlStatement() {
+    return cqlStatement;
   }
 
   PreparedStatement getPreparedStatement() {

@@ -37,6 +37,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -882,6 +883,34 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getString("textcol")).isEqualTo("got here");
+  }
+
+  @Test
+  void update_counter_table() {
+    session.execute(
+        "CREATE TABLE IF NOT EXISTS mycounter "
+            + "(c1 int, c2 int, c3 counter, c4 counter, PRIMARY KEY (c1, c2))");
+    session.execute("TRUNCATE mycounter");
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.key",
+            ImmutableMap.of(
+                "topic.ctr.keyspace", keyspaceName,
+                "topic.ctr.table", "mycounter",
+                "topic.ctr.mapping", "c1=value.f1, c2=value.f2, c3=value.f3, c4=value.f4")));
+    String value = "{" + "\"f1\": 1, " + "\"f2\": 2, " + "\"f3\": 3, " + "\"f4\": 4" + "}";
+    SinkRecord record = new SinkRecord("ctr", 0, null, null, null, value, 1234L);
+
+    // Insert the record twice; the counter columns should accrue.
+    runTaskWithRecords(record);
+    task.put(Collections.singletonList(record));
+
+    // Verify...
+    List<Row> results = session.execute("SELECT * FROM mycounter").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("c3")).isEqualTo(6);
+    assertThat(row.getLong("c4")).isEqualTo(8);
   }
 
   @Test

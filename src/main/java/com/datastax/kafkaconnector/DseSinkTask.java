@@ -28,7 +28,6 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -223,7 +222,7 @@ public class DseSinkTask extends SinkTask {
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
       String topicName = record.topic();
-      handleFailure(record, e, instanceState.getInsertStatement(topicName));
+      handleFailure(record, e, instanceState.getCqlStatement(topicName));
     }
   }
 
@@ -395,7 +394,7 @@ public class DseSinkTask extends SinkTask {
               statements.forEach(
                   recordAndStatement -> {
                     SinkRecord record = recordAndStatement.getRecord();
-                    handleFailure(record, ex, instanceState.getInsertStatement(record.topic()));
+                    handleFailure(record, ex, instanceState.getCqlStatement(record.topic()));
                   });
             } else {
               successfulRecordCount.addAndGet(statements.size());

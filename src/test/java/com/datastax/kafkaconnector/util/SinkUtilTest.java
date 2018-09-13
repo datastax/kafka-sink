@@ -12,6 +12,7 @@ import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TTL_OPT;
+import static com.datastax.oss.driver.api.core.type.DataTypes.COUNTER;
 import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -28,6 +29,7 @@ import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,9 @@ class SinkUtilTest {
   private DseMetadata metadata;
   private DseKeyspaceMetadata keyspace;
   private DseTableMetadata table;
+  DseColumnMetadata col1;
+  DseColumnMetadata col2;
+  DseColumnMetadata col3;
 
   @BeforeEach
   void setUp() {
@@ -57,9 +62,9 @@ class SinkUtilTest {
     metadata = mock(DseMetadata.class);
     keyspace = mock(DseKeyspaceMetadata.class);
     table = mock(DseTableMetadata.class);
-    DseColumnMetadata col1 = mock(DseColumnMetadata.class);
-    DseColumnMetadata col2 = mock(DseColumnMetadata.class);
-    DseColumnMetadata col3 = mock(DseColumnMetadata.class);
+    col1 = mock(DseColumnMetadata.class);
+    col2 = mock(DseColumnMetadata.class);
+    col3 = mock(DseColumnMetadata.class);
     Map<CqlIdentifier, DseColumnMetadata> columns =
         ImmutableMap.<CqlIdentifier, DseColumnMetadata>builder()
             .put(C1_IDENT, col1)
@@ -181,6 +186,38 @@ class SinkUtilTest {
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
                     + "USING TIMESTAMP :%s AND TTL 1234",
                 C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME));
+  }
+
+  @Test
+  void should_make_correct_update_counter_cql_simple_key() {
+    when(col2.getType()).thenReturn(COUNTER);
+    when(col3.getType()).thenReturn(COUNTER);
+
+    DseSinkConfig config =
+        makeConfig(
+            "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
+
+    assertThat(SinkUtil.makeUpdateCounterStatement(config.getTopicConfigs().get("mytopic"), table))
+        .isEqualTo(
+            String.format(
+                "UPDATE myks.mytable SET \"%s\" = \"%s\" + :\"%s\",%s = %s + :%s WHERE %s = :%s",
+                C2, C2, C2, C3, C3, C3, C1, C1));
+  }
+
+  @Test
+  void should_make_correct_update_counter_cql_complex_key() {
+    when(col3.getType()).thenReturn(COUNTER);
+    when((List<DseColumnMetadata>) table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col2));
+
+    DseSinkConfig config =
+        makeConfig(
+            "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
+
+    assertThat(SinkUtil.makeUpdateCounterStatement(config.getTopicConfigs().get("mytopic"), table))
+        .isEqualTo(
+            String.format(
+                "UPDATE myks.mytable SET %s = %s + :%s WHERE %s = :%s AND \"%s\" = :\"%s\"",
+                C3, C3, C3, C1, C1, C2, C2));
   }
 
   private static DseSinkConfig makeConfig(String keyspaceName, String tableName, String mapping) {

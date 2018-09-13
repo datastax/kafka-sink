@@ -92,8 +92,8 @@ public class InstanceState {
   }
 
   @NotNull
-  public String getInsertStatement(String topicName) {
-    return getTopicState(topicName).getInsertStatement();
+  public String getCqlStatement(String topicName) {
+    return getTopicState(topicName).getCqlStatement();
   }
 
   @NotNull
