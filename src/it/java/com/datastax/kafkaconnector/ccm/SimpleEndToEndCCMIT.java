@@ -499,6 +499,22 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void raw_byte_array_value() {
+    conn.start(makeConnectorProperties("bigintcol=key, blobcol=value"));
+
+    byte[] bytes = new byte[] {1, 2, 3};
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, bytes, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, blobcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(bytes);
+  }
+
+  @Test
   void raw_list_value_from_json() {
     conn.start(makeConnectorProperties("bigintcol=key, listcol=value"));
 

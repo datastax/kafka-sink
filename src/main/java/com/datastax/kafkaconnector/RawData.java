@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
@@ -28,9 +29,12 @@ public class RawData implements KeyOrValue, RecordMetadata {
   private final Object value;
 
   RawData(Object keyOrValue) {
-    value = keyOrValue;
-    if (keyOrValue != null) {
-      type = GenericType.of(keyOrValue.getClass());
+    // The driver requires a ByteBuffer rather than byte[] when inserting a blob.
+    value = keyOrValue instanceof byte[] ? ByteBuffer.wrap((byte[]) keyOrValue) : keyOrValue;
+
+    if (value != null) {
+      type =
+          value instanceof ByteBuffer ? GenericType.BYTE_BUFFER : GenericType.of(value.getClass());
     } else {
       type = GenericType.STRING;
     }
