@@ -1,6 +1,6 @@
 schedules:
   commit:
-    # Run short suite on commit
+    # Run short and medium suites on commit
     schedule: per_commit
     matrix:
       exclude:
@@ -12,24 +12,27 @@ schedules:
       # regex matches primary branch format (1.1, 1.x, 1.1.x, etc).
       include: ["/\\d+(\\.[\\dx]+)+/"]
   adhoc:
-    # Adhoc job for non-primary braches that doesn't have a schedule but may be used to run all configs.
+    # Adhoc job for non-primary branches that doesn't have a schedule but may be used to run all configs.
     schedule: adhoc
     branches:
       exclude: ["/\\d+(\\.[\\dx]+)+/"]
 java:
-  - oraclejdk8
+  - openjdk8
 os:
-  - ubuntu/trusty64
+  - ubuntu/bionic64/java-driver
 cassandra:
   - dse-5.0
   - dse-5.1
   - dse-6.0
+  - ddac-5.1
 build:
   - type: maven
     version: 3.2.5
-    goals: verify -Pmedium -fae -B
+    goals: verify -Pmedium --fail-never -B
     properties: |
-      com.datastax.dsbulk.commons.tests.ccm.DSE_VERSION=$CCM_CASSANDRA_VERSION
+      com.datastax.dsbulk.commons.tests.ccm.CCM_VERSION=$CCM_VERSION
+      com.datastax.dsbulk.commons.tests.ccm.CCM_IS_DDAC=$CCM_IS_DDAC
+      com.datastax.dsbulk.commons.tests.ccm.CCM_IS_DSE=$CCM_IS_DSE
       com.datastax.dsbulk.commons.tests.ccm.JAVA_HOME=$CCM_JAVA_HOME
       com.datastax.dsbulk.commons.tests.ccm.PATH=$CCM_JAVA_HOME/bin
       failIfNoTests=false

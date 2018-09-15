@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
+import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
@@ -18,7 +19,6 @@ import com.datastax.dse.driver.api.core.type.geometry.Polygon;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultLineString;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.type.geometry.DefaultPolygon;
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -31,6 +31,7 @@ import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,7 +43,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -51,15 +51,11 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("ConstantConditions")
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   private AttachmentPoint attachmentPoint;
-  private String keyspaceName;
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    assert session.getKeyspace().isPresent();
-    keyspaceName = session.getKeyspace().get().asInternal();
     attachmentPoint =
         new AttachmentPoint() {
           @NotNull
@@ -93,7 +89,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     // uuid
     // varint
 
-    String withDateRange = dse50 ? "" : ", daterangecol=value.daterange";
+    String withDateRange = hasDateRange ? "daterangecol=value.daterange, " : "";
+    String withGeotypes =
+        ccm.getClusterType() == DSE
+            ? "pointcol=value.point, linestringcol=value.linestring, polygoncol=value.polygon, "
+            : "";
+
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -115,11 +116,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "udtfromlistcol=value.udtfromlist, "
                 + "booleanudtcol=value.booleanudt, "
                 + "booleanudtfromlistcol=value.booleanudtfromlist, "
-                + "blobcol=value.blob, "
-                + "pointcol=value.point, "
-                + "linestringcol=value.linestring, "
-                + "polygoncol=value.polygon"
-                + withDateRange));
+                + withGeotypes
+                + withDateRange
+                + "blobcol=value.blob"));
 
     Schema schema =
         SchemaBuilder.struct()
@@ -268,21 +267,23 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("booleanudtfromlistcol"))
         .isEqualTo(booleanUdt.newValue(true, "false"));
 
-    assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
-    assertThat(row.get("pointcol", GenericType.of(Point.class)))
-        .isEqualTo(new DefaultPoint(32.0, 64.0));
-    assertThat(row.get("linestringcol", GenericType.of(LineString.class)))
-        .isEqualTo(
-            new DefaultLineString(new DefaultPoint(32.0, 64.0), new DefaultPoint(48.5, 96.5)));
-    assertThat(row.get("polygoncol", GenericType.of(Polygon.class)))
-        .isEqualTo(
-            new DefaultPolygon(
-                new DefaultPoint(0, 0),
-                new DefaultPoint(20, 0),
-                new DefaultPoint(25, 25),
-                new DefaultPoint(0, 25),
-                new DefaultPoint(0, 0)));
-    if (!dse50) {
+    assertThat(getByteArray(row.getByteBuffer("blobcol"))).isEqualTo(blobValue);
+    if (ccm.getClusterType() == DSE) {
+      assertThat(row.get("pointcol", GenericType.of(Point.class)))
+          .isEqualTo(new DefaultPoint(32.0, 64.0));
+      assertThat(row.get("linestringcol", GenericType.of(LineString.class)))
+          .isEqualTo(
+              new DefaultLineString(new DefaultPoint(32.0, 64.0), new DefaultPoint(48.5, 96.5)));
+      assertThat(row.get("polygoncol", GenericType.of(Polygon.class)))
+          .isEqualTo(
+              new DefaultPolygon(
+                  new DefaultPoint(0, 0),
+                  new DefaultPoint(20, 0),
+                  new DefaultPoint(25, 25),
+                  new DefaultPoint(0, 25),
+                  new DefaultPoint(0, 0)));
+    }
+    if (hasDateRange) {
       assertThat(row.get("daterangecol", GenericType.of(DateRange.class)))
           .isEqualTo(DateRange.parse("[* TO 2014-12-01]"));
     }
@@ -440,7 +441,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
     assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
     assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
-    assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(blobValue);
+    assertThat(getByteArray(row.getByteBuffer("blobcol"))).isEqualTo(blobValue);
   }
 
   @Test
@@ -483,19 +484,17 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @Test
   void raw_string_value() {
-    conn.start(makeConnectorProperties("bigintcol=key, pointcol=value"));
+    conn.start(makeConnectorProperties("bigintcol=key, textcol=value"));
 
-    SinkRecord record =
-        new SinkRecord("mytopic", 0, null, 98761234L, null, "POINT (32.0 64.0)", 1234L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "my text", 1234L);
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
-    List<Row> results = session.execute("SELECT bigintcol, pointcol FROM types").all();
+    List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
-    assertThat(row.get("pointcol", GenericType.of(Point.class)))
-        .isEqualTo(new DefaultPoint(32.0, 64.0));
+    assertThat(row.getString("textcol")).isEqualTo("my text");
   }
 
   @Test
@@ -511,7 +510,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
-    assertThat(row.getByteBuffer("blobcol").array()).isEqualTo(bytes);
+    assertThat(getByteArray(row.getByteBuffer("blobcol"))).isEqualTo(bytes);
   }
 
   @Test
@@ -733,6 +732,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(42);
     Map<String, Integer> mapcol = row.getMap("mapcol", String.class, Integer.class);
+    assert mapcol != null;
     assertThat(mapcol.size()).isEqualTo(2);
     assertThat(mapcol).containsEntry("sub1", 37).containsEntry("sub2", 96);
   }
@@ -866,10 +866,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
     conn.start(
         makeConnectorProperties(
-            "bigintcol=key, textcol=value",
-            ImmutableMap.<String, String>builder()
-                .put("topic.mytopic.nullToUnset", "false")
-                .build()));
+            "bigintcol=key, textcol=value", ImmutableMap.of("topic.mytopic.nullToUnset", "false")));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, 1234567L, null, null, 1234L);
     runTaskWithRecords(record);
@@ -973,7 +970,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   void multiple_records_multiple_topics() {
     conn.start(
         makeConnectorProperties(
-            "bigintcol=value.bigint, doublecol=value.double", "bigintcol=key, intcol=value"));
+            "bigintcol=value.bigint, doublecol=value.double",
+            ImmutableMap.of(
+                "topic.yourtopic.keyspace", keyspaceName,
+                "topic.yourtopic.table", "types",
+                "topic.yourtopic.mapping", "bigintcol=key, intcol=value")));
 
     // Set up records for "mytopic"
     Schema schema =
@@ -1010,53 +1011,14 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     }
   }
 
-  private void runTaskWithRecords(SinkRecord... records) {
-    List<Map<String, String>> taskProps = conn.taskConfigs(1);
-    task.start(taskProps.get(0));
-    task.put(Arrays.asList(records));
+  private static byte[] getByteArray(ByteBuffer buffer) {
+    if (buffer == null) {
+      return new byte[0];
+    }
+    return buffer.array();
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
-    return makeConnectorProperties(mappingString, "bigintcol=value.f1", null);
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private Map<String, String> makeConnectorProperties(
-      String mappingString, Map<String, String> extras) {
-    return makeConnectorProperties(mappingString, "bigintcol=value.f1", extras);
-  }
-
-  @SuppressWarnings("SameParameterValue")
-  private Map<String, String> makeConnectorProperties(
-      String mappingString, String yourMappingString) {
-    return makeConnectorProperties(mappingString, yourMappingString, null);
-  }
-
-  private Map<String, String> makeConnectorProperties(
-      String myTopicMappingString, String yourTopicMappingString, Map<String, String> extras) {
-    ImmutableMap.Builder<String, String> builder =
-        ImmutableMap.<String, String>builder()
-            .put("name", "myinstance")
-            .put(
-                "contactPoints",
-                ccm.getInitialContactPoints()
-                    .stream()
-                    .map(addr -> String.format("%s", addr.getHostAddress()))
-                    .collect(Collectors.joining(",")))
-            .put("port", String.format("%d", ccm.getBinaryPort()))
-            .put("loadBalancing.localDc", "Cassandra")
-            .put(
-                "topic.mytopic.keyspace",
-                session.getKeyspace().orElse(CqlIdentifier.fromInternal("UNKNOWN")).asCql(true))
-            .put("topic.mytopic.table", "types")
-            .put("topic.mytopic.mapping", myTopicMappingString)
-            .put("topic.yourtopic.keyspace", session.getKeyspace().get().asCql(true))
-            .put("topic.yourtopic.table", "types")
-            .put("topic.yourtopic.mapping", yourTopicMappingString);
-
-    if (extras != null) {
-      builder.putAll(extras);
-    }
-    return builder.build();
+    return makeConnectorProperties(mappingString, null);
   }
 }

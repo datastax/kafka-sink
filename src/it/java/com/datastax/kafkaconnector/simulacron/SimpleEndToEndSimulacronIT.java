@@ -71,7 +71,7 @@ import org.slf4j.LoggerFactory;
 @ExtendWith(StreamInterceptingExtension.class)
 @ExtendWith(LogInterceptingExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@SimulacronConfig(version = "5.0.8")
+@SimulacronConfig(dseVersion = "5.0.8")
 class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =

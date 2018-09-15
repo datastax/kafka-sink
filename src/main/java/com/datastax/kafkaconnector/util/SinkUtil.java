@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.util;
 
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROTOCOL;
+import static com.datastax.dse.driver.api.core.metadata.DseNodeProperties.DSE_VERSION;
 import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
@@ -46,9 +47,11 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoaderBuilder;
@@ -62,6 +65,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -313,6 +317,25 @@ public class SinkUtil {
     return table.getColumns().values().stream().anyMatch(c -> c.getType() == DataTypes.COUNTER);
   }
 
+  private static void checkProductCompatibility(Session session) {
+    Collection<Node> hosts = session.getMetadata().getNodes().values();
+    List<Node> nonDseHosts =
+        hosts
+            .stream()
+            .filter(
+                host ->
+                    host.getExtras().get(DSE_VERSION) == null
+                        && (host.getCassandraVersion() == null
+                            || host.getCassandraVersion().getDSEPatch() <= 0))
+            .collect(Collectors.toList());
+    if (!nonDseHosts.isEmpty()) {
+      throw new IllegalStateException(
+          String.format(
+              "Unable to load data to non DSE cluster; offending nodes: %s",
+              nonDseHosts.stream().map(Node::toString).collect(Collectors.joining(", "))));
+    }
+  }
+
   private static InstanceState buildInstanceState(Map<String, String> props) {
     DseSinkConfig config = new DseSinkConfig(props);
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
@@ -393,6 +416,7 @@ public class SinkUtil {
     builder.withConfigLoader(configLoaderBuilder.build());
 
     DseSession session = builder.build();
+    checkProductCompatibility(session);
     validateKeyspaceAndTable(session, config);
     validateMappingColumns(session, config);
 

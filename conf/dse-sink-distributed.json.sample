@@ -6,6 +6,8 @@
         "topics": "my_topic",
         "contactPoints": "",
         "loadBalancing.localDc": "",
+        "port": 9042,
+        "maxConcurrentRequests": 500,
         "auth.provider": "None",
         "auth.username": "",
         "auth.password": "",
