@@ -71,6 +71,6 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     assertThatThrownBy(() -> runTaskWithRecords(record))
         .isInstanceOf(AllNodesFailedException.class)
-        .hasMessageContaining("Provided username cassandra and/or password are incorrect");
+        .hasMessageContaining("and/or password are incorrect");
   }
 }
