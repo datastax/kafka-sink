@@ -23,15 +23,12 @@ import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMConfig;
 import com.datastax.dsbulk.commons.tests.driver.annotations.SessionConfig;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 
@@ -132,35 +129,5 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     assertThatThrownBy(() -> runTaskWithRecords(record))
         .isInstanceOf(AllNodesFailedException.class);
-  }
-
-  private void runTaskWithRecords(SinkRecord... records) {
-    List<Map<String, String>> taskProps = conn.taskConfigs(1);
-    task.start(taskProps.get(0));
-    task.put(Arrays.asList(records));
-  }
-
-  private Map<String, String> makeConnectorProperties(Map<String, String> extras) {
-    ImmutableMap.Builder<String, String> builder =
-        ImmutableMap.<String, String>builder()
-            .put("name", "myinstance")
-            .put(
-                "contactPoints",
-                ccm.getInitialContactPoints()
-                    .stream()
-                    .map(addr -> String.format("%s", addr.getHostAddress()))
-                    .collect(Collectors.joining(",")))
-            .put("port", String.format("%d", ccm.getBinaryPort()))
-            .put("loadBalancing.localDc", "Cassandra")
-            .put(
-                "topic.mytopic.keyspace",
-                session.getKeyspace().orElse(CqlIdentifier.fromInternal("UNKNOWN")).asCql(true))
-            .put("topic.mytopic.table", "types")
-            .put("topic.mytopic.mapping", "bigintcol=value");
-
-    if (extras != null) {
-      builder.putAll(extras);
-    }
-    return builder.build();
   }
 }
