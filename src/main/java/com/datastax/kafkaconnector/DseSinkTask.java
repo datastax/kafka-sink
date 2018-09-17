@@ -15,6 +15,8 @@ import static com.datastax.kafkaconnector.util.SinkUtil.JSON_NODE_MAP_TYPE;
 import static com.datastax.kafkaconnector.util.SinkUtil.JSON_RECORD_METADATA;
 import static com.datastax.kafkaconnector.util.SinkUtil.OBJECT_MAPPER;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.util.InstanceState;
@@ -215,14 +217,18 @@ public class DseSinkTask extends SinkTask {
       boundStatementsQueue.offer(new RecordAndStatement(record, mapRecord(record)));
     } catch (KafkaException e) {
       // The Kafka exception could occur if the record references an unknown topic.
-      handleFailure(record, e, null);
+      handleFailure(record, e, null, instanceState.getFailedRecordCounter());
     } catch (IOException e) {
       // The IOException can only theoretically happen when processing json data. But bad json
       // won't result in this exception. We're not pulling data from a file or any other kind of IO.
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
       String topicName = record.topic();
-      handleFailure(record, e, instanceState.getCqlStatement(topicName));
+      handleFailure(
+          record,
+          e,
+          instanceState.getCqlStatement(topicName),
+          instanceState.getFailedRecordCounter());
     }
   }
 
@@ -287,7 +293,8 @@ public class DseSinkTask extends SinkTask {
     }
   }
 
-  private synchronized void handleFailure(SinkRecord record, Throwable e, String cql) {
+  private synchronized void handleFailure(
+      SinkRecord record, Throwable e, String cql, Counter failCounter) {
     // Store the topic-partition and offset that had an error. However, we want
     // to keep track of the *lowest* offset in a topic-partition that failed. Because
     // requests are sent in parallel and response ordering is non-deterministic,
@@ -300,6 +307,7 @@ public class DseSinkTask extends SinkTask {
     // we perform these checks/updates in a synchronized block. Presumably failures
     // don't occur that often, so we don't have to be very fancy here.
 
+    failCounter.inc();
     TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
     long currentOffset = Long.MAX_VALUE;
     if (failureOffsets.containsKey(topicPartition)) {
@@ -373,8 +381,17 @@ public class DseSinkTask extends SinkTask {
 
     private void queueStatements(List<RecordAndStatement> statements) {
       Statement statement;
+      if (statements.isEmpty()) {
+        // Should never happen, but just in case. No-op.
+        return;
+      }
+
+      Histogram batchSizeHistogram =
+          instanceState.getBatchSizeHistogram(statements.get(0).getRecord().topic());
       if (statements.size() == 1) {
-        statement = statements.get(0).getStatement();
+        RecordAndStatement recordAndStatement = statements.get(0);
+        statement = recordAndStatement.getStatement();
+        batchSizeHistogram.update(1);
       } else {
         BatchStatementBuilder bsb = BatchStatement.builder(DefaultBatchType.UNLOGGED);
         statements.stream().map(RecordAndStatement::getStatement).forEach(bsb::addStatement);
@@ -382,6 +399,7 @@ public class DseSinkTask extends SinkTask {
         // bound statement. All bound statements in a bucket have the same CL, so this is fine.
         statement =
             bsb.build().setConsistencyLevel(statements.get(0).getStatement().getConsistencyLevel());
+        batchSizeHistogram.update(statements.size());
       }
       @NotNull Semaphore requestBarrier = instanceState.getRequestBarrier();
       requestBarrier.acquireUninterruptibly();
@@ -394,11 +412,16 @@ public class DseSinkTask extends SinkTask {
               statements.forEach(
                   recordAndStatement -> {
                     SinkRecord record = recordAndStatement.getRecord();
-                    handleFailure(record, ex, instanceState.getCqlStatement(record.topic()));
+                    handleFailure(
+                        record,
+                        ex,
+                        instanceState.getCqlStatement(record.topic()),
+                        instanceState.getFailedRecordCounter());
                   });
             } else {
               successfulRecordCount.addAndGet(statements.size());
             }
+            instanceState.getRecordCountMeter().mark(statements.size());
           });
     }
 

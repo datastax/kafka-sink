@@ -8,6 +8,11 @@
  */
 package com.datastax.kafkaconnector.util;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.jmx.JmxReporter;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
@@ -18,9 +23,12 @@ import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
 
@@ -32,6 +40,9 @@ public class InstanceState {
   private final Semaphore requestBarrier;
   private final Set<DseSinkTask> tasks;
   private final Executor mappingExecutor;
+  private final JmxReporter reporter;
+  private final Meter recordCountMeter;
+  private final Counter failedRecordCounter;
 
   InstanceState(
       @NotNull DseSinkConfig config,
@@ -45,6 +56,48 @@ public class InstanceState {
     mappingExecutor =
         Executors.newFixedThreadPool(
             8, new ThreadFactoryBuilder().setNameFormat("mapping-%d").build());
+    MetricRegistry metricRegistry = new MetricRegistry();
+    // Add driver metrics to our registry.
+    session
+        .getMetrics()
+        .ifPresent(
+            m ->
+                m.getRegistry()
+                    .getMetrics()
+                    .forEach((name, metric) -> metricRegistry.register("driver/" + name, metric)));
+
+    topicStates.values().forEach(ts -> ts.initializeMetrics(metricRegistry));
+    recordCountMeter = metricRegistry.meter("recordCount");
+    failedRecordCounter = metricRegistry.counter("failedRecordCount");
+    reporter =
+        JmxReporter.forRegistry(metricRegistry)
+            .inDomain("datastax.kafkaconnector." + config.getInstanceName())
+            .createsObjectNamesWith(
+                (type, domain, name) -> {
+                  try {
+                    StringBuilder sb =
+                        new StringBuilder("com.datastax.kafkaconnector:0=")
+                            .append(config.getInstanceName())
+                            .append(',');
+                    StringTokenizer tokenizer = new StringTokenizer(name, "/");
+                    int i = 1;
+                    while (tokenizer.hasMoreTokens()) {
+                      String token = tokenizer.nextToken();
+                      if (tokenizer.hasMoreTokens()) {
+                        sb.append(i++).append('=').append(token).append(',');
+                      } else {
+                        sb.append("name=").append(token);
+                      }
+                    }
+                    return new ObjectName(sb.toString());
+                  } catch (MalformedObjectNameException e) {
+                    throw new RuntimeException(e);
+                  }
+                })
+            .build();
+    if (config.getJmx()) {
+      reporter.start();
+    }
   }
 
   void registerTask(DseSinkTask task) {
@@ -57,6 +110,10 @@ public class InstanceState {
 
   Set<DseSinkTask> getTasks() {
     return tasks;
+  }
+
+  void stopJmxReporter() {
+    reporter.stop();
   }
 
   @NotNull
@@ -97,6 +154,11 @@ public class InstanceState {
   }
 
   @NotNull
+  public Histogram getBatchSizeHistogram(String topicName) {
+    return getTopicState(topicName).getBatchSizeHistogram();
+  }
+
+  @NotNull
   public Executor getMappingExecutor() {
     return mappingExecutor;
   }
@@ -104,6 +166,16 @@ public class InstanceState {
   @NotNull
   public PreparedStatement getPreparedInsertStatement(String topicName) {
     return getTopicState(topicName).getPreparedStatement();
+  }
+
+  @NotNull
+  public Meter getRecordCountMeter() {
+    return recordCountMeter;
+  }
+
+  @NotNull
+  public Counter getFailedRecordCounter() {
+    return failedRecordCounter;
   }
 
   private TopicState getTopicState(String topicName) {

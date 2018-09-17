@@ -8,6 +8,8 @@
  */
 package com.datastax.kafkaconnector.util;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
@@ -16,15 +18,29 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
  * statement, etc.)
  */
 class TopicState {
+  private final String name;
   private final String cqlStatement;
   private final PreparedStatement preparedStatement;
   private final KafkaCodecRegistry codecRegistry;
+  private Histogram batchSizeHistogram;
 
   TopicState(
-      String cqlStatement, PreparedStatement preparedStatement, KafkaCodecRegistry codecRegistry) {
+      String name,
+      String cqlStatement,
+      PreparedStatement preparedStatement,
+      KafkaCodecRegistry codecRegistry) {
+    this.name = name;
     this.cqlStatement = cqlStatement;
     this.preparedStatement = preparedStatement;
     this.codecRegistry = codecRegistry;
+  }
+
+  void initializeMetrics(MetricRegistry metricRegistry) {
+    batchSizeHistogram = metricRegistry.histogram(String.format("%s/batchSize", name));
+  }
+
+  Histogram getBatchSizeHistogram() {
+    return batchSizeHistogram;
   }
 
   String getCqlStatement() {

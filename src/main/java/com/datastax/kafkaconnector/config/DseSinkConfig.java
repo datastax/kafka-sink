@@ -30,6 +30,7 @@ public class DseSinkConfig {
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
+  static final String JMX_OPT = "jmx";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -57,7 +58,13 @@ public class DseSinkConfig {
               500,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "The maximum number of requests to send to DSE at once");
+              "The maximum number of requests to send to DSE at once")
+          .define(
+              JMX_OPT,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              ConfigDef.Importance.HIGH,
+              "Whether to enable JMX reporting");
 
   private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
   private final String instanceName;
@@ -139,6 +146,10 @@ public class DseSinkConfig {
     return globalConfig.getInt(CONCURRENT_REQUESTS_OPT);
   }
 
+  public boolean getJmx() {
+    return globalConfig.getBoolean(JMX_OPT);
+  }
+
   public List<String> getContactPoints() {
     return globalConfig.getList(CONTACT_POINTS_OPT);
   }
@@ -167,6 +178,7 @@ public class DseSinkConfig {
             + "        port: %d%n"
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
+            + "        jmx: %b%n"
             + "SSL configuration:%n%s%n"
             + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s",
@@ -174,6 +186,7 @@ public class DseSinkConfig {
         getPort(),
         getLocalDc(),
         getMaxConcurrentRequests(),
+        getJmx(),
         Splitter.on("\n")
             .splitToList(sslConfig.toString())
             .stream()
