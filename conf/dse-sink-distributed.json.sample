@@ -8,6 +8,7 @@
         "loadBalancing.localDc": "",
         "port": 9042,
         "maxConcurrentRequests": 500,
+        "jmx": true,
         "auth.provider": "None",
         "auth.username": "",
         "auth.password": "",

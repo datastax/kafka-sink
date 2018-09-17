@@ -41,6 +41,7 @@
     <awaitility.version>3.1.0</awaitility.version>
     <netty.version>4.1.27.Final</netty.version>
     <netty.tcnative.version>2.0.15.Final</netty.tcnative.version>
+    <metrics.version>4.0.2</metrics.version>
   </properties>
 
   <dependencies>
@@ -218,6 +219,18 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-tcnative-boringssl-static</artifactId>
       <version>${netty.tcnative.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>${metrics.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-jmx</artifactId>
+      <version>${metrics.version}</version>
     </dependency>
 
   </dependencies>
@@ -473,8 +486,6 @@ https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
         <configuration>
           <systemPropertyVariables>
             <logback.configurationFile>${project.basedir}/src/test/resources/logback-test.xml</logback.configurationFile>
-            <!-- We need nodes to start up as 127.0.0.x because the hostname validation tests use a server-localhost keystore with 127.0.0.1. -->
-            <com.datastax.dsbulk.commons.tests.utils.DEFAULT_IP_PREFIX>127.0.0.</com.datastax.dsbulk.commons.tests.utils.DEFAULT_IP_PREFIX>
           </systemPropertyVariables>
         </configuration>
         <executions>

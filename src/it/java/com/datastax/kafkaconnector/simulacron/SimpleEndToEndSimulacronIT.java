@@ -33,8 +33,10 @@ import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils;
 import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils.Column;
 import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils.Table;
 import com.datastax.dsbulk.commons.tests.simulacron.annotations.SimulacronConfig;
+import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
+import com.datastax.kafkaconnector.util.InstanceState;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.request.Batch;
 import com.datastax.oss.protocol.internal.request.Execute;
@@ -88,6 +90,7 @@ class SimpleEndToEndSimulacronIT {
           .put("b", "varchar")
           .put("kafka_internal_timestamp", "bigint")
           .build();
+  private static final String INSTANCE_NAME = "myinstance";
 
   @SuppressWarnings("unused")
   SimpleEndToEndSimulacronIT(
@@ -121,7 +124,7 @@ class SimpleEndToEndSimulacronIT {
 
     connectorProperties =
         ImmutableMap.<String, String>builder()
-            .put("name", "myinstance")
+            .put("name", INSTANCE_NAME)
             .put("contactPoints", hostname)
             .put("port", port)
             .put("loadBalancing.localDc", "dc1")
@@ -184,7 +187,7 @@ class SimpleEndToEndSimulacronIT {
 
     ImmutableMap<String, String> props =
         ImmutableMap.<String, String>builder()
-            .put("name", "myinstance")
+            .put("name", INSTANCE_NAME)
             .put("contactPoints", connectorProperties.get("contactPoints"))
             .put("port", connectorProperties.get("port"))
             .put("loadBalancing.localDc", "dc1")
@@ -241,6 +244,10 @@ class SimpleEndToEndSimulacronIT {
         .contains("Error inserting row for Kafka record SinkRecord{kafkaOffset=1237")
         .contains(
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
+    InstanceState instanceState =
+        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    assertThat(instanceState.getFailedRecordCounter().getCount()).isEqualTo(3);
+    assertThat(instanceState.getRecordCountMeter().getCount()).isEqualTo(5);
   }
 
   @Test

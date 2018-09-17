@@ -18,6 +18,8 @@ import static com.datastax.kafkaconnector.config.TopicConfig.getTopicSettingName
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
@@ -65,6 +67,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -110,6 +114,7 @@ public class SinkUtil {
       instanceState.unregisterTask(task);
       if (instanceState.getTasks().isEmpty()) {
         closeQuietly(instanceState.getSession());
+        instanceState.stopJmxReporter();
         INSTANCE_STATES.remove(instanceState.getConfig().getInstanceName());
       }
     }
@@ -352,6 +357,13 @@ public class SinkUtil {
           DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
     }
 
+    if (config.getJmx()) {
+      configLoaderBuilder.withStringList(
+          METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));
+      configLoaderBuilder.withDuration(
+          METRICS_SESSION_CQL_REQUESTS_INTERVAL, Duration.ofSeconds(30));
+    }
+
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
     if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
       configLoaderBuilder
@@ -462,7 +474,8 @@ public class SinkUtil {
                     codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
                 topicStates.put(
                     topicName,
-                    new TopicState(cqlStatements.get(topicName), preparedStatement, codecRegistry));
+                    new TopicState(
+                        topicName, cqlStatements.get(topicName), preparedStatement, codecRegistry));
               } catch (ExecutionException e) {
                 // TODO: Depending on the exception, we may want to retry...
                 throw new RuntimeException(
