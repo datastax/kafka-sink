@@ -30,6 +30,7 @@
         "topic.my_topic.consistencyLevel": "LOCAL_ONE",
         "topic.my_topic.ttl": -1,
         "topic.my_topic.nullToUnset": "true",
+        "topic.my_topic.deletesEnabled": "true",
         "topic.my_topic.codec.locale": "en_US",
         "topic.my_topic.codec.timeZone": "UTC",
         "topic.my_topic.codec.timestamp": "CQL_TIMESTAMP",

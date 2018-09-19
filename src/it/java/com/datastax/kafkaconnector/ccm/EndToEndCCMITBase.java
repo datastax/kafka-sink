@@ -21,9 +21,9 @@ import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.google.common.collect.ImmutableMap;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -130,24 +130,24 @@ abstract class EndToEndCCMITBase {
   }
 
   Map<String, String> makeConnectorProperties(String mappingString, Map<String, String> extras) {
-    ImmutableMap.Builder<String, String> builder =
-        ImmutableMap.<String, String>builder()
-            .put("name", "myinstance")
-            .put(
-                "contactPoints",
-                ccm.getInitialContactPoints()
-                    .stream()
-                    .map(addr -> String.format("%s", addr.getHostAddress()))
-                    .collect(Collectors.joining(",")))
-            .put("port", String.format("%d", ccm.getBinaryPort()))
-            .put("loadBalancing.localDc", ccm.getDC(1))
-            .put("topic.mytopic.keyspace", keyspaceName)
-            .put("topic.mytopic.table", "types")
-            .put("topic.mytopic.mapping", mappingString);
+    Map<String, String> props = new HashMap<>();
+
+    props.put("name", "myinstance");
+    props.put(
+        "contactPoints",
+        ccm.getInitialContactPoints()
+            .stream()
+            .map(addr -> String.format("%s", addr.getHostAddress()))
+            .collect(Collectors.joining(",")));
+    props.put("port", String.format("%d", ccm.getBinaryPort()));
+    props.put("loadBalancing.localDc", ccm.getDC(1));
+    props.put("topic.mytopic.keyspace", keyspaceName);
+    props.put("topic.mytopic.table", "types");
+    props.put("topic.mytopic.mapping", mappingString);
 
     if (extras != null) {
-      builder.putAll(extras);
+      props.putAll(extras);
     }
-    return builder.build();
+    return props;
   }
 }

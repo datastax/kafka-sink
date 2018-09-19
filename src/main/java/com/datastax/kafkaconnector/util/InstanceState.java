@@ -18,9 +18,11 @@ import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -31,10 +33,12 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /** Container for a session, config, etc. */
 public class InstanceState {
   private final DseSession session;
+  private final Map<String, List<CqlIdentifier>> primaryKeys;
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
   private final Semaphore requestBarrier;
@@ -47,8 +51,10 @@ public class InstanceState {
   InstanceState(
       @NotNull DseSinkConfig config,
       @NotNull DseSession session,
+      @NotNull Map<String, List<CqlIdentifier>> primaryKeys,
       @NotNull Map<String, TopicState> topicStates) {
     this.session = session;
+    this.primaryKeys = primaryKeys;
     this.config = config;
     this.topicStates = topicStates;
     this.requestBarrier = new Semaphore(getConfig().getMaxConcurrentRequests());
@@ -108,6 +114,7 @@ public class InstanceState {
     tasks.remove(task);
   }
 
+  @NotNull
   Set<DseSinkTask> getTasks() {
     return tasks;
   }
@@ -124,6 +131,11 @@ public class InstanceState {
   @NotNull
   public DseSession getSession() {
     return session;
+  }
+
+  @NotNull
+  public Map<String, List<CqlIdentifier>> getPrimaryKeys() {
+    return primaryKeys;
   }
 
   @NotNull
@@ -149,11 +161,6 @@ public class InstanceState {
   }
 
   @NotNull
-  public String getCqlStatement(String topicName) {
-    return getTopicState(topicName).getCqlStatement();
-  }
-
-  @NotNull
   public Histogram getBatchSizeHistogram(String topicName) {
     return getTopicState(topicName).getBatchSizeHistogram();
   }
@@ -164,8 +171,13 @@ public class InstanceState {
   }
 
   @NotNull
-  public PreparedStatement getPreparedInsertStatement(String topicName) {
-    return getTopicState(topicName).getPreparedStatement();
+  public PreparedStatement getPreparedInsertUpdate(String topicName) {
+    return getTopicState(topicName).getPreparedInsertUpdate();
+  }
+
+  @Nullable
+  public PreparedStatement getPreparedDelete(String topicName) {
+    return getTopicState(topicName).getPreparedDelete();
   }
 
   @NotNull
@@ -178,6 +190,7 @@ public class InstanceState {
     return failedRecordCounter;
   }
 
+  @NotNull
   private TopicState getTopicState(String topicName) {
     TopicState topicState = topicStates.get(topicName);
     if (topicState == null) {

@@ -20,6 +20,7 @@ import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Map;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Modeled after the DefaultMapping class in DSBulk. A few key diffs: 1. "variable" in dsbulk =&gt;
@@ -42,10 +43,17 @@ public class Mapping {
     fieldsToColumns = builder.build();
   }
 
+  @Nullable
   CqlIdentifier columnToField(@NotNull CqlIdentifier column) {
     return columnsToFields.get(column);
   }
 
+  @NotNull
+  Collection<CqlIdentifier> getMappedColumns() {
+    return columnsToFields.keySet();
+  }
+
+  @Nullable
   Collection<CqlIdentifier> fieldToColumns(@NotNull CqlIdentifier field) {
     return fieldsToColumns.get(field);
   }

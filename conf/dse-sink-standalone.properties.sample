@@ -97,6 +97,12 @@ topic.my_topic.mapping=col1=value.f1, col2=key.f1
 # avoid creating unnecessary tombstones. Defaults to true.
 #topic.my_topic.nullToUnset=true
 
+# Whether enabled, treat records that after mapping would result in only non-null values for
+# primary key columns as deletes, rather than inserting/updating nulls for all regular columns.
+# Note that for this behavior to trigger, the mapping specification must map all columns in the
+# table. Defaults to true.
+#topic.my_topic.deletesEnabled=true
+
 # Locale to use for locale-sensitive conversions. Defaults to en_US.
 #topic.my_topic.codec.locale=en_US
 

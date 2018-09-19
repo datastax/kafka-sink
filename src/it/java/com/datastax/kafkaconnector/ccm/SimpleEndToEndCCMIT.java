@@ -22,6 +22,7 @@ import com.datastax.dse.driver.internal.core.type.geometry.DefaultPolygon;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
@@ -33,6 +34,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -49,6 +51,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
@@ -70,6 +74,43 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             return session.getContext().getCodecRegistry();
           }
         };
+  }
+
+  private static byte[] getByteArray(ByteBuffer buffer) {
+    if (buffer == null) {
+      return new byte[0];
+    }
+    return buffer.array();
+  }
+
+  @BeforeAll
+  void createSmallTables() {
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS fordelete_simple ("
+                    + "bigintCol bigint PRIMARY KEY, "
+                    + "booleanCol boolean, "
+                    + "intCol int"
+                    + ")")
+            .withTimeout(Duration.ofSeconds(10))
+            .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS fordelete_compound ("
+                    + "bigintCol bigint, "
+                    + "booleanCol boolean, "
+                    + "intCol int,"
+                    + "PRIMARY KEY (bigintcol, booleancol)"
+                    + ")")
+            .withTimeout(Duration.ofSeconds(10))
+            .build());
+  }
+
+  @BeforeEach
+  void truncateTables() {
+    session.execute("TRUNCATE fordelete_simple");
+    session.execute("TRUNCATE fordelete_compound");
   }
 
   @Test
@@ -1011,11 +1052,99 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     }
   }
 
-  private static byte[] getByteArray(ByteBuffer buffer) {
-    if (buffer == null) {
-      return new byte[0];
-    }
-    return buffer.array();
+  @Test
+  void delete_simple_key() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO fordelete_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM fordelete_simple").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            ImmutableMap.of("topic.mytopic.table", "fordelete_simple")));
+
+    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("boolean", Schema.BOOLEAN_SCHEMA)
+            .field("int", Schema.INT32_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("bigint", 1234567L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM fordelete_simple").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void insert_with_nulls_when_delete_disabled() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            ImmutableMap.of(
+                "topic.mytopic.table",
+                "fordelete_simple",
+                "topic.mytopic.deletesEnabled",
+                "false")));
+
+    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("boolean", Schema.BOOLEAN_SCHEMA)
+            .field("int", Schema.INT32_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("bigint", 1234567L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted into DSE with null non-pk values.
+    List<Row> results = session.execute("SELECT * FROM fordelete_simple").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.get("bigintcol", GenericType.LONG)).isEqualTo(1234567L);
+    assertThat(row.get("booleancol", GenericType.BOOLEAN)).isNull();
+    assertThat(row.get("intcol", GenericType.INTEGER)).isNull();
+  }
+
+  @Test
+  void delete_compound_key() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO fordelete_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM fordelete_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            ImmutableMap.of("topic.mytopic.table", "fordelete_compound")));
+
+    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("boolean", Schema.BOOLEAN_SCHEMA)
+            .field("int", Schema.INT32_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("bigint", 1234567L).put("boolean", true);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM fordelete_compound").all();
+    assertThat(results.size()).isEqualTo(0);
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {

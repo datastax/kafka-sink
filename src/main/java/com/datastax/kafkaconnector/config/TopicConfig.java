@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
+import org.jetbrains.annotations.NotNull;
 
 /** Topic-specific connector configuration. */
 public class TopicConfig extends AbstractConfig {
@@ -31,7 +32,7 @@ public class TopicConfig extends AbstractConfig {
   public static final String TABLE_OPT = "table";
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
-  public static final String CL_OPT = "consistencyLevel";
+  static final String CL_OPT = "consistencyLevel";
 
   static final String TIME_PAT_OPT = "codec.time";
   static final String LOCALE_OPT = "codec.locale";
@@ -40,6 +41,7 @@ public class TopicConfig extends AbstractConfig {
   static final String DATE_PAT_OPT = "codec.date";
   static final String TIME_UNIT_OPT = "codec.unit";
 
+  private static final String DELETES_ENABLED_OPT = "deletesEnabled";
   private static final String NULL_TO_UNSET_OPT = "nullToUnset";
   private static final Pattern DELIM_PAT = Pattern.compile(", *");
 
@@ -51,6 +53,11 @@ public class TopicConfig extends AbstractConfig {
   private final ConsistencyLevel consistencyLevel;
   private final int ttl;
   private final boolean nullToUnset;
+  private final boolean deletesEnabled;
+
+  public static String getTopicSettingName(String topicName, String setting) {
+    return String.format("topic.%s.%s", topicName, setting);
+  }
 
   TopicConfig(String topicName, Map<String, String> settings) {
     super(makeTopicConfigDef(topicName), settings, false);
@@ -77,52 +84,42 @@ public class TopicConfig extends AbstractConfig {
     }
     ttl = getInt(getTopicSettingName(topicName, TTL_OPT));
     nullToUnset = getBoolean(getTopicSettingName(topicName, NULL_TO_UNSET_OPT));
+    deletesEnabled = getBoolean(getTopicSettingName(topicName, DELETES_ENABLED_OPT));
   }
 
-  private Map<CqlIdentifier, CqlIdentifier> parseMappingString(String mappingString) {
-    MappingInspector inspector =
-        new MappingInspector(mappingString, getTopicSettingName(topicName, MAPPING_OPT));
-    List<String> errors = inspector.getErrors();
-    if (!errors.isEmpty()) {
-      throw new ConfigException(
-          getTopicSettingName(topicName, MAPPING_OPT),
-          singleQuote(mappingString),
-          String.format(
-              "Encountered the following errors:%n%s",
-              errors.stream().collect(Collectors.joining(String.format("%n  ")))));
-    }
-
-    return inspector.getMapping();
-  }
-
-  private static CqlIdentifier parseLoosely(String value) {
-    // If the value is unquoted, treat it as a literal (no real parsing).
-    // Otherwise parse it as cql. The idea is that users should be able to specify
-    // case-sensitive identifiers in the mapping spec without quotes.
-
-    return value.startsWith("\"")
-        ? CqlIdentifier.fromCql(value)
-        : CqlIdentifier.fromInternal(value);
-  }
-
+  @NotNull
   public CqlIdentifier getKeyspace() {
     return keyspace;
   }
 
+  @NotNull
   public CqlIdentifier getTable() {
     return table;
   }
 
+  @NotNull
+  public String getKeyspaceAndTable() {
+    return String.format("%s.%s", keyspace.asCql(true), table.asCql(true));
+  }
+
+  @NotNull
   public Map<CqlIdentifier, CqlIdentifier> getMapping() {
     return mapping;
   }
 
+  @NotNull
   public String getMappingString() {
     return mappingString;
   }
 
+  @NotNull
   public ConsistencyLevel getConsistencyLevel() {
     return consistencyLevel;
+  }
+
+  @NotNull
+  public String getTopicName() {
+    return topicName;
   }
 
   public int getTtl() {
@@ -133,7 +130,12 @@ public class TopicConfig extends AbstractConfig {
     return nullToUnset;
   }
 
+  public boolean isDeletesEnabled() {
+    return deletesEnabled;
+  }
+
   @Override
+  @NotNull
   public String toString() {
     String[] codecSettings = {
       LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
@@ -149,7 +151,8 @@ public class TopicConfig extends AbstractConfig {
             .collect(Collectors.joining(", "));
 
     return String.format(
-        "{name: %s, keyspace: %s, table: %s, cl: %s, ttl: %d, nullToUnset: %b, mapping:\n%s\n"
+        "{name: %s, keyspace: %s, table: %s, cl: %s, ttl: %d, nullToUnset: %b, "
+            + "deletesEnabled: %b, mapping:\n%s\n"
             + " codec settings: %s}",
         topicName,
         keyspace,
@@ -157,6 +160,7 @@ public class TopicConfig extends AbstractConfig {
         consistencyLevel,
         ttl,
         nullToUnset,
+        deletesEnabled,
         Splitter.on(DELIM_PAT)
             .splitToList(mappingString)
             .stream()
@@ -165,10 +169,7 @@ public class TopicConfig extends AbstractConfig {
         codecString);
   }
 
-  public static String getTopicSettingName(String topicName, String setting) {
-    return String.format("topic.%s.%s", topicName, setting);
-  }
-
+  @NotNull
   public Config getCodecConfigOverrides() {
     String[] settingNames = {
       LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
@@ -185,6 +186,7 @@ public class TopicConfig extends AbstractConfig {
     return ConfigFactory.parseString(config);
   }
 
+  @NotNull
   private static ConfigDef makeTopicConfigDef(String topicName) {
     return new ConfigDef()
         .define(
@@ -202,6 +204,12 @@ public class TopicConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             ConfigDef.Importance.HIGH,
             "Mapping of record fields to dse columns, in the form of 'col1=value.f1, col2=key.f1'")
+        .define(
+            getTopicSettingName(topicName, DELETES_ENABLED_OPT),
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.HIGH,
+            "Whether to delete rows where only the primary key is non-null")
         .define(
             getTopicSettingName(topicName, CL_OPT),
             ConfigDef.Type.STRING,
@@ -257,5 +265,33 @@ public class TopicConfig extends AbstractConfig {
             "MILLISECONDS",
             ConfigDef.Importance.HIGH,
             "If the input is a string containing only digits that cannot be parsed using the `codec.timestamp` format, the specified time unit is applied to the parsed value. All `TimeUnit` enum constants are valid choices.");
+  }
+
+  @NotNull
+  private static CqlIdentifier parseLoosely(String value) {
+    // If the value is unquoted, treat it as a literal (no real parsing).
+    // Otherwise parse it as cql. The idea is that users should be able to specify
+    // case-sensitive identifiers in the mapping spec without quotes.
+
+    return value.startsWith("\"")
+        ? CqlIdentifier.fromCql(value)
+        : CqlIdentifier.fromInternal(value);
+  }
+
+  @NotNull
+  private Map<CqlIdentifier, CqlIdentifier> parseMappingString(String mappingString) {
+    MappingInspector inspector =
+        new MappingInspector(mappingString, getTopicSettingName(topicName, MAPPING_OPT));
+    List<String> errors = inspector.getErrors();
+    if (!errors.isEmpty()) {
+      throw new ConfigException(
+          getTopicSettingName(topicName, MAPPING_OPT),
+          singleQuote(mappingString),
+          String.format(
+              "Encountered the following errors:%n%s",
+              errors.stream().collect(Collectors.joining(String.format("%n  ")))));
+    }
+
+    return inspector.getMapping();
   }
 }

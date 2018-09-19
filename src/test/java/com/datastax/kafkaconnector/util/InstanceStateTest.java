@@ -13,6 +13,9 @@ import static org.mockito.Mockito.mock;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
@@ -21,10 +24,10 @@ class InstanceStateTest {
   private DseSinkConfig config = mock(DseSinkConfig.class);
   private DseSession session = mock(DseSession.class);
 
-  @SuppressWarnings("unchecked")
-  private Map<String, TopicState> topicStates = mock(Map.class);
-
-  private InstanceState instanceState = new InstanceState(config, session, topicStates);
+  private Map<String, TopicState> topicStates = new HashMap<>();
+  private Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
+  private InstanceState instanceState =
+      new InstanceState(config, session, primaryKeys, topicStates);
 
   @Test
   void getTopicConfig_fail() {
@@ -37,13 +40,18 @@ class InstanceStateTest {
   }
 
   @Test
-  void getInsertStatement_fail() {
-    assertTopicNotFound(() -> instanceState.getCqlStatement("unknown"));
+  void getBatchSizeHistogram_fail() {
+    assertTopicNotFound(() -> instanceState.getBatchSizeHistogram("unknown"));
   }
 
   @Test
-  void getPreparedInsertStatement_fail() {
-    assertTopicNotFound(() -> instanceState.getPreparedInsertStatement("unknown"));
+  void getPreparedInsertUpdateStatement_fail() {
+    assertTopicNotFound(() -> instanceState.getPreparedInsertUpdate("unknown"));
+  }
+
+  @Test
+  void getPreparedDeleteStatement_fail() {
+    assertTopicNotFound(() -> instanceState.getPreparedDelete("unknown"));
   }
 
   private void assertTopicNotFound(ThrowableAssert.ThrowingCallable callable) {

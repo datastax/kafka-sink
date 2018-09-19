@@ -12,6 +12,8 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Container for a topic-scoped entities that the sink tasks need (codec-registry, prepared
@@ -19,19 +21,19 @@ import com.datastax.oss.driver.api.core.cql.PreparedStatement;
  */
 class TopicState {
   private final String name;
-  private final String cqlStatement;
-  private final PreparedStatement preparedStatement;
+  private final PreparedStatement preparedInsertUpdate;
+  private final PreparedStatement preparedDelete;
   private final KafkaCodecRegistry codecRegistry;
   private Histogram batchSizeHistogram;
 
   TopicState(
       String name,
-      String cqlStatement,
-      PreparedStatement preparedStatement,
+      PreparedStatement preparedInsertUpdate,
+      PreparedStatement preparedDelete,
       KafkaCodecRegistry codecRegistry) {
     this.name = name;
-    this.cqlStatement = cqlStatement;
-    this.preparedStatement = preparedStatement;
+    this.preparedInsertUpdate = preparedInsertUpdate;
+    this.preparedDelete = preparedDelete;
     this.codecRegistry = codecRegistry;
   }
 
@@ -39,18 +41,22 @@ class TopicState {
     batchSizeHistogram = metricRegistry.histogram(String.format("%s/batchSize", name));
   }
 
+  @NotNull
   Histogram getBatchSizeHistogram() {
     return batchSizeHistogram;
   }
 
-  String getCqlStatement() {
-    return cqlStatement;
+  @NotNull
+  PreparedStatement getPreparedInsertUpdate() {
+    return preparedInsertUpdate;
   }
 
-  PreparedStatement getPreparedStatement() {
-    return preparedStatement;
+  @Nullable
+  PreparedStatement getPreparedDelete() {
+    return preparedDelete;
   }
 
+  @NotNull
   KafkaCodecRegistry getCodecRegistry() {
     return codecRegistry;
   }
