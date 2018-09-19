@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -47,14 +48,28 @@ class SinkUtilTest {
   private static final CqlIdentifier C1_IDENT = CqlIdentifier.fromInternal(C1);
   private static final CqlIdentifier C2_IDENT = CqlIdentifier.fromInternal(C2);
   private static final CqlIdentifier C3_IDENT = CqlIdentifier.fromInternal(C3);
-
+  private DseColumnMetadata col1;
+  private DseColumnMetadata col2;
+  private DseColumnMetadata col3;
   private DseSession session;
   private DseMetadata metadata;
   private DseKeyspaceMetadata keyspace;
   private DseTableMetadata table;
-  DseColumnMetadata col1;
-  DseColumnMetadata col2;
-  DseColumnMetadata col3;
+
+  private static DseSinkConfig makeConfig(String keyspaceName, String tableName, String mapping) {
+    return makeConfig(keyspaceName, tableName, mapping, -1);
+  }
+
+  private static DseSinkConfig makeConfig(
+      String keyspaceName, String tableName, String mapping, int ttl) {
+    return new DseSinkConfig(
+        ImmutableMap.<String, String>builder()
+            .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), keyspaceName)
+            .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), tableName)
+            .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), mapping)
+            .put(TopicConfig.getTopicSettingName("mytopic", TTL_OPT), String.valueOf(ttl))
+            .build());
+  }
 
   @BeforeEach
   void setUp() {
@@ -97,8 +112,7 @@ class SinkUtilTest {
         .thenReturn(Optional.of(keyspace));
 
     assertThatThrownBy(
-            () ->
-                SinkUtil.validateKeyspaceAndTable(session, makeConfig("MyKs", "t1", "c1=value.f1")))
+            () -> SinkUtil.computePrimaryKeys(session, makeConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage(
             "Invalid value MyKs for configuration topic.mytopic.keyspace: Keyspace does not exist, however a keyspace myks was found. Update the config to use myks if desired.");
@@ -110,9 +124,7 @@ class SinkUtilTest {
     when((Optional<DseTableMetadata>) keyspace.getTable("mytable")).thenReturn(Optional.of(table));
 
     assertThatThrownBy(
-            () ->
-                SinkUtil.validateKeyspaceAndTable(
-                    session, makeConfig("ks1", "MyTable", "c1=value.f1")))
+            () -> SinkUtil.computePrimaryKeys(session, makeConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage(
             "Invalid value MyTable for configuration topic.mytopic.table: Table does not exist, however a table mytable was found. Update the config to use mytable if desired.");
@@ -123,8 +135,7 @@ class SinkUtilTest {
     when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(Optional.empty());
     when(metadata.getKeyspace("myks")).thenReturn(Optional.empty());
     assertThatThrownBy(
-            () ->
-                SinkUtil.validateKeyspaceAndTable(session, makeConfig("MyKs", "t1", "c1=value.f1")))
+            () -> SinkUtil.computePrimaryKeys(session, makeConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage("Invalid value \"MyKs\" for configuration topic.mytopic.keyspace: Not found");
   }
@@ -135,17 +146,23 @@ class SinkUtilTest {
     when(keyspace.getTable("mytable")).thenReturn(Optional.empty());
 
     assertThatThrownBy(
-            () ->
-                SinkUtil.validateKeyspaceAndTable(
-                    session, makeConfig("ks1", "MyTable", "c1=value.f1")))
+            () -> SinkUtil.computePrimaryKeys(session, makeConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage("Invalid value \"MyTable\" for configuration topic.mytopic.table: Not found");
   }
 
   @Test
+  void should_compute_primary_keys() {
+    when((List<DseColumnMetadata>) table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col3));
+    assertThat(SinkUtil.computePrimaryKeys(session, makeConfig("ks1", "MyTable", "c1=value.f1")))
+        .containsOnly(Assertions.entry("ks1.\"MyTable\"", Arrays.asList(C1_IDENT, C3_IDENT)));
+  }
+
+  @Test
   void should_error_when_mapping_does_not_use_primary_key_columns() {
     DseSinkConfig config = makeConfig("myks", "mytable", C3 + "=key.f3");
-    assertThatThrownBy(() -> SinkUtil.validateMappingColumns(session, config))
+    assertThatThrownBy(
+            () -> SinkUtil.validateMappingColumns(session, config.getTopicConfigs().get("mytopic")))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value c3=key.f3 for configuration topic.mytopic.mapping:")
         .hasMessageContaining("but are not mapped: " + C1);
@@ -154,10 +171,28 @@ class SinkUtilTest {
   @Test
   void should_error_when_mapping_has_nonexistent_column() {
     DseSinkConfig config = makeConfig("myks", "mytable", "nocol=key.f3");
-    assertThatThrownBy(() -> SinkUtil.validateMappingColumns(session, config))
+    assertThatThrownBy(
+            () -> SinkUtil.validateMappingColumns(session, config.getTopicConfigs().get("mytopic")))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value nocol=key.f3 for configuration topic.mytopic.mapping:")
         .hasMessageContaining("do not exist in table mytable: nocol");
+  }
+
+  @Test
+  void should_compute_that_all_columns_are_mapped() {
+    DseSinkConfig config =
+        makeConfig(
+            "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
+    assertThat(SinkUtil.validateMappingColumns(session, config.getTopicConfigs().get("mytopic")))
+        .isTrue();
+  }
+
+  @Test
+  void should_compute_that_all_columns_are_not_mapped() {
+    DseSinkConfig config =
+        makeConfig("myks", "mytable", String.format("%s=key.f1, %s=key.f3", C1, C3));
+    assertThat(SinkUtil.validateMappingColumns(session, config.getTopicConfigs().get("mytopic")))
+        .isFalse();
   }
 
   @Test
@@ -220,18 +255,17 @@ class SinkUtilTest {
                 C3, C3, C3, C1, C1, C2, C2));
   }
 
-  private static DseSinkConfig makeConfig(String keyspaceName, String tableName, String mapping) {
-    return makeConfig(keyspaceName, tableName, mapping, -1);
-  }
+  @Test
+  void should_make_correct_delete_cql() {
+    when((List<DseColumnMetadata>) table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col2));
 
-  private static DseSinkConfig makeConfig(
-      String keyspaceName, String tableName, String mapping, int ttl) {
-    return new DseSinkConfig(
-        ImmutableMap.<String, String>builder()
-            .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), keyspaceName)
-            .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), tableName)
-            .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), mapping)
-            .put(TopicConfig.getTopicSettingName("mytopic", TTL_OPT), String.valueOf(ttl))
-            .build());
+    DseSinkConfig config =
+        makeConfig(
+            "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
+
+    assertThat(SinkUtil.makeDeleteStatement(config.getTopicConfigs().get("mytopic"), table))
+        .isEqualTo(
+            String.format(
+                "DELETE FROM myks.mytable WHERE %s = :%s AND \"%s\" = :\"%s\"", C1, C1, C2, C2));
   }
 }

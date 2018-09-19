@@ -23,17 +23,22 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Maps {@link Record}s into {@link BoundStatement}s, applying any necessary transformations via
  * codecs.
  */
 public class RecordMapper {
-  private final PreparedStatement insertStatement;
-  private final List<Integer> pkIndices;
+  private final PreparedStatement insertUpdateStatement;
+  private final PreparedStatement deleteStatement;
+  private final Set<CqlIdentifier> primaryKeys;
   private final Mapping mapping;
   private final RecordMetadata recordMetadata;
   private final boolean allowExtraFields;
@@ -43,14 +48,17 @@ public class RecordMapper {
   private final boolean nullToUnset;
 
   RecordMapper(
-      PreparedStatement insertStatement,
+      PreparedStatement insertUpdateStatement,
+      PreparedStatement deleteStatement,
+      List<CqlIdentifier> primaryKeys,
       Mapping mapping,
       RecordMetadata recordMetadata,
       boolean nullToUnset,
       boolean allowExtraFields,
       boolean allowMissingFields) {
-    this.insertStatement = insertStatement;
-    this.pkIndices = insertStatement.getPartitionKeyIndices();
+    this.insertUpdateStatement = insertUpdateStatement;
+    this.deleteStatement = deleteStatement;
+    this.primaryKeys = new LinkedHashSet<>(primaryKeys);
     this.mapping = mapping;
     this.recordMetadata = recordMetadata;
     this.nullToUnset = nullToUnset;
@@ -58,14 +66,52 @@ public class RecordMapper {
     this.allowMissingFields = allowMissingFields;
   }
 
+  @NotNull
+  private static String getExternalName(@NotNull String field) {
+    if (field.endsWith(RawData.FIELD_NAME)) {
+      // e.g. value.__self => value
+      return field.substring(0, field.length() - RawData.FIELD_NAME.length() - 1);
+    }
+    return field;
+  }
+
+  @NotNull
   public BoundStatement map(Record record) {
     Object raw;
     DataType cqlType;
     if (!allowMissingFields) {
       ensureAllFieldsPresent(record.fields());
     }
-    BoundStatementBuilder builder = insertStatement.boundStatementBuilder();
-    ColumnDefinitions variableDefinitions = insertStatement.getVariableDefinitions();
+
+    // Determine if we're doing an insert-update or a delete
+    PreparedStatement preparedStatement;
+    boolean isInsertUpdate = true;
+    if (deleteStatement == null) {
+      // There is no delete statement, meaning deletesEnabled must be false. So just
+      // do an insert/update.
+      preparedStatement = insertUpdateStatement;
+    } else {
+      // Walk through each record field and check if any non-null fields map to a non-primary-key
+      // column. If so, this is an insert; otherwise it is a delete. However, there is a
+      // special case: if the table only has primary key columns, there is no case for delete.
+      isInsertUpdate =
+          mapping.getMappedColumns().equals(primaryKeys)
+              || record
+                  .fields()
+                  .stream()
+                  .filter(field -> record.getFieldValue(field) != null)
+                  .anyMatch(
+                      field -> {
+                        @Nullable
+                        Collection<CqlIdentifier> mappedCols =
+                            mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
+                        return mappedCols != null
+                            && mappedCols.stream().anyMatch(col -> !primaryKeys.contains(col));
+                      });
+      preparedStatement = isInsertUpdate ? insertUpdateStatement : deleteStatement;
+    }
+    BoundStatementBuilder builder = preparedStatement.boundStatementBuilder();
+    ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
     for (String field : record.fields()) {
       Collection<CqlIdentifier> columns = mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
       if ((columns == null || columns.isEmpty()) && !allowExtraFields) {
@@ -77,6 +123,12 @@ public class RecordMapper {
       }
       if (columns != null) {
         for (CqlIdentifier column : columns) {
+          if (!variableDefinitions.contains(column)) {
+            // This can happen if we're binding a delete statement (which
+            // only contains params for primary key columns, not other
+            // mapped columns).
+            continue;
+          }
           cqlType = variableDefinitions.get(column).getType();
           GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
           if (fieldType != null) {
@@ -86,7 +138,7 @@ public class RecordMapper {
         }
       }
     }
-    if (record.getTimestamp() != null) {
+    if (record.getTimestamp() != null && isInsertUpdate) {
       bindColumn(
           builder,
           CqlIdentifier.fromInternal(SinkUtil.TIMESTAMP_VARNAME),
@@ -95,16 +147,8 @@ public class RecordMapper {
           GenericType.LONG);
     }
     BoundStatement bs = builder.build();
-    ensurePartitionKeySet(bs);
+    ensurePrimaryKeySet(bs);
     return bs;
-  }
-
-  private static String getExternalName(String field) {
-    if (field.endsWith(RawData.FIELD_NAME)) {
-      // e.g. value.__self => value
-      return field.substring(0, field.length() - RawData.FIELD_NAME.length() - 1);
-    }
-    return field;
   }
 
   private <T> void bindColumn(
@@ -117,9 +161,9 @@ public class RecordMapper {
     ByteBuffer bb = codec.encode(raw, builder.protocolVersion());
     // Account for nullToUnset.
     if (isNull(bb, cqlType)) {
-      if (isPartitionKey(variable)) {
+      if (isPrimaryKey(variable)) {
         throw new ConfigException(
-            "Partition key column "
+            "Primary key column "
                 + variable.asCql(true)
                 + " cannot be mapped to null. "
                 + "Check that your mapping setting matches your dataset contents.");
@@ -149,12 +193,12 @@ public class RecordMapper {
     }
   }
 
-  private boolean isPartitionKey(CqlIdentifier variable) {
-    return pkIndices.contains(insertStatement.getVariableDefinitions().firstIndexOf(variable));
+  private boolean isPrimaryKey(CqlIdentifier variable) {
+    return primaryKeys.contains(variable);
   }
 
   private void ensureAllFieldsPresent(Set<String> recordFields) {
-    ColumnDefinitions variables = insertStatement.getVariableDefinitions();
+    ColumnDefinitions variables = insertUpdateStatement.getVariableDefinitions();
     for (int i = 0; i < variables.size(); i++) {
       CqlIdentifier variable = variables.get(i).getName();
       if (variable.asInternal().equals(SinkUtil.TIMESTAMP_VARNAME)) {
@@ -162,7 +206,7 @@ public class RecordMapper {
         continue;
       }
       CqlIdentifier field = mapping.columnToField(variable);
-      if (!recordFields.contains(field.asInternal())) {
+      if (field != null && !recordFields.contains(field.asInternal())) {
         throw new ConfigException(
             "Required field '"
                 + getExternalName(field.asInternal())
@@ -174,18 +218,21 @@ public class RecordMapper {
     }
   }
 
-  private void ensurePartitionKeySet(BoundStatement bs) {
-    if (pkIndices != null) {
-      for (int pkIndex : pkIndices) {
-        if (!bs.isSet(pkIndex)) {
-          CqlIdentifier variable = insertStatement.getVariableDefinitions().get(pkIndex).getName();
-          throw new ConfigException(
-              "Partition key column "
-                  + variable.asCql(true)
-                  + " cannot be left unmapped. "
-                  + "Check that your mapping setting matches your dataset contents.");
-        }
-      }
+  private void ensurePrimaryKeySet(BoundStatement bs) {
+    // This cannot fail unless the insert/update CQL is custom and the user didn't specify
+    // all key columns.
+    String unsetKeys =
+        primaryKeys
+            .stream()
+            .filter(key -> !bs.isSet(key))
+            .map(key -> key.asCql(true))
+            .collect(Collectors.joining(", "));
+    if (!unsetKeys.isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "Primary key column(s) %s cannot be left unmapped. Check that your mapping setting "
+                  + "matches your dataset contents.",
+              unsetKeys));
     }
   }
 }

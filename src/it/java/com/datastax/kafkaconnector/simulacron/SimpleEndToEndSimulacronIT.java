@@ -13,6 +13,7 @@ import static com.datastax.dsbulk.commons.tests.logging.StreamType.STDOUT;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.noRows;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.serverError;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.when;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
@@ -58,9 +59,13 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,12 +83,7 @@ class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =
       "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp";
-  private final BoundCluster simulacron;
-  private final SimulacronUtils.Keyspace schema;
-  private final DseSinkConnector conn;
-  private final DseSinkTask task;
-  private final LogInterceptor logs;
-  private final Map<String, String> connectorProperties;
+  private static final String DELETE_STATEMENT = "DELETE FROM ks1.table1 WHERE a = :a AND b = :b";
   private static final ImmutableMap<String, String> PARAM_TYPES =
       ImmutableMap.<String, String>builder()
           .put("a", "int")
@@ -91,6 +91,12 @@ class SimpleEndToEndSimulacronIT {
           .put("kafka_internal_timestamp", "bigint")
           .build();
   private static final String INSTANCE_NAME = "myinstance";
+  private final BoundCluster simulacron;
+  private final SimulacronUtils.Keyspace schema;
+  private final DseSinkConnector conn;
+  private final DseSinkTask task;
+  private final LogInterceptor logs;
+  private final Map<String, String> connectorProperties;
 
   @SuppressWarnings("unused")
   SimpleEndToEndSimulacronIT(
@@ -138,6 +144,29 @@ class SimpleEndToEndSimulacronIT {
             .build();
   }
 
+  private static SinkRecord makeRecord(int key, String value, long timestamp, long offset) {
+    return makeRecord(0, key, value, timestamp, offset);
+  }
+
+  private static SinkRecord makeRecord(
+      int partition, int key, String value, long timestamp, long offset) {
+    return new SinkRecord(
+        "mytopic", partition, null, key, null, value, offset, timestamp, TimestampType.CREATE_TIME);
+  }
+
+  private static Query makeQuery(int a, String b, long timestamp) {
+    return new Query(
+        INSERT_STATEMENT, Collections.emptyList(), makeParams(a, b, timestamp), PARAM_TYPES);
+  }
+
+  private static Map<String, Object> makeParams(int a, String b, long timestamp) {
+    return ImmutableMap.<String, Object>builder()
+        .put("a", a)
+        .put("b", b)
+        .put("kafka_internal_timestamp", timestamp)
+        .build();
+  }
+
   @BeforeEach
   void resetPrimes() {
     simulacron.clearPrimes(true);
@@ -167,7 +196,28 @@ class SimpleEndToEndSimulacronIT {
 
     assertThatThrownBy(() -> task.start(connectorProperties))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageStartingWith("Prepare failed for statement: " + INSERT_STATEMENT);
+        .hasMessageStartingWith(
+            "Prepare failed for statement: " + INSERT_STATEMENT + " or " + DELETE_STATEMENT);
+  }
+
+  @Test
+  void fail_prepare_no_deletes() {
+    SimulacronUtils.primeTables(simulacron, schema);
+    Query bad1 = makeQuery(32, "fail", 153000987000L);
+    simulacron.prime(when(bad1).then(serverError("bad thing")).applyToPrepare());
+    Map<String, String> props = new HashMap<>(connectorProperties);
+    props.put("topic.mytopic.deletesEnabled", "false");
+    Condition<Throwable> delete =
+        new Condition<Throwable>("delete statement") {
+          @Override
+          public boolean matches(Throwable value) {
+            return value.getMessage().contains(DELETE_STATEMENT);
+          }
+        };
+    assertThatThrownBy(() -> task.start(props))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageStartingWith("Prepare failed for statement: " + INSERT_STATEMENT)
+        .doesNotHave(delete);
   }
 
   @Test
@@ -197,7 +247,51 @@ class SimpleEndToEndSimulacronIT {
             .build();
     assertThatThrownBy(() -> task.start(props))
         .isInstanceOf(RuntimeException.class)
-        .hasMessageStartingWith("Prepare failed for statement: " + query);
+        .hasMessageStartingWith(
+            "Prepare failed for statement: "
+                + query
+                + " or "
+                + "DELETE FROM ks1.mycounter WHERE a = :a AND b = :b");
+  }
+
+  @Test
+  void fail_delete() {
+    SimulacronUtils.primeTables(simulacron, schema);
+    Query bad1 =
+        new Query(
+            "DELETE FROM ks1.mycounter WHERE a = :a AND b = :b",
+            Collections.emptyList(),
+            ImmutableMap.<String, Object>builder().put("a", 37).put("b", "delete").build(),
+            ImmutableMap.<String, String>builder().put("a", "int").put("b", "varchar").build());
+    simulacron.prime(when(bad1).then(serverError("bad thing")));
+    Map<String, String> connProps = new HashMap<>(connectorProperties);
+    connProps.put("topic.mytopic.table", "mycounter");
+    connProps.put("topic.mytopic.mapping", "a=value.bigint, b=value.text, c=value.int");
+
+    conn.start(connProps);
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("text", Schema.STRING_SCHEMA)
+            .field("int", Schema.INT32_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("bigint", 37L).put("text", "delete");
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, 37, null, value, 1234, 153000987L, TimestampType.CREATE_TIME);
+    runTaskWithRecords(record);
+
+    // The log may need a little time to be updated with our error message.
+    try {
+      MILLISECONDS.sleep(500);
+    } catch (InterruptedException e) {
+      // swallow
+    }
+    assertThat(logs.getAllMessagesAsString())
+        .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1234")
+        .contains("statement: DELETE FROM ks1.mycounter WHERE a = :a AND b = :b");
   }
 
   @Test
@@ -241,7 +335,7 @@ class SimpleEndToEndSimulacronIT {
             Assertions.entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(1238L)));
 
     assertThat(logs.getAllMessagesAsString())
-        .contains("Error inserting row for Kafka record SinkRecord{kafkaOffset=1237")
+        .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1237")
         .contains(
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
     InstanceState instanceState =
@@ -350,7 +444,7 @@ class SimpleEndToEndSimulacronIT {
     SinkRecord badRecord = new SinkRecord("unknown", 0, null, 42L, null, 42, 1234L);
     runTaskWithRecords(goodRecord, badRecord);
     assertThat(logs.getAllMessagesAsString())
-        .contains("Error inserting row for Kafka record SinkRecord{kafkaOffset=1234")
+        .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1234")
         .contains(
             "Connector has no configuration for record topic 'unknown'. Please update the configuration and restart.");
 
@@ -515,31 +609,8 @@ class SimpleEndToEndSimulacronIT {
             Assertions.entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(8888L)));
 
     assertThat(logs.getAllMessagesAsString())
-        .contains("Error inserting row for Kafka record SinkRecord{kafkaOffset=1234")
-        .contains("Error inserting row for Kafka record SinkRecord{kafkaOffset=8888");
-  }
-
-  private static SinkRecord makeRecord(int key, String value, long timestamp, long offset) {
-    return makeRecord(0, key, value, timestamp, offset);
-  }
-
-  private static SinkRecord makeRecord(
-      int partition, int key, String value, long timestamp, long offset) {
-    return new SinkRecord(
-        "mytopic", partition, null, key, null, value, offset, timestamp, TimestampType.CREATE_TIME);
-  }
-
-  private static Query makeQuery(int a, String b, long timestamp) {
-    return new Query(
-        INSERT_STATEMENT, Collections.emptyList(), makeParams(a, b, timestamp), PARAM_TYPES);
-  }
-
-  private static Map<String, Object> makeParams(int a, String b, long timestamp) {
-    return ImmutableMap.<String, Object>builder()
-        .put("a", a)
-        .put("b", b)
-        .put("kafka_internal_timestamp", timestamp)
-        .build();
+        .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1234")
+        .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=8888");
   }
 
   private void runTaskWithRecords(SinkRecord... records) {

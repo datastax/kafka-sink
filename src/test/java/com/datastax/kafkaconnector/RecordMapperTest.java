@@ -80,16 +80,20 @@ class RecordMapperTest {
   private final TypeCodec codec2 = mock(StringToLongCodec.class);
   private final TypeCodec codec3 = TypeCodecs.TEXT;
 
-  private final List<Integer> pkIndices = Arrays.asList(0, 1, 2);
-
+  private final List<CqlIdentifier> primaryKeys = Arrays.asList(C1, C3);
   private final List<String> nullStrings = newArrayList("");
 
   private Mapping mapping;
   private Record record;
-  private PreparedStatement insertStatement;
-  private BoundStatementBuilder boundStatementBuilder;
-  private BoundStatement boundStatement;
-  private ColumnDefinitions variables;
+  private PreparedStatement insertUpdateStatement;
+  private BoundStatementBuilder insertUpdateBoundStatementBuilder;
+  private BoundStatement insertUpdateBoundStatement;
+
+  private PreparedStatement deleteStatement;
+  private BoundStatementBuilder deleteBoundStatementBuilder;
+  private BoundStatement deleteBoundStatement;
+
+  private ColumnDefinitions insertUpdateVariables;
   private ArgumentCaptor<CqlIdentifier> variableCaptor;
   private ArgumentCaptor<ByteBuffer> valueCaptor;
   private RecordMetadata recordMetadata;
@@ -106,44 +110,44 @@ class RecordMapperTest {
             ImmutableMap.of(
                 F1, GenericType.STRING, F2, GenericType.STRING, F3, GenericType.STRING));
 
-    boundStatementBuilder = mock(BoundStatementBuilder.class);
-    boundStatement = mock(BoundStatement.class);
+    insertUpdateBoundStatementBuilder = mock(BoundStatementBuilder.class);
+    insertUpdateBoundStatement = mock(BoundStatement.class);
     mapping = mock(Mapping.class);
     record = mock(Record.class);
-    insertStatement = mock(PreparedStatement.class);
-    variables = mock(ColumnDefinitions.class);
+    insertUpdateStatement = mock(PreparedStatement.class);
+    insertUpdateVariables = mock(ColumnDefinitions.class);
 
-    when(insertStatement.boundStatementBuilder()).thenReturn(boundStatementBuilder);
-    when(boundStatementBuilder.protocolVersion()).thenReturn(V4);
-    when(boundStatementBuilder.build()).thenReturn(boundStatement);
+    when(insertUpdateStatement.boundStatementBuilder())
+        .thenReturn(insertUpdateBoundStatementBuilder);
+    when(insertUpdateBoundStatementBuilder.protocolVersion()).thenReturn(V4);
+    when(insertUpdateBoundStatementBuilder.build()).thenReturn(insertUpdateBoundStatement);
 
-    when(boundStatement.isSet(0)).thenReturn(true);
-    when(boundStatement.isSet(1)).thenReturn(true);
-    when(boundStatement.isSet(2)).thenReturn(true);
-    when(insertStatement.getVariableDefinitions()).thenReturn(variables);
-    when(insertStatement.getPartitionKeyIndices()).thenReturn(pkIndices);
+    when(insertUpdateBoundStatement.isSet(C1)).thenReturn(true);
+    when(insertUpdateBoundStatement.isSet(C2)).thenReturn(true);
+    when(insertUpdateBoundStatement.isSet(C3)).thenReturn(true);
+    when(insertUpdateStatement.getVariableDefinitions()).thenReturn(insertUpdateVariables);
     ColumnDefinition c1Def = mock(ColumnDefinition.class);
     ColumnDefinition c2Def = mock(ColumnDefinition.class);
     ColumnDefinition c3Def = mock(ColumnDefinition.class);
-    when(variables.get(C1)).thenReturn(c1Def);
-    when(variables.get(C2)).thenReturn(c2Def);
-    when(variables.get(C3)).thenReturn(c3Def);
+    when(insertUpdateVariables.contains(C1)).thenReturn(true);
+    when(insertUpdateVariables.contains(C2)).thenReturn(true);
+    when(insertUpdateVariables.contains(C3)).thenReturn(true);
+    when(insertUpdateVariables.get(C1)).thenReturn(c1Def);
+    when(insertUpdateVariables.get(C2)).thenReturn(c2Def);
+    when(insertUpdateVariables.get(C3)).thenReturn(c3Def);
 
     when(c1Def.getType()).thenReturn(DataTypes.INT);
     when(c2Def.getType()).thenReturn(DataTypes.BIGINT);
     when(c3Def.getType()).thenReturn(DataTypes.TEXT);
-    when(variables.firstIndexOf(C1)).thenReturn(0);
-    when(variables.firstIndexOf(C2)).thenReturn(1);
-    when(variables.firstIndexOf(C3)).thenReturn(2);
 
-    when(variables.get(0)).thenReturn(c1Def);
-    when(variables.get(1)).thenReturn(c2Def);
-    when(variables.get(2)).thenReturn(c3Def);
+    when(insertUpdateVariables.get(0)).thenReturn(c1Def);
+    when(insertUpdateVariables.get(1)).thenReturn(c2Def);
+    when(insertUpdateVariables.get(2)).thenReturn(c3Def);
 
     when(c1Def.getName()).thenReturn(C1);
     when(c2Def.getName()).thenReturn(C2);
     when(c3Def.getName()).thenReturn(C3);
-    when(variables.size()).thenReturn(3);
+    when(insertUpdateVariables.size()).thenReturn(3);
 
     when(record.getFieldValue(F1)).thenReturn("42");
     when(record.getFieldValue(F2)).thenReturn("4242");
@@ -181,16 +185,32 @@ class RecordMapperTest {
               }
               return TypeCodecs.BIGINT.encode(Long.parseLong(s), invocation.getArgument(1));
             });
+
+    deleteBoundStatementBuilder = mock(BoundStatementBuilder.class);
+    deleteBoundStatement = mock(BoundStatement.class);
+    deleteStatement = mock(PreparedStatement.class);
+    when(deleteStatement.boundStatementBuilder()).thenReturn(deleteBoundStatementBuilder);
+    when(deleteBoundStatementBuilder.protocolVersion()).thenReturn(V4);
+    when(deleteBoundStatementBuilder.build()).thenReturn(deleteBoundStatement);
+    when(deleteBoundStatement.isSet(C1)).thenReturn(true);
+    when(deleteBoundStatement.isSet(C3)).thenReturn(true);
+    ColumnDefinitions deleteVariables = mock(ColumnDefinitions.class);
+    when(deleteStatement.getVariableDefinitions()).thenReturn(deleteVariables);
+    when(deleteVariables.contains(C1)).thenReturn(true);
+    when(deleteVariables.contains(C3)).thenReturn(true);
+    when(deleteVariables.get(C1)).thenReturn(c1Def);
+    when(deleteVariables.get(C3)).thenReturn(c3Def);
   }
 
   @Test
   void should_map_regular_fields() {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, true, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, false);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder, times(3))
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder, times(3))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
     assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
     assertParameter(1, C2, TypeCodecs.BIGINT.encode(4242L, V4));
@@ -198,9 +218,68 @@ class RecordMapperTest {
   }
 
   @Test
+  void should_insert_when_non_null_fields_map_to_non_pk() {
+    when(record.fields()).thenReturn(set(F1, F2, F3));
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement,
+            deleteStatement,
+            primaryKeys,
+            mapping,
+            recordMetadata,
+            true,
+            true,
+            false);
+    Statement result = mapper.map(record);
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder, times(3))
+        .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
+    assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
+    assertParameter(1, C2, TypeCodecs.BIGINT.encode(4242L, V4));
+    assertParameter(2, C3, TypeCodecs.TEXT.encode("foo", V4));
+  }
+
+  @Test
+  void should_insert_when_non_null_fields_map_to_pk_and_no_delete_statement() {
+    when(record.fields()).thenReturn(set(F1, F2, F3));
+    when(record.getFieldValue(F2)).thenReturn(null);
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, false);
+    Statement result = mapper.map(record);
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder, times(2))
+        .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
+    assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
+    assertParameter(1, C3, TypeCodecs.TEXT.encode("foo", V4));
+  }
+
+  @Test
+  void should_delete_when_non_null_fields_map_to_pk() {
+    when(record.fields()).thenReturn(set(F1, F2, F3));
+    when(record.getFieldValue(F2)).thenReturn(null);
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement,
+            deleteStatement,
+            primaryKeys,
+            mapping,
+            recordMetadata,
+            true,
+            true,
+            false);
+    Statement result = mapper.map(record);
+    assertThat(result).isSameAs(deleteBoundStatement);
+    verify(deleteBoundStatementBuilder, times(2))
+        .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
+    assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
+    assertParameter(1, C3, TypeCodecs.TEXT.encode("foo", V4));
+  }
+
+  @Test
   void should_bind_mapped_numeric_timestamp() {
     when(record.fields()).thenReturn(set(F1));
-    when(variables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
+    when(insertUpdateVariables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
     // timestamp is 123456 minutes before unix epoch
     when(record.getFieldValue(F1)).thenReturn("-123456");
     StringToLongCodec codec =
@@ -219,16 +298,18 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-123456L, V4));
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder)
+        .setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-123456L, V4));
   }
 
   @Test
   void should_bind_mapped_numeric_timestamp_with_custom_unit_and_epoch() {
     when(record.fields()).thenReturn(set(F1));
-    when(variables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
+    when(insertUpdateVariables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
     // timestamp is one minute before year 2000
     when(record.getFieldValue(F1)).thenReturn("-1");
     Instant millennium = Instant.parse("2000-01-01T00:00:00Z");
@@ -248,16 +329,17 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-1L, V4));
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-1L, V4));
   }
 
   @Test
   void should_bind_mapped_alphanumeric_timestamp() {
     when(record.fields()).thenReturn(set(F1));
-    when(variables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
+    when(insertUpdateVariables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
     when(record.getFieldValue(F1)).thenReturn("2017-01-02T00:00:02");
     StringToLongCodec codec =
         spy(
@@ -275,10 +357,11 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder)
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder)
         .setBytesUnsafe(
             C1, TypeCodecs.BIGINT.encode(Instant.parse("2017-01-02T00:00:02Z").toEpochMilli(), V4));
   }
@@ -286,7 +369,7 @@ class RecordMapperTest {
   @Test
   void should_bind_mapped_alphanumeric_timestamp_with_custom_pattern() {
     when(record.fields()).thenReturn(set(F1));
-    when(variables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
+    when(insertUpdateVariables.get(C1).getType()).thenReturn(DataTypes.BIGINT);
     when(record.getFieldValue(F1)).thenReturn("20171123-123456");
     TemporalFormat timestampFormat =
         new ZonedTemporalFormat(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"), UTC);
@@ -306,10 +389,11 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder)
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder)
         .setBytesUnsafe(
             C1, TypeCodecs.BIGINT.encode(Instant.parse("2017-11-23T12:34:56Z").toEpochMilli(), V4));
   }
@@ -318,12 +402,13 @@ class RecordMapperTest {
   void should_map_null_to_unset() {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F2)).thenReturn(null);
-    when(insertStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(0, 2));
+    when(insertUpdateStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(0, 2));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, true, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, false);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder, times(2))
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder, times(2))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
     assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
     assertParameter(1, C3, TypeCodecs.TEXT.encode("foo", V4));
@@ -331,14 +416,16 @@ class RecordMapperTest {
 
   @Test
   void should_map_null_to_null() {
+    List<CqlIdentifier> primaryKeys = Arrays.asList(C2, C3);
     when(record.fields()).thenReturn(set(F1));
     when(record.getFieldValue(F1)).thenReturn(null);
-    when(insertStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(1, 2));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, true);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, true);
     Statement result = mapper.map(record);
-    assertThat(result).isSameAs(boundStatement);
-    verify(boundStatementBuilder).setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
+    assertThat(result).isSameAs(insertUpdateBoundStatement);
+    verify(insertUpdateBoundStatementBuilder)
+        .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
     assertParameter(0, C1, null);
   }
 
@@ -348,9 +435,10 @@ class RecordMapperTest {
     when(mapping.codec(C3, DataTypes.TEXT, GenericType.STRING))
         .thenThrow(CodecNotFoundException.class);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
     assertThatThrownBy(() -> mapper.map(record)).isInstanceOf(CodecNotFoundException.class);
-    verify(boundStatementBuilder, times(2))
+    verify(insertUpdateBoundStatementBuilder, times(2))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
     assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
     assertParameter(1, C2, TypeCodecs.BIGINT.encode(4242L, V4));
@@ -361,26 +449,25 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F1)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("Partition key column col1 cannot be mapped to null");
+        .hasMessageContaining("Primary key column col1 cannot be mapped to null");
   }
 
   @Test
   void should_return_unmappable_statement_when_pk_column_unmapped() {
     when(record.fields()).thenReturn(set(F1, F2, F3));
-    when(variables.firstIndexOf(C1)).thenReturn(3);
-    ColumnDefinition def = mock(ColumnDefinition.class);
-    when(variables.get(3)).thenReturn(def);
-    when(def.getName()).thenReturn(C1);
-    when(boundStatement.isSet(0)).thenReturn(false);
+    when(insertUpdateBoundStatement.isSet(C3)).thenReturn(false);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
 
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("Partition key column col1 cannot be left unmapped");
+        .hasMessageContaining(
+            "Primary key column(s) \"My Fancy Column Name\" cannot be left unmapped");
   }
 
   @Test
@@ -388,7 +475,8 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(mapping.fieldToColumns(F3_IDENT)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, false, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, false, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -400,7 +488,8 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_extra_field_key() {
     when(record.fields()).thenReturn(set(F1, F2, F3, "key.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, false, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, false, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -412,7 +501,8 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_extra_field_value() {
     when(record.fields()).thenReturn(set(F1, F2, F3, "value.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, false, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, false, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -424,7 +514,8 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_missing_field() {
     when(record.fields()).thenReturn(set(F1, F2));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -438,7 +529,8 @@ class RecordMapperTest {
         .thenReturn(Collections.singleton(C1));
     when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("key.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -452,7 +544,8 @@ class RecordMapperTest {
         .thenReturn(Collections.singleton(C1));
     when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("value.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertStatement, mapping, recordMetadata, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
     assertThatThrownBy(() -> mapper.map(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(

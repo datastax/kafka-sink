@@ -26,7 +26,6 @@ import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -70,14 +69,14 @@ import org.slf4j.LoggerFactory;
 public class DseSinkTask extends SinkTask {
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
   private static final RawData NULL_DATA = new RawData(null);
+  private final ExecutorService boundStatementProcessorService =
+      Executors.newFixedThreadPool(
+          1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
   private InstanceState instanceState;
   private Cache<String, Mapping> mappingObjects;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private AtomicReference<State> state;
   private CountDownLatch stopLatch;
-  private ExecutorService boundStatementProcessorService =
-      Executors.newFixedThreadPool(
-          1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
 
   private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
     KeyOrValue innerData;
@@ -215,27 +214,20 @@ public class DseSinkTask extends SinkTask {
       BlockingQueue<RecordAndStatement> boundStatementsQueue, SinkRecord record) {
     try {
       boundStatementsQueue.offer(new RecordAndStatement(record, mapRecord(record)));
-    } catch (KafkaException e) {
+    } catch (KafkaException | IOException e) {
       // The Kafka exception could occur if the record references an unknown topic.
-      handleFailure(record, e, null, instanceState.getFailedRecordCounter());
-    } catch (IOException e) {
       // The IOException can only theoretically happen when processing json data. But bad json
       // won't result in this exception. We're not pulling data from a file or any other kind of IO.
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
-      String topicName = record.topic();
-      handleFailure(
-          record,
-          e,
-          instanceState.getCqlStatement(topicName),
-          instanceState.getFailedRecordCounter());
+
+      handleFailure(record, e, null, instanceState.getFailedRecordCounter());
     }
   }
 
   private BoundStatement mapRecord(SinkRecord record) throws IOException {
     String topicName = record.topic();
     KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry(topicName);
-    PreparedStatement preparedStatement = instanceState.getPreparedInsertStatement(topicName);
     TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
     Mapping mapping =
         mappingObjects.get(topicName, t -> new Mapping(topicConfig.getMapping(), codecRegistry));
@@ -245,7 +237,9 @@ public class DseSinkTask extends SinkTask {
         new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
     RecordMapper mapper =
         new RecordMapper(
-            preparedStatement,
+            instanceState.getPreparedInsertUpdate(topicName),
+            instanceState.getPreparedDelete(topicName),
+            instanceState.getPrimaryKeys().get(topicConfig.getKeyspaceAndTable()),
             mapping,
             new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
             topicConfig.isNullToUnset(),
@@ -321,7 +315,10 @@ public class DseSinkTask extends SinkTask {
     String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";
 
     log.warn(
-        "Error inserting row for Kafka record {}: {}{}", record, e.getMessage(), statementError);
+        "Error inserting/updating row for Kafka record {}: {}{}",
+        record,
+        e.getMessage(),
+        statementError);
   }
 
   enum State {
@@ -415,7 +412,7 @@ public class DseSinkTask extends SinkTask {
                     handleFailure(
                         record,
                         ex,
-                        instanceState.getCqlStatement(record.topic()),
+                        recordAndStatement.getStatement().getPreparedStatement().getQuery(),
                         instanceState.getFailedRecordCounter());
                   });
             } else {

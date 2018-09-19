@@ -22,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 public class KeyValueRecord implements Record {
   @Nullable private final KeyOrValue key;
   @Nullable private final KeyOrValue value;
-  private final Set<String> fields;
+  @NotNull private final Set<String> fields;
   @Nullable private final Long timestamp;
 
   KeyValueRecord(@Nullable KeyOrValue key, @Nullable KeyOrValue value, @Nullable Long timestamp) {
@@ -39,11 +39,13 @@ public class KeyValueRecord implements Record {
   }
 
   @Override
+  @NotNull
   public Set<String> fields() {
     return fields;
   }
 
   @Override
+  @Nullable
   public Object getFieldValue(@NotNull String field) {
     if (field.startsWith("key.")) {
       return key != null ? key.getFieldValue(field.substring(4)) : null;
@@ -56,6 +58,7 @@ public class KeyValueRecord implements Record {
   }
 
   @Override
+  @Nullable
   public Long getTimestamp() {
     return timestamp;
   }
