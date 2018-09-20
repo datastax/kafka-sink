@@ -9,6 +9,7 @@
         "port": 9042,
         "maxConcurrentRequests": 500,
         "jmx": true,
+        "compression": "None",
         "auth.provider": "None",
         "auth.username": "",
         "auth.password": "",

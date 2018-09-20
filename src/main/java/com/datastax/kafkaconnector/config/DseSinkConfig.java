@@ -31,6 +31,7 @@ public class DseSinkConfig {
   static final String DC_OPT = "loadBalancing.localDc";
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
   static final String JMX_OPT = "jmx";
+  static final String COMPRESSION_OPT = "compression";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -64,7 +65,13 @@ public class DseSinkConfig {
               ConfigDef.Type.BOOLEAN,
               true,
               ConfigDef.Importance.HIGH,
-              "Whether to enable JMX reporting");
+              "Whether to enable JMX reporting")
+          .define(
+              COMPRESSION_OPT,
+              ConfigDef.Type.STRING,
+              "None",
+              ConfigDef.Importance.HIGH,
+              "None | LZ4 | Snappy");
 
   private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
   private final String instanceName;
@@ -108,6 +115,9 @@ public class DseSinkConfig {
     topicSettings.forEach(
         (name, topicConfigMap) -> topicConfigs.put(name, new TopicConfig(name, topicConfigMap)));
 
+    // Verify that the compression-type setting is valid.
+    getCompressionType();
+
     // Verify that we have a topic section for every topic we're subscribing to, if 'topics'
     // was provided. A user may use topics.regex to subscribe by pattern, in which case,
     // they're on their own.
@@ -150,6 +160,15 @@ public class DseSinkConfig {
     return globalConfig.getBoolean(JMX_OPT);
   }
 
+  public CompressionType getCompressionType() {
+    String typeString = globalConfig.getString(COMPRESSION_OPT);
+    try {
+      return CompressionType.valueOf(typeString);
+    } catch (IllegalArgumentException e) {
+      throw new ConfigException(COMPRESSION_OPT, typeString, "valid values are None, Snappy, LZ4");
+    }
+  }
+
   public List<String> getContactPoints() {
     return globalConfig.getList(CONTACT_POINTS_OPT);
   }
@@ -179,6 +198,7 @@ public class DseSinkConfig {
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "        jmx: %b%n"
+            + "        compression: %s%n"
             + "SSL configuration:%n%s%n"
             + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s",
@@ -187,6 +207,7 @@ public class DseSinkConfig {
         getLocalDc(),
         getMaxConcurrentRequests(),
         getJmx(),
+        getCompressionType(),
         Splitter.on("\n")
             .splitToList(sslConfig.toString())
             .stream()
@@ -208,5 +229,21 @@ public class DseSinkConfig {
                         .map(line -> "        " + line)
                         .collect(Collectors.joining("\n")))
             .collect(Collectors.joining("\n")));
+  }
+
+  public enum CompressionType {
+    None(null),
+    Snappy("snappy"),
+    LZ4("lz4");
+
+    private final String driverCompressionType;
+
+    CompressionType(String driverCompressionType) {
+      this.driverCompressionType = driverCompressionType;
+    }
+
+    public String getDriverCompressionType() {
+      return driverCompressionType;
+    }
   }
 }

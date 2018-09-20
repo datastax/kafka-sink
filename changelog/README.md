@@ -10,6 +10,7 @@
 - [improvement] KAF-10: Disallow connecting to C* nodes
 - [improvement] KAF-15: Gather metrics and report via JMX
 - [new feature] KAF-21: Delete row when record has no value
+- [new feature] KAF-45: Add 'compression' option to support sending compressed requests to DSE
 
 ### 1.0.0-alpha2
 - [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible
