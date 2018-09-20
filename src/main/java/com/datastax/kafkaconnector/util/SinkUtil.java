@@ -20,6 +20,7 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_P
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
@@ -404,6 +405,11 @@ public class SinkUtil {
           METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));
       configLoaderBuilder.withDuration(
           METRICS_SESSION_CQL_REQUESTS_INTERVAL, Duration.ofSeconds(30));
+    }
+
+    if (config.getCompressionType() != DseSinkConfig.CompressionType.None) {
+      configLoaderBuilder.withString(
+          PROTOCOL_COMPRESSION, config.getCompressionType().getDriverCompressionType());
     }
 
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();

@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
@@ -64,6 +65,18 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
+  void should_error_invalid_compression_type() {
+    Map<String, String> props =
+        Maps.newHashMap(ImmutableMap.<String, String>builder().put(COMPRESSION_OPT, "foo").build());
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "Invalid value foo for configuration %s: valid values are None, Snappy, LZ4",
+                COMPRESSION_OPT));
   }
 
   @Test

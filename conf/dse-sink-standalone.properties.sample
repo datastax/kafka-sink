@@ -22,6 +22,10 @@ topics=my_topic
 # Whether or not to enable stats reporting through JMX. Defaults to true.
 #jmx=true
 
+# Compression algorithm to use when issuing requests to DSE. Valid values are
+# None, Snappy, LZ4. Defaults to None.
+#compression=None
+
 ### Authentication Setings ###
 
 # Authentication provider to use, if any. Valid choices: None, DSE, GSSAPI.
@@ -97,7 +101,7 @@ topic.my_topic.mapping=col1=value.f1, col2=key.f1
 # avoid creating unnecessary tombstones. Defaults to true.
 #topic.my_topic.nullToUnset=true
 
-# Whether enabled, treat records that after mapping would result in only non-null values for
+# When enabled, treat records that after mapping would result in only non-null values for
 # primary key columns as deletes, rather than inserting/updating nulls for all regular columns.
 # Note that for this behavior to trigger, the mapping specification must map all columns in the
 # table. Defaults to true.
