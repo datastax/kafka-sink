@@ -206,9 +206,8 @@ class RecordMapperTest {
   void should_map_regular_fields() {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, false);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, false);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
@@ -222,15 +221,8 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     RecordMapper mapper =
         new RecordMapper(
-            insertUpdateStatement,
-            deleteStatement,
-            primaryKeys,
-            mapping,
-            recordMetadata,
-            true,
-            true,
-            false);
-    Statement result = mapper.map(record);
+            insertUpdateStatement, deleteStatement, primaryKeys, mapping, true, true, false);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
@@ -244,9 +236,8 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F2)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, false);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, false);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
@@ -260,15 +251,9 @@ class RecordMapperTest {
     when(record.getFieldValue(F2)).thenReturn(null);
     RecordMapper mapper =
         new RecordMapper(
-            insertUpdateStatement,
-            deleteStatement,
-            primaryKeys,
-            mapping,
-            recordMetadata,
-            true,
-            true,
-            false);
-    Statement result = mapper.map(record);
+            insertUpdateStatement, deleteStatement, primaryKeys, mapping, true, true, false);
+
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(deleteBoundStatement);
     verify(deleteBoundStatementBuilder, times(2))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
@@ -298,9 +283,8 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
         .setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-123456L, V4));
@@ -329,9 +313,8 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-1L, V4));
   }
@@ -357,9 +340,8 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
         .setBytesUnsafe(
@@ -389,9 +371,8 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, true);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
         .setBytesUnsafe(
@@ -404,9 +385,8 @@ class RecordMapperTest {
     when(record.getFieldValue(F2)).thenReturn(null);
     when(insertUpdateStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(0, 2));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, true, true, false);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, false);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
@@ -420,9 +400,8 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1));
     when(record.getFieldValue(F1)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, true);
-    Statement result = mapper.map(record);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, true);
+    Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
@@ -435,9 +414,9 @@ class RecordMapperTest {
     when(mapping.codec(C3, DataTypes.TEXT, GenericType.STRING))
         .thenThrow(CodecNotFoundException.class);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
-    assertThatThrownBy(() -> mapper.map(record)).isInstanceOf(CodecNotFoundException.class);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
+        .isInstanceOf(CodecNotFoundException.class);
     verify(insertUpdateBoundStatementBuilder, times(2))
         .setBytesUnsafe(variableCaptor.capture(), valueCaptor.capture());
     assertParameter(0, C1, TypeCodecs.INT.encode(42, V4));
@@ -449,9 +428,8 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F1)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Primary key column col1 cannot be mapped to null");
   }
@@ -461,10 +439,9 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(insertUpdateBoundStatement.isSet(C3)).thenReturn(false);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
 
-    assertThatThrownBy(() -> mapper.map(record))
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Primary key column(s) \"My Fancy Column Name\" cannot be left unmapped");
@@ -475,9 +452,8 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(mapping.fieldToColumns(F3_IDENT)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, false, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, false, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Extraneous field 'field3' was found in record. "
@@ -488,9 +464,8 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_extra_field_key() {
     when(record.fields()).thenReturn(set(F1, F2, F3, "key.__self"));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, false, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, false, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Extraneous field 'key' was found in record. "
@@ -501,9 +476,8 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_extra_field_value() {
     when(record.fields()).thenReturn(set(F1, F2, F3, "value.__self"));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, false, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, false, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Extraneous field 'value' was found in record. "
@@ -514,9 +488,8 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_missing_field() {
     when(record.fields()).thenReturn(set(F1, F2));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Required field 'field3' (mapped to column \"My Fancy Column Name\") was missing from record. "
@@ -529,9 +502,8 @@ class RecordMapperTest {
         .thenReturn(Collections.singleton(C1));
     when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("key.__self"));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Required field 'key' (mapped to column col1) was missing from record. "
@@ -544,9 +516,8 @@ class RecordMapperTest {
         .thenReturn(Collections.singleton(C1));
     when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("value.__self"));
     RecordMapper mapper =
-        new RecordMapper(
-            insertUpdateStatement, null, primaryKeys, mapping, recordMetadata, false, true, false);
-    assertThatThrownBy(() -> mapper.map(record))
+        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Required field 'value' (mapped to column col1) was missing from record. "

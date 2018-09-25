@@ -123,7 +123,7 @@ public class DseSinkConfig {
     // they're on their own.
     String topicsString = globalSettings.get("topics");
     if (topicsString != null) {
-      List<String> topics = Splitter.on(",").splitToList(topicsString);
+      List<String> topics = Splitter.on(",").trimResults().splitToList(topicsString);
       for (String topic : topics) {
         if (!topicConfigs.containsKey(topic)) {
           throw new ConfigException(

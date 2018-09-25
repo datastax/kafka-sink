@@ -17,7 +17,7 @@ import static com.datastax.kafkaconnector.util.SinkUtil.OBJECT_MAPPER;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
-import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
+import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.util.InstanceState;
 import com.datastax.kafkaconnector.util.SinkUtil;
@@ -27,8 +27,6 @@ import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.Statement;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -73,7 +71,6 @@ public class DseSinkTask extends SinkTask {
       Executors.newFixedThreadPool(
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
   private InstanceState instanceState;
-  private Cache<String, Mapping> mappingObjects;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private AtomicReference<State> state;
   private CountDownLatch stopLatch;
@@ -117,7 +114,6 @@ public class DseSinkTask extends SinkTask {
     log.debug("Task DseSinkTask starting with props: {}", props);
     state = new AtomicReference<>();
     state.set(State.WAIT);
-    mappingObjects = Caffeine.newBuilder().build();
     failureOffsets = new ConcurrentHashMap<>();
     stopLatch = new CountDownLatch(1);
     instanceState = SinkUtil.startTask(this, props);
@@ -210,10 +206,28 @@ public class DseSinkTask extends SinkTask {
     }
   }
 
-  private void mapAndQueueRecord(
+  void mapAndQueueRecord(
       BlockingQueue<RecordAndStatement> boundStatementsQueue, SinkRecord record) {
     try {
-      boundStatementsQueue.offer(new RecordAndStatement(record, mapRecord(record)));
+      String topicName = record.topic();
+      TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
+
+      for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
+        InnerDataAndMetadata key = makeMeta(record.key());
+        InnerDataAndMetadata value = makeMeta(record.value());
+        KeyValueRecord keyValueRecord =
+            new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
+        RecordMapper mapper = instanceState.getRecordMapper(tableConfig);
+        boundStatementsQueue.offer(
+            new RecordAndStatement(
+                record,
+                tableConfig.getKeyspaceAndTable(),
+                mapper
+                    .map(
+                        new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
+                        keyValueRecord)
+                    .setConsistencyLevel(tableConfig.getConsistencyLevel())));
+      }
     } catch (KafkaException | IOException e) {
       // The Kafka exception could occur if the record references an unknown topic.
       // The IOException can only theoretically happen when processing json data. But bad json
@@ -223,29 +237,6 @@ public class DseSinkTask extends SinkTask {
 
       handleFailure(record, e, null, instanceState.getFailedRecordCounter());
     }
-  }
-
-  private BoundStatement mapRecord(SinkRecord record) throws IOException {
-    String topicName = record.topic();
-    KafkaCodecRegistry codecRegistry = instanceState.getCodecRegistry(topicName);
-    TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
-    Mapping mapping =
-        mappingObjects.get(topicName, t -> new Mapping(topicConfig.getMapping(), codecRegistry));
-    InnerDataAndMetadata key = makeMeta(record.key());
-    InnerDataAndMetadata value = makeMeta(record.value());
-    KeyValueRecord keyValueRecord =
-        new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
-    RecordMapper mapper =
-        new RecordMapper(
-            instanceState.getPreparedInsertUpdate(topicName),
-            instanceState.getPreparedDelete(topicName),
-            instanceState.getPrimaryKeys().get(topicConfig.getKeyspaceAndTable()),
-            mapping,
-            new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
-            topicConfig.isNullToUnset(),
-            true,
-            false);
-    return mapper.map(keyValueRecord).setConsistencyLevel(topicConfig.getConsistencyLevel());
   }
 
   @Override
@@ -338,17 +329,23 @@ public class DseSinkTask extends SinkTask {
   }
 
   /** Simple container class to hold a SinkRecord and its associated BoundStatement. */
-  private static class RecordAndStatement {
+  static class RecordAndStatement {
     private final SinkRecord record;
+    private final String keyspaceAndTable;
     private final BoundStatement statement;
 
-    RecordAndStatement(SinkRecord record, BoundStatement statement) {
+    RecordAndStatement(SinkRecord record, String keyspaceAndTable, BoundStatement statement) {
       this.record = record;
+      this.keyspaceAndTable = keyspaceAndTable;
       this.statement = statement;
     }
 
     SinkRecord getRecord() {
       return record;
+    }
+
+    String getKeyspaceAndTable() {
+      return keyspaceAndTable;
     }
 
     BoundStatement getStatement() {
@@ -362,9 +359,9 @@ public class DseSinkTask extends SinkTask {
    * (currently 32). Execute BoundStatement's when there is only one in a group and we know no more
    * BoundStatements will be added to the queue.
    */
-  private class BoundStatementProcessor implements Runnable {
+  class BoundStatementProcessor implements Runnable {
     private static final int MAX_BATCH_SIZE = 32;
-    private final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null);
+    private final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
     private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
     private final Collection<CompletionStage<AsyncResultSet>> queryFutures;
     private final AtomicInteger successfulRecordCount = new AtomicInteger();
@@ -376,18 +373,19 @@ public class DseSinkTask extends SinkTask {
       this.queryFutures = queryFutures;
     }
 
-    private void queueStatements(List<RecordAndStatement> statements) {
+    private void executeStatements(List<RecordAndStatement> statements) {
       Statement statement;
       if (statements.isEmpty()) {
         // Should never happen, but just in case. No-op.
         return;
       }
 
+      RecordAndStatement firstStatement = statements.get(0);
       Histogram batchSizeHistogram =
-          instanceState.getBatchSizeHistogram(statements.get(0).getRecord().topic());
+          instanceState.getBatchSizeHistogram(
+              firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
       if (statements.size() == 1) {
-        RecordAndStatement recordAndStatement = statements.get(0);
-        statement = recordAndStatement.getStatement();
+        statement = firstStatement.getStatement();
         batchSizeHistogram.update(1);
       } else {
         BatchStatementBuilder bsb = BatchStatement.builder(DefaultBatchType.UNLOGGED);
@@ -395,7 +393,7 @@ public class DseSinkTask extends SinkTask {
         // Construct the batch statement; set its consistency level to that of its first
         // bound statement. All bound statements in a bucket have the same CL, so this is fine.
         statement =
-            bsb.build().setConsistencyLevel(statements.get(0).getStatement().getConsistencyLevel());
+            bsb.build().setConsistencyLevel(firstStatement.getStatement().getConsistencyLevel());
         batchSizeHistogram.update(statements.size());
       }
       @NotNull Semaphore requestBarrier = instanceState.getRequestBarrier();
@@ -461,23 +459,20 @@ public class DseSinkTask extends SinkTask {
                   .stream()
                   .map(Map::values)
                   .flatMap(Collection::stream)
-                  .forEach(this::queueStatements);
+                  .forEach(this::executeStatements);
               return;
             }
 
             // Get the routing-key and add this statement to the appropriate
-            // statement group.
+            // statement group. A statement group contains collections of
+            // bound statements for a particular table. Each collection contains
+            // statements for a particular routing key (a representation of partition key).
 
-            ByteBuffer routingKey = recordAndStatement.getStatement().getRoutingKey();
-            Map<ByteBuffer, List<RecordAndStatement>> topicGroup =
-                statementGroups.computeIfAbsent(
-                    recordAndStatement.getRecord().topic(), t -> new HashMap<>());
             List<RecordAndStatement> recordsAndStatements =
-                topicGroup.computeIfAbsent(routingKey, t -> new ArrayList<>());
-            recordsAndStatements.add(recordAndStatement);
+                categorizeStatement(statementGroups, recordAndStatement);
             if (recordsAndStatements.size() == MAX_BATCH_SIZE) {
               // We're ready to send out a batch request!
-              queueStatements(recordsAndStatements);
+              executeStatements(recordsAndStatements);
               recordsAndStatements.clear();
             }
           }
@@ -487,6 +482,21 @@ public class DseSinkTask extends SinkTask {
           Thread.currentThread().interrupt();
         }
       }
+    }
+
+    @NotNull
+    List<RecordAndStatement> categorizeStatement(
+        Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups,
+        RecordAndStatement recordAndStatement) {
+      BoundStatement statement = recordAndStatement.getStatement();
+      ByteBuffer routingKey = statement.getRoutingKey();
+      Map<ByteBuffer, List<RecordAndStatement>> statementGroup =
+          statementGroups.computeIfAbsent(
+              recordAndStatement.getKeyspaceAndTable(), t -> new HashMap<>());
+      List<RecordAndStatement> recordsAndStatements =
+          statementGroup.computeIfAbsent(routingKey, t -> new ArrayList<>());
+      recordsAndStatements.add(recordAndStatement);
+      return recordsAndStatements;
     }
 
     void stop() {

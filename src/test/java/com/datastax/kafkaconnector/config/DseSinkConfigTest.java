@@ -13,9 +13,8 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUES
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
-import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
-import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
-import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -134,12 +133,10 @@ class DseSinkConfigTest {
     Map<String, String> props =
         Maps.newHashMap(
             ImmutableMap.<String, String>builder()
-                .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), "MyKs")
-                .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), "MyTable")
-                .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), "c1=value.f1")
-                .put(TopicConfig.getTopicSettingName("yourtopic", KEYSPACE_OPT), "MyKs2")
-                .put(TopicConfig.getTopicSettingName("yourtopic", TABLE_OPT), "MyTable2")
-                .put(TopicConfig.getTopicSettingName("yourtopic", MAPPING_OPT), "d1=value.f1")
+                .put(getTableSettingPath("mytopic", "MyKs", "MyTable", MAPPING_OPT), "c1=value.f1")
+                .put(
+                    getTableSettingPath("yourtopic", "MyKs2", "MyTable2", MAPPING_OPT),
+                    "d1=value.f1")
                 .build());
     DseSinkConfig d = new DseSinkConfig(props);
     Map<String, TopicConfig> topicConfigs = d.getTopicConfigs();
@@ -166,9 +163,7 @@ class DseSinkConfigTest {
         Maps.newHashMap(
             ImmutableMap.<String, String>builder()
                 .put("topics", "mytopic2")
-                .put(TopicConfig.getTopicSettingName("mytopic", KEYSPACE_OPT), "MyKs")
-                .put(TopicConfig.getTopicSettingName("mytopic", TABLE_OPT), "MyTable")
-                .put(TopicConfig.getTopicSettingName("mytopic", MAPPING_OPT), "c1=value.f1")
+                .put(getTableSettingPath("mytopic", "MyKs", "MyTable", MAPPING_OPT), "c1=value.f1")
                 .build());
 
     assertThatThrownBy(() -> new DseSinkConfig(props))
@@ -176,13 +171,30 @@ class DseSinkConfigTest {
         .hasMessageContaining("Missing topic settings (topic.mytopic2.*) for topic mytopic2");
   }
 
+  @Test
+  void should_handle_topics_list_with_spaces() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put("topics", "mytopic, mytopic2")
+                .put(getTableSettingPath("mytopic", "MyKs", "MyTable", MAPPING_OPT), "c1=value.f1")
+                .put(
+                    getTableSettingPath("mytopic2", "MyKs2", "MyTable2", MAPPING_OPT),
+                    "c1=value.f1")
+                .build());
+
+    DseSinkConfig config = new DseSinkConfig(props);
+    assertThat(config.getTopicConfigs().size()).isEqualTo(2);
+  }
+
   private void assertTopic(
       String keyspace,
       String table,
       Map<CqlIdentifier, CqlIdentifier> mapping,
       TopicConfig config) {
-    assertThat(config.getKeyspace()).isEqualTo(CqlIdentifier.fromInternal(keyspace));
-    assertThat(config.getTable()).isEqualTo(CqlIdentifier.fromInternal(table));
-    assertThat(config.getMapping()).isEqualTo(mapping);
+    TableConfig tableConfig = config.getTableConfigs().iterator().next();
+    assertThat(tableConfig.getKeyspace()).isEqualTo(CqlIdentifier.fromInternal(keyspace));
+    assertThat(tableConfig.getTable()).isEqualTo(CqlIdentifier.fromInternal(table));
+    assertThat(tableConfig.getMapping()).isEqualTo(mapping);
   }
 }
