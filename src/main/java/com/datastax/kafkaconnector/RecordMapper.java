@@ -40,19 +40,17 @@ public class RecordMapper {
   private final PreparedStatement deleteStatement;
   private final Set<CqlIdentifier> primaryKeys;
   private final Mapping mapping;
-  private final RecordMetadata recordMetadata;
   private final boolean allowExtraFields;
   private final boolean allowMissingFields;
 
   /** Whether to map null input to "unset" */
   private final boolean nullToUnset;
 
-  RecordMapper(
+  public RecordMapper(
       PreparedStatement insertUpdateStatement,
       PreparedStatement deleteStatement,
       List<CqlIdentifier> primaryKeys,
       Mapping mapping,
-      RecordMetadata recordMetadata,
       boolean nullToUnset,
       boolean allowExtraFields,
       boolean allowMissingFields) {
@@ -60,7 +58,6 @@ public class RecordMapper {
     this.deleteStatement = deleteStatement;
     this.primaryKeys = new LinkedHashSet<>(primaryKeys);
     this.mapping = mapping;
-    this.recordMetadata = recordMetadata;
     this.nullToUnset = nullToUnset;
     this.allowExtraFields = allowExtraFields;
     this.allowMissingFields = allowMissingFields;
@@ -76,7 +73,7 @@ public class RecordMapper {
   }
 
   @NotNull
-  public BoundStatement map(Record record) {
+  public BoundStatement map(RecordMetadata recordMetadata, Record record) {
     Object raw;
     DataType cqlType;
     if (!allowMissingFields) {

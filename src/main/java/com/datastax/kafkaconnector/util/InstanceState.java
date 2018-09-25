@@ -15,11 +15,11 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.DseSinkTask;
-import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
+import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.List;
@@ -33,7 +33,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /** Container for a session, config, etc. */
 public class InstanceState {
@@ -134,7 +133,7 @@ public class InstanceState {
   }
 
   @NotNull
-  public Map<String, List<CqlIdentifier>> getPrimaryKeys() {
+  Map<String, List<CqlIdentifier>> getPrimaryKeys() {
     return primaryKeys;
   }
 
@@ -156,13 +155,8 @@ public class InstanceState {
   }
 
   @NotNull
-  public KafkaCodecRegistry getCodecRegistry(String topicName) {
-    return getTopicState(topicName).getCodecRegistry();
-  }
-
-  @NotNull
-  public Histogram getBatchSizeHistogram(String topicName) {
-    return getTopicState(topicName).getBatchSizeHistogram();
+  public Histogram getBatchSizeHistogram(String topicName, String keyspaceAndTable) {
+    return getTopicState(topicName).getBatchSizeHistogram(keyspaceAndTable);
   }
 
   @NotNull
@@ -171,13 +165,8 @@ public class InstanceState {
   }
 
   @NotNull
-  public PreparedStatement getPreparedInsertUpdate(String topicName) {
-    return getTopicState(topicName).getPreparedInsertUpdate();
-  }
-
-  @Nullable
-  public PreparedStatement getPreparedDelete(String topicName) {
-    return getTopicState(topicName).getPreparedDelete();
+  public RecordMapper getRecordMapper(TableConfig tableConfig) {
+    return getTopicState(tableConfig.getTopicName()).getRecordMapper(tableConfig);
   }
 
   @NotNull

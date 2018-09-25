@@ -87,7 +87,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   void createSmallTables() {
     session.execute(
         SimpleStatement.builder(
-                "CREATE TABLE IF NOT EXISTS fordelete_simple ("
+                "CREATE TABLE IF NOT EXISTS small_simple ("
                     + "bigintCol bigint PRIMARY KEY, "
                     + "booleanCol boolean, "
                     + "intCol int"
@@ -97,7 +97,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
     session.execute(
         SimpleStatement.builder(
-                "CREATE TABLE IF NOT EXISTS fordelete_compound ("
+                "CREATE TABLE IF NOT EXISTS small_compound ("
                     + "bigintCol bigint, "
                     + "booleanCol boolean, "
                     + "intCol int,"
@@ -109,8 +109,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   @BeforeEach
   void truncateTables() {
-    session.execute("TRUNCATE fordelete_simple");
-    session.execute("TRUNCATE fordelete_compound");
+    session.execute("TRUNCATE small_simple");
+    session.execute("TRUNCATE small_compound");
   }
 
   @Test
@@ -946,7 +946,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
     conn.start(
         makeConnectorProperties(
-            "bigintcol=key, textcol=value", ImmutableMap.of("topic.mytopic.nullToUnset", "false")));
+            "bigintcol=key, textcol=value",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "false")));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, 1234567L, null, null, 1234L);
     runTaskWithRecords(record);
@@ -988,9 +990,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         makeConnectorProperties(
             "bigintcol=value.key",
             ImmutableMap.of(
-                "topic.ctr.keyspace", keyspaceName,
-                "topic.ctr.table", "mycounter",
-                "topic.ctr.mapping", "c1=value.f1, c2=value.f2, c3=value.f3, c4=value.f4")));
+                String.format("topic.ctr.%s.mycounter.mapping", keyspaceName),
+                "c1=value.f1, c2=value.f2, c3=value.f3, c4=value.f4")));
     String value = "{" + "\"f1\": 1, " + "\"f2\": 2, " + "\"f3\": 3, " + "\"f4\": 4" + "}";
     SinkRecord record = new SinkRecord("ctr", 0, null, null, null, value, 1234L);
 
@@ -1052,9 +1053,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double",
             ImmutableMap.of(
-                "topic.yourtopic.keyspace", keyspaceName,
-                "topic.yourtopic.table", "types",
-                "topic.yourtopic.mapping", "bigintcol=key, intcol=value")));
+                "topic.yourtopic.keyspace",
+                keyspaceName,
+                String.format("topic.yourtopic.%s.types.mapping", keyspaceName),
+                "bigintcol=key, intcol=value")));
 
     // Set up records for "mytopic"
     Schema schema =
@@ -1092,17 +1094,59 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void single_record_multiple_tables() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.small_simple.mapping", keyspaceName),
+                "bigintcol=value.bigint, intcol=value.int")));
+
+    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("boolean", Schema.BOOLEAN_SCHEMA)
+            .field("int", Schema.INT32_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("bigint", 1234567L).put("boolean", true).put("int", 5725);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that a record was inserted in each of small_simple and types tables.
+    {
+      List<Row> results = session.execute("SELECT * FROM small_simple").all();
+      assertThat(results.size()).isEqualTo(1);
+      Row row = results.get(0);
+      assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+      assertThat(row.get("booleancol", GenericType.BOOLEAN)).isNull();
+      assertThat(row.getInt("intcol")).isEqualTo(5725);
+    }
+    {
+      List<Row> results = session.execute("SELECT * FROM types").all();
+      assertThat(results.size()).isEqualTo(1);
+      Row row = results.get(0);
+      assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+      assertThat(row.getBoolean("booleancol")).isTrue();
+      assertThat(row.getInt("intcol")).isEqualTo(5725);
+    }
+  }
+
+  @Test
   void delete_simple_key() {
     // First insert a row...
     session.execute(
-        "INSERT INTO fordelete_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM fordelete_simple").all();
+        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_simple").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
-            ImmutableMap.of("topic.mytopic.table", "fordelete_simple")));
+            "small_simple",
+            null));
 
     // Set up records for "mytopic"
     Schema schema =
@@ -1118,7 +1162,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM fordelete_simple").all();
+    results = session.execute("SELECT * FROM small_simple").all();
     assertThat(results.size()).isEqualTo(0);
   }
 
@@ -1127,10 +1171,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            "small_simple",
             ImmutableMap.of(
-                "topic.mytopic.table",
-                "fordelete_simple",
-                "topic.mytopic.deletesEnabled",
+                String.format("topic.mytopic.%s.small_simple.deletesEnabled", keyspaceName),
                 "false")));
 
     // Set up records for "mytopic"
@@ -1147,7 +1190,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // Verify that the record was inserted into DSE with null non-pk values.
-    List<Row> results = session.execute("SELECT * FROM fordelete_simple").all();
+    List<Row> results = session.execute("SELECT * FROM small_simple").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.get("bigintcol", GenericType.LONG)).isEqualTo(1234567L);
@@ -1159,14 +1202,15 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   void delete_compound_key() {
     // First insert a row...
     session.execute(
-        "INSERT INTO fordelete_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM fordelete_compound").all();
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
-            ImmutableMap.of("topic.mytopic.table", "fordelete_compound")));
+            "small_compound",
+            null));
 
     // Set up records for "mytopic"
     Schema schema =
@@ -1182,7 +1226,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM fordelete_compound").all();
+    results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
   }
 

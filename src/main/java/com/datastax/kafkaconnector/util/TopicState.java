@@ -10,10 +10,17 @@ package com.datastax.kafkaconnector.util;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
+import com.datastax.kafkaconnector.Mapping;
+import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
+import com.datastax.kafkaconnector.config.TableConfig;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Container for a topic-scoped entities that the sink tasks need (codec-registry, prepared
@@ -21,43 +28,54 @@ import org.jetbrains.annotations.Nullable;
  */
 class TopicState {
   private final String name;
-  private final PreparedStatement preparedInsertUpdate;
-  private final PreparedStatement preparedDelete;
   private final KafkaCodecRegistry codecRegistry;
-  private Histogram batchSizeHistogram;
+  private final Map<TableConfig, RecordMapper> recordMappers;
+  private Map<String, Histogram> batchSizeHistograms;
 
-  TopicState(
-      String name,
-      PreparedStatement preparedInsertUpdate,
-      PreparedStatement preparedDelete,
-      KafkaCodecRegistry codecRegistry) {
+  TopicState(String name, KafkaCodecRegistry codecRegistry) {
     this.name = name;
-    this.preparedInsertUpdate = preparedInsertUpdate;
-    this.preparedDelete = preparedDelete;
     this.codecRegistry = codecRegistry;
+    recordMappers = new ConcurrentHashMap<>();
+  }
+
+  void createRecordMapper(
+      TableConfig tableConfig,
+      List<CqlIdentifier> primaryKey,
+      PreparedStatement insertUpdateStatement,
+      PreparedStatement deleteStatement) {
+    recordMappers.putIfAbsent(
+        tableConfig,
+        new RecordMapper(
+            insertUpdateStatement,
+            deleteStatement,
+            primaryKey,
+            new Mapping(tableConfig.getMapping(), codecRegistry),
+            tableConfig.isNullToUnset(),
+            true,
+            false));
   }
 
   void initializeMetrics(MetricRegistry metricRegistry) {
-    batchSizeHistogram = metricRegistry.histogram(String.format("%s/batchSize", name));
+    // Add histograms for all topic-tables.
+    batchSizeHistograms =
+        recordMappers
+            .keySet()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    TableConfig::getKeyspaceAndTable,
+                    t ->
+                        metricRegistry.histogram(
+                            String.format("%s/%s/batchSize", name, t.getKeyspaceAndTable()))));
   }
 
   @NotNull
-  Histogram getBatchSizeHistogram() {
-    return batchSizeHistogram;
+  Histogram getBatchSizeHistogram(String keyspaceAndTable) {
+    return batchSizeHistograms.get(keyspaceAndTable);
   }
 
   @NotNull
-  PreparedStatement getPreparedInsertUpdate() {
-    return preparedInsertUpdate;
-  }
-
-  @Nullable
-  PreparedStatement getPreparedDelete() {
-    return preparedDelete;
-  }
-
-  @NotNull
-  KafkaCodecRegistry getCodecRegistry() {
-    return codecRegistry;
+  RecordMapper getRecordMapper(TableConfig tableConfig) {
+    return recordMappers.get(tableConfig);
   }
 }

@@ -97,6 +97,8 @@ class SimpleEndToEndSimulacronIT {
   private final DseSinkTask task;
   private final LogInterceptor logs;
   private final Map<String, String> connectorProperties;
+  private final String hostname;
+  private final String port;
 
   @SuppressWarnings("unused")
   SimpleEndToEndSimulacronIT(
@@ -109,8 +111,8 @@ class SimpleEndToEndSimulacronIT {
     this.logs = logs;
 
     InetSocketAddress node = simulacron.dc(0).node(0).inetSocketAddress();
-    String hostname = node.getHostName();
-    String port = Integer.toString(node.getPort());
+    hostname = node.getHostName();
+    port = Integer.toString(node.getPort());
 
     SinkTaskContext taskContext = mock(SinkTaskContext.class);
     task = new DseSinkTask();
@@ -134,13 +136,9 @@ class SimpleEndToEndSimulacronIT {
             .put("contactPoints", hostname)
             .put("port", port)
             .put("loadBalancing.localDc", "dc1")
-            .put("topic.mytopic.keyspace", "ks1")
-            .put("topic.mytopic.table", "table1")
-            .put("topic.mytopic.mapping", "a=key, b=value")
-            .put("topic.yourtopic.keyspace", "ks1")
-            .put("topic.yourtopic.table", "table2")
-            .put("topic.yourtopic.mapping", "a=key, b=value")
-            .put("topic.yourtopic.consistencyLevel", "QUORUM")
+            .put("topic.mytopic.ks1.table1.mapping", "a=key, b=value")
+            .put("topic.yourtopic.ks1.table2.mapping", "a=key, b=value")
+            .put("topic.yourtopic.ks1.table2.consistencyLevel", "QUORUM")
             .build();
   }
 
@@ -206,7 +204,7 @@ class SimpleEndToEndSimulacronIT {
     Query bad1 = makeQuery(32, "fail", 153000987000L);
     simulacron.prime(when(bad1).then(serverError("bad thing")).applyToPrepare());
     Map<String, String> props = new HashMap<>(connectorProperties);
-    props.put("topic.mytopic.deletesEnabled", "false");
+    props.put("topic.mytopic.ks1.table1.deletesEnabled", "false");
     Condition<Throwable> delete =
         new Condition<Throwable>("delete statement") {
           @Override
@@ -241,9 +239,7 @@ class SimpleEndToEndSimulacronIT {
             .put("contactPoints", connectorProperties.get("contactPoints"))
             .put("port", connectorProperties.get("port"))
             .put("loadBalancing.localDc", "dc1")
-            .put("topic.mytopic.keyspace", "ks1")
-            .put("topic.mytopic.table", "mycounter")
-            .put("topic.mytopic.mapping", "a=key, b=value, c=value.f2")
+            .put("topic.mytopic.ks1.mycounter.mapping", "a=key, b=value, c=value.f2")
             .build();
     assertThatThrownBy(() -> task.start(props))
         .isInstanceOf(RuntimeException.class)
@@ -264,9 +260,13 @@ class SimpleEndToEndSimulacronIT {
             ImmutableMap.<String, Object>builder().put("a", 37).put("b", "delete").build(),
             ImmutableMap.<String, String>builder().put("a", "int").put("b", "varchar").build());
     simulacron.prime(when(bad1).then(serverError("bad thing")));
-    Map<String, String> connProps = new HashMap<>(connectorProperties);
-    connProps.put("topic.mytopic.table", "mycounter");
-    connProps.put("topic.mytopic.mapping", "a=value.bigint, b=value.text, c=value.int");
+    Map<String, String> connProps = new HashMap<>();
+    connProps.put("name", INSTANCE_NAME);
+    connProps.put("contactPoints", hostname);
+    connProps.put("port", port);
+    connProps.put("loadBalancing.localDc", "dc1");
+    connProps.put(
+        "topic.mytopic.ks1.mycounter.mapping", "a=value.bigint, b=value.text, c=value.int");
 
     conn.start(connProps);
 

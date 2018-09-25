@@ -84,13 +84,9 @@ class RestrictionsEndToEndSimulacronIT {
             .put("contactPoints", hostname)
             .put("port", port)
             .put("loadBalancing.localDc", "dc1")
-            .put("topic.mytopic.keyspace", "ks1")
-            .put("topic.mytopic.table", "table1")
-            .put("topic.mytopic.mapping", "a=key, b=value")
-            .put("topic.yourtopic.keyspace", "ks1")
-            .put("topic.yourtopic.table", "table2")
-            .put("topic.yourtopic.mapping", "a=key, b=value")
-            .put("topic.yourtopic.consistencyLevel", "QUORUM")
+            .put("topic.mytopic.ks1.table1.mapping", "a=key, b=value")
+            .put("topic.yourtopic.ks1.table2.mapping", "a=key, b=value")
+            .put("topic.yourtopic.ks1.table2.consistencyLevel", "QUORUM")
             .build();
   }
 

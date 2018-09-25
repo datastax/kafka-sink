@@ -10,9 +10,11 @@ package com.datastax.kafkaconnector.util;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
+import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import java.util.HashMap;
 import java.util.List;
@@ -35,23 +37,15 @@ class InstanceStateTest {
   }
 
   @Test
-  void getCodecRegistry_fail() {
-    assertTopicNotFound(() -> instanceState.getCodecRegistry("unknown"));
-  }
-
-  @Test
   void getBatchSizeHistogram_fail() {
-    assertTopicNotFound(() -> instanceState.getBatchSizeHistogram("unknown"));
+    assertTopicNotFound(() -> instanceState.getBatchSizeHistogram("unknown", "unknown"));
   }
 
   @Test
-  void getPreparedInsertUpdateStatement_fail() {
-    assertTopicNotFound(() -> instanceState.getPreparedInsertUpdate("unknown"));
-  }
-
-  @Test
-  void getPreparedDeleteStatement_fail() {
-    assertTopicNotFound(() -> instanceState.getPreparedDelete("unknown"));
+  void getRecordMapper_fail() {
+    TableConfig config = mock(TableConfig.class);
+    when(config.getTopicName()).thenReturn("unknown");
+    assertTopicNotFound(() -> instanceState.getRecordMapper(config));
   }
 
   private void assertTopicNotFound(ThrowableAssert.ThrowingCallable callable) {

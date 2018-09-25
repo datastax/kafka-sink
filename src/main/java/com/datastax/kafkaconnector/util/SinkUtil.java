@@ -11,10 +11,7 @@ package com.datastax.kafkaconnector.util;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROTOCOL;
 import static com.datastax.dse.driver.api.core.metadata.DseNodeProperties.DSE_VERSION;
-import static com.datastax.kafkaconnector.config.TopicConfig.KEYSPACE_OPT;
-import static com.datastax.kafkaconnector.config.TopicConfig.MAPPING_OPT;
-import static com.datastax.kafkaconnector.config.TopicConfig.TABLE_OPT;
-import static com.datastax.kafkaconnector.config.TopicConfig.getTopicSettingName;
+import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
@@ -44,7 +41,7 @@ import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.AuthenticatorConfig;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.SslConfig;
-import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.ssl.SessionBuilder;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -70,6 +67,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +78,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +102,13 @@ public class SinkUtil {
 
   public static InstanceState startTask(DseSinkTask task, Map<String, String> props) {
     InstanceState instanceState =
-        INSTANCE_STATES.computeIfAbsent(props.get(NAME_OPT), (x) -> buildInstanceState(props));
+        INSTANCE_STATES.computeIfAbsent(
+            props.get(NAME_OPT),
+            x -> {
+              DseSinkConfig config = new DseSinkConfig(props);
+              DseSession session = buildDseSession(config);
+              return buildInstanceState(session, config);
+            });
     instanceState.registerTask(task);
     return instanceState;
   }
@@ -121,104 +126,38 @@ public class SinkUtil {
     log.info("Task is stopped");
   }
 
-  static Map<String, List<CqlIdentifier>> computePrimaryKeys(
-      DseSession session, DseSinkConfig config) {
-    return config
-        .getTopicConfigs()
-        .values()
-        .stream()
-        .collect(
-            Collectors.toMap(
-                TopicConfig::getKeyspaceAndTable,
-                topicConfig -> {
-                  CqlIdentifier keyspaceName = topicConfig.getKeyspace();
-                  CqlIdentifier tableName = topicConfig.getTable();
-                  Metadata metadata = session.getMetadata();
-                  Optional<? extends KeyspaceMetadata> keyspace =
-                      metadata.getKeyspace(keyspaceName);
-                  if (!keyspace.isPresent()) {
-                    String lowerCaseKeyspaceName = keyspaceName.asInternal().toLowerCase();
-                    if (metadata.getKeyspace(lowerCaseKeyspaceName).isPresent()) {
-                      throw new ConfigException(
-                          getTopicSettingName(topicConfig.getTopicName(), KEYSPACE_OPT),
-                          keyspaceName,
-                          String.format(
-                              "Keyspace does not exist, however a keyspace %s was found. Update the config to use %s if desired.",
-                              lowerCaseKeyspaceName, lowerCaseKeyspaceName));
-                    } else {
-                      throw new ConfigException(
-                          getTopicSettingName(topicConfig.getTopicName(), KEYSPACE_OPT),
-                          keyspaceName.asCql(true),
-                          "Not found");
-                    }
-                  }
-                  Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
-                  if (!table.isPresent()) {
-                    String lowerCaseTableName = tableName.asInternal().toLowerCase();
-                    if (keyspace.get().getTable(lowerCaseTableName).isPresent()) {
-                      throw new ConfigException(
-                          getTopicSettingName(topicConfig.getTopicName(), TABLE_OPT),
-                          tableName,
-                          String.format(
-                              "Table does not exist, however a table %s was found. Update the config to use %s if desired.",
-                              lowerCaseTableName, lowerCaseTableName));
-                    } else {
-                      throw new ConfigException(
-                          getTopicSettingName(topicConfig.getTopicName(), TABLE_OPT),
-                          tableName.asCql(true),
-                          "Not found");
-                    }
-                  }
-                  return table
-                      .get()
-                      .getPrimaryKey()
-                      .stream()
-                      .map(ColumnMetadata::getName)
-                      .collect(Collectors.toList());
-                },
-                (old, n) -> old));
-  }
-
   /**
-   * Validate that the mapping in the given topicConfig references columns that exist in the table,
+   * Validate that the mapping in the given tableConfig references columns that exist in the table,
    * and that every primary key column in the table has a mapping.
    *
-   * @param session the DSE session
-   * @param topicConfig the TopicConfig to evaluate
+   * @param table the TableMetadata of the table
+   * @param tableConfig the TableConfig to evaluate
    * @return true if all columns in the table are mapped, false otherwise.
    */
-  static boolean validateMappingColumns(DseSession session, TopicConfig topicConfig) {
-    CqlIdentifier keyspaceName = topicConfig.getKeyspace();
-    CqlIdentifier tableName = topicConfig.getTable();
-    Metadata metadata = session.getMetadata();
-    Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
-    assert keyspace.isPresent();
-    Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
-    assert table.isPresent();
-
-    Map<CqlIdentifier, CqlIdentifier> mapping = topicConfig.getMapping();
+  static boolean validateMappingColumns(TableMetadata table, TableConfig tableConfig) {
+    Map<CqlIdentifier, CqlIdentifier> mapping = tableConfig.getMapping();
 
     // The columns in the mapping are the keys. Check that each exists in the table.
     String nonExistentCols =
         mapping
             .keySet()
             .stream()
-            .filter(col -> !table.get().getColumn(col).isPresent())
+            .filter(col -> !table.getColumn(col).isPresent())
             .map(c -> c.asCql(true))
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentCols)) {
       throw new ConfigException(
-          getTopicSettingName(topicConfig.getTopicName(), MAPPING_OPT),
-          topicConfig.getMappingString(),
+          tableConfig.getSettingPath(MAPPING_OPT),
+          tableConfig.getMappingString(),
           String.format(
-              "The following columns do not exist in table %s: %s", tableName, nonExistentCols));
+              "The following columns do not exist in table %s: %s",
+              tableConfig.getTable().asInternal(), nonExistentCols));
     }
 
     // Now verify that each column that makes up the primary key in the table has a
     // reference in the mapping.
     String nonExistentKeyCols =
         table
-            .get()
             .getPrimaryKey()
             .stream()
             .filter(col -> !mapping.containsKey(col.getName()))
@@ -226,20 +165,25 @@ public class SinkUtil {
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentKeyCols)) {
       throw new ConfigException(
-          getTopicSettingName(topicConfig.getTopicName(), MAPPING_OPT),
-          topicConfig.getMappingString(),
+          tableConfig.getSettingPath(MAPPING_OPT),
+          tableConfig.getMappingString(),
           String.format(
               "The following columns are part of the primary key but are not mapped: %s",
               nonExistentKeyCols));
     }
 
-    return mapping.keySet().size() == table.get().getColumns().size();
+    return mapping.keySet().size() == table.getColumns().size();
   }
 
-  static String makeInsertStatement(TopicConfig config) {
+  @NotNull
+  static String makeInsertStatement(TableConfig config) {
     Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
     StringBuilder statementBuilder = new StringBuilder("INSERT INTO ");
-    statementBuilder.append(config.getKeyspace()).append('.').append(config.getTable()).append('(');
+    statementBuilder
+        .append(config.getKeyspace().asCql(true))
+        .append('.')
+        .append(config.getTable().asCql(true))
+        .append('(');
 
     // Add the column names, which are the keys in the mapping. As we do so, collect the
     // bind variable names (e.g. :col) in a buffer (to achieve consistent order).
@@ -267,7 +211,8 @@ public class SinkUtil {
     return statementBuilder.toString();
   }
 
-  static String makeUpdateCounterStatement(TopicConfig config, TableMetadata table) {
+  @NotNull
+  static String makeUpdateCounterStatement(TableConfig config, TableMetadata table) {
     if (config.getTtl() != -1) {
       throw new ConfigException("Cannot set ttl when updating a counter table");
     }
@@ -279,9 +224,9 @@ public class SinkUtil {
     Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
     StringBuilder statementBuilder = new StringBuilder("UPDATE ");
     statementBuilder
-        .append(config.getKeyspace())
+        .append(config.getKeyspace().asCql(true))
         .append('.')
-        .append(config.getTable())
+        .append(config.getTable().asCql(true))
         .append(" SET ");
 
     List<CqlIdentifier> pks =
@@ -322,14 +267,18 @@ public class SinkUtil {
     return statementBuilder.toString();
   }
 
-  static String makeDeleteStatement(TopicConfig config, TableMetadata table) {
+  @NotNull
+  static String makeDeleteStatement(TableConfig config, TableMetadata table) {
 
     // Create a DELETE statement that looks like this:
     // DELETE FROM ks.table
     // WHERE pk1 = :pk1 AND pk2 = :pk2 ...
 
     StringBuilder statementBuilder = new StringBuilder("DELETE FROM ");
-    statementBuilder.append(config.getKeyspace()).append('.').append(config.getTable());
+    statementBuilder
+        .append(config.getKeyspace().asCql(true))
+        .append('.')
+        .append(config.getTable().asCql(true));
 
     List<CqlIdentifier> pks =
         table.getPrimaryKey().stream().map(ColumnMetadata::getName).collect(Collectors.toList());
@@ -347,6 +296,40 @@ public class SinkUtil {
     }
 
     return statementBuilder.toString();
+  }
+
+  @NotNull
+  static TableMetadata getTableMetadata(DseSession session, TableConfig tableConfig) {
+    CqlIdentifier keyspaceName = tableConfig.getKeyspace();
+    CqlIdentifier tableName = tableConfig.getTable();
+    Metadata metadata = session.getMetadata();
+    Optional<? extends KeyspaceMetadata> keyspace = metadata.getKeyspace(keyspaceName);
+    if (!keyspace.isPresent()) {
+      String lowerCaseKeyspaceName = keyspaceName.asInternal().toLowerCase();
+      if (metadata.getKeyspace(lowerCaseKeyspaceName).isPresent()) {
+        throw new ConfigException(
+            String.format(
+                "Keyspace %s does not exist, however a keyspace %s was found. Update the config to use %s if desired.",
+                keyspaceName.asInternal(), lowerCaseKeyspaceName, lowerCaseKeyspaceName));
+      } else {
+        throw new ConfigException(
+            String.format("Keyspace %s does not exist.", keyspaceName.asInternal()));
+      }
+    }
+    Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
+    if (!table.isPresent()) {
+      String lowerCaseTableName = tableName.asInternal().toLowerCase();
+      if (keyspace.get().getTable(lowerCaseTableName).isPresent()) {
+        throw new ConfigException(
+            String.format(
+                "Table %s does not exist, however a table %s was found. Update the config to use %s if desired.",
+                tableName.asInternal(), lowerCaseTableName, lowerCaseTableName));
+      } else {
+        throw new ConfigException(
+            String.format("Table %s does not exist.", tableName.asInternal()));
+      }
+    }
+    return table.get();
   }
 
   private static void closeQuietly(AutoCloseable closeable) {
@@ -384,8 +367,90 @@ public class SinkUtil {
     }
   }
 
-  private static InstanceState buildInstanceState(Map<String, String> props) {
-    DseSinkConfig config = new DseSinkConfig(props);
+  @NotNull
+  static InstanceState buildInstanceState(DseSession session, DseSinkConfig config) {
+    checkProductCompatibility(session);
+
+    // Compute the primary keys of all tables being mapped to. This has the side effect
+    // of throwing an exception if a table or keyspace doesn't exist.
+    Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
+
+    Config kafkaConfig = ConfigFactory.load().getConfig("kafka");
+
+    // Walk through topic-configs to create TopicState's. This involves computing the
+    // codec-registry and the following for each mapped table:
+    // cql for insert-update statements
+    // cql for delete statements
+    // prepared-statement for insert/update requests
+    // prepared-statement for delete requests, if deletesEnabled is true and all columns are mapped.
+    Map<String, TopicState> topicStates = new ConcurrentHashMap<>();
+    List<CompletionStage<Void>> futures =
+        config
+            .getTopicConfigs()
+            .values()
+            .stream()
+            .map(
+                topicConfig -> {
+                  CodecSettings codecSettings =
+                      new CodecSettings(
+                          new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
+                              .withFallback(kafkaConfig.getConfig("codec")));
+                  codecSettings.init();
+                  KafkaCodecRegistry codecRegistry =
+                      codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
+                  TopicState topicState = new TopicState(topicConfig.getTopicName(), codecRegistry);
+                  topicStates.put(topicConfig.getTopicName(), topicState);
+
+                  return topicConfig
+                      .getTableConfigs()
+                      .stream()
+                      .map(
+                          tableConfig -> {
+                            TableMetadata table = getTableMetadata(session, tableConfig);
+                            // Save off the primary key of the table, if we haven't done so
+                            // already.
+                            String keyspaceAndTable = tableConfig.getKeyspaceAndTable();
+                            if (!primaryKeys.containsKey(keyspaceAndTable)) {
+                              primaryKeys.put(
+                                  keyspaceAndTable,
+                                  table
+                                      .getPrimaryKey()
+                                      .stream()
+                                      .map(ColumnMetadata::getName)
+                                      .collect(Collectors.toList()));
+                            }
+
+                            return prepareStatementsAsync(
+                                session,
+                                topicState,
+                                tableConfig,
+                                table,
+                                primaryKeys.get(keyspaceAndTable));
+                          })
+                      .collect(Collectors.toList());
+                })
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
+
+    // Wait for all of the prepares to complete and topicStates to be up-to-date.
+    futures.forEach(
+        f -> {
+          try {
+            f.toCompletableFuture().join();
+          } catch (CompletionException e) {
+            // The exception wraps an underlying runtime exception. Throw *that*.
+            throw (RuntimeException) e.getCause();
+          }
+        });
+
+    // Configure the json object mapper
+    OBJECT_MAPPER.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
+
+    return new InstanceState(config, session, primaryKeys, topicStates);
+  }
+
+  @NotNull
+  private static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
@@ -412,6 +477,39 @@ public class SinkUtil {
           PROTOCOL_COMPRESSION, config.getCompressionType().getDriverCompressionType());
     }
 
+    processAuthenticatorConfig(config, configLoaderBuilder);
+    processSslConfig(sslConfig, configLoaderBuilder);
+    builder.withConfigLoader(configLoaderBuilder.build());
+
+    return builder.build();
+  }
+
+  private static void processSslConfig(
+      SslConfig sslConfig, DefaultDriverConfigLoaderBuilder configLoaderBuilder) {
+    if (sslConfig.getProvider() == SslConfig.Provider.JDK) {
+      configLoaderBuilder.withString(SSL_ENGINE_FACTORY_CLASS, "DefaultSslEngineFactory");
+      List<String> cipherSuites = sslConfig.getCipherSuites();
+      if (!cipherSuites.isEmpty()) {
+        configLoaderBuilder.withStringList(SSL_CIPHER_SUITES, cipherSuites);
+      }
+      configLoaderBuilder
+          .withBoolean(SSL_HOSTNAME_VALIDATION, sslConfig.requireHostnameValidation())
+          .withString(SSL_TRUSTSTORE_PASSWORD, sslConfig.getTruststorePassword())
+          .withString(SSL_KEYSTORE_PASSWORD, sslConfig.getKeystorePassword());
+
+      Path truststorePath = sslConfig.getTruststorePath();
+      if (truststorePath != null) {
+        configLoaderBuilder.withString(SSL_TRUSTSTORE_PATH, truststorePath.toString());
+      }
+      Path keystorePath = sslConfig.getKeystorePath();
+      if (keystorePath != null) {
+        configLoaderBuilder.withString(SSL_KEYSTORE_PATH, keystorePath.toString());
+      }
+    }
+  }
+
+  private static void processAuthenticatorConfig(
+      DseSinkConfig config, DefaultDriverConfigLoaderBuilder configLoaderBuilder) {
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
     if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
       configLoaderBuilder
@@ -452,126 +550,46 @@ public class SinkUtil {
               AUTH_PROVIDER_SASL_PROPERTIES, ImmutableMap.of("javax.security.sasl.qop", "auth"))
           .withStringMap(DseDriverOption.AUTH_PROVIDER_LOGIN_CONFIGURATION, loginConfig);
     }
+  }
 
-    if (sslConfig.getProvider() == SslConfig.Provider.JDK) {
-      configLoaderBuilder.withString(SSL_ENGINE_FACTORY_CLASS, "DefaultSslEngineFactory");
-      List<String> cipherSuites = sslConfig.getCipherSuites();
-      if (!cipherSuites.isEmpty()) {
-        configLoaderBuilder.withStringList(SSL_CIPHER_SUITES, cipherSuites);
-      }
-      configLoaderBuilder
-          .withBoolean(SSL_HOSTNAME_VALIDATION, sslConfig.requireHostnameValidation())
-          .withString(SSL_TRUSTSTORE_PASSWORD, sslConfig.getTruststorePassword())
-          .withString(SSL_KEYSTORE_PASSWORD, sslConfig.getKeystorePassword());
+  @NotNull
+  private static CompletionStage<Void> prepareStatementsAsync(
+      DseSession session,
+      TopicState topicState,
+      TableConfig tableConfig,
+      TableMetadata table,
+      List<CqlIdentifier> primaryKey) {
+    boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
+    String insertUpdateStatement =
+        isCounterTable(table)
+            ? makeUpdateCounterStatement(tableConfig, table)
+            : makeInsertStatement(tableConfig);
 
-      Path truststorePath = sslConfig.getTruststorePath();
-      if (truststorePath != null) {
-        configLoaderBuilder.withString(SSL_TRUSTSTORE_PATH, truststorePath.toString());
-      }
-      Path keystorePath = sslConfig.getKeystorePath();
-      if (keystorePath != null) {
-        configLoaderBuilder.withString(SSL_KEYSTORE_PATH, keystorePath.toString());
-      }
+    CompletionStage<PreparedStatement> insertUpdateFuture =
+        session.prepareAsync(insertUpdateStatement);
+    CompletionStage<PreparedStatement> deleteFuture;
+    String deleteStatement = makeDeleteStatement(tableConfig, table);
+    if (tableConfig.isDeletesEnabled() && allColumnsMapped) {
+      deleteFuture = session.prepareAsync(deleteStatement);
+    } else {
+      // Make a dummy future that's already completed since there is no work to do here.
+      deleteFuture = new CompletableFuture<>();
+      ((CompletableFuture<PreparedStatement>) deleteFuture).complete(null);
     }
-    builder.withConfigLoader(configLoaderBuilder.build());
-
-    DseSession session = builder.build();
-    checkProductCompatibility(session);
-
-    // Compute the primary keys of all tables being mapped to. This has the side effect
-    // of throwing an exception if a table or keyspace doesn't exist.
-    Map<String, List<CqlIdentifier>> primaryKeys = computePrimaryKeys(session, config);
-
-    Config kafkaConfig = ConfigFactory.load().getConfig("kafka");
-
-    // Walk through topic-configs to create TopicState's. This involves computing the following:
-    // codec-registry
-    // cql for insert-update statements
-    // cql for delete statements
-    // prepared-statement for insert/update requests
-    // prepared-statement for delete requests, if deletesEnabled is true and all columns are mapped.
-    Map<String, TopicState> topicStates = new ConcurrentHashMap<>();
-    List<CompletionStage<Void>> futures =
-        config
-            .getTopicConfigs()
-            .values()
-            .stream()
-            .map(
-                topicConfig -> {
-                  boolean allColumnsMapped = validateMappingColumns(session, topicConfig);
-                  CqlIdentifier keyspaceName = topicConfig.getKeyspace();
-                  CqlIdentifier tableName = topicConfig.getTable();
-                  Metadata metadata = session.getMetadata();
-                  Optional<? extends KeyspaceMetadata> keyspace =
-                      metadata.getKeyspace(keyspaceName);
-                  assert (keyspace.isPresent());
-                  Optional<? extends TableMetadata> table = keyspace.get().getTable(tableName);
-                  assert table.isPresent();
-
-                  String insertUpdateStatement =
-                      isCounterTable(table.get())
-                          ? makeUpdateCounterStatement(topicConfig, table.get())
-                          : makeInsertStatement(topicConfig);
-                  CompletionStage<PreparedStatement> insertUpdateFuture =
-                      session.prepareAsync(insertUpdateStatement);
-                  CompletionStage<PreparedStatement> deleteFuture;
-                  String deleteStatement = makeDeleteStatement(topicConfig, table.get());
-                  if (topicConfig.isDeletesEnabled() && allColumnsMapped) {
-                    deleteFuture = session.prepareAsync(deleteStatement);
-                  } else {
-                    // Make a dummy future that's already completed since there is no work to do
-                    // here.
-                    deleteFuture = new CompletableFuture<>();
-                    ((CompletableFuture<PreparedStatement>) deleteFuture).complete(null);
-                  }
-                  return insertUpdateFuture
-                      .thenAcceptBoth(
-                          deleteFuture,
-                          (preparedInsertUpdate, preparedDelete) -> {
-                            CodecSettings codecSettings =
-                                new CodecSettings(
-                                    new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
-                                        .withFallback(kafkaConfig.getConfig("codec")));
-                            codecSettings.init();
-                            KafkaCodecRegistry codecRegistry =
-                                codecSettings.createCodecRegistry(
-                                    session.getContext().getCodecRegistry());
-                            topicStates.put(
-                                topicConfig.getTopicName(),
-                                new TopicState(
-                                    topicConfig.getTopicName(),
-                                    preparedInsertUpdate,
-                                    preparedDelete,
-                                    codecRegistry));
-                          })
-                      .exceptionally(
-                          e -> {
-                            String statements =
-                                deleteFuture.toCompletableFuture().join() != null
-                                    ? String.format(
-                                        "%s or %s", insertUpdateStatement, deleteStatement)
-                                    : insertUpdateStatement;
-                            throw new RuntimeException(
-                                String.format("Prepare failed for statement: %s", statements),
-                                e.getCause());
-                          });
-                })
-            .collect(Collectors.toList());
-
-    // Wait for all of the prepares to complete and topicStates to be up-to-date.
-    futures.forEach(
-        f -> {
-          try {
-            f.toCompletableFuture().join();
-          } catch (CompletionException e) {
-            // The exception wraps an underlying runtime exception. Throw *that*.
-            throw (RuntimeException) e.getCause();
-          }
-        });
-
-    // Configure the json object mapper
-    OBJECT_MAPPER.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
-
-    return new InstanceState(config, session, primaryKeys, topicStates);
+    return insertUpdateFuture
+        .thenAcceptBoth(
+            deleteFuture,
+            (preparedInsertUpdate, preparedDelete) ->
+                topicState.createRecordMapper(
+                    tableConfig, primaryKey, preparedInsertUpdate, preparedDelete))
+        .exceptionally(
+            e -> {
+              String statements =
+                  deleteFuture.toCompletableFuture().join() != null
+                      ? String.format("%s or %s", insertUpdateStatement, deleteStatement)
+                      : insertUpdateStatement;
+              throw new RuntimeException(
+                  String.format("Prepare failed for statement: %s", statements), e.getCause());
+            });
   }
 }
