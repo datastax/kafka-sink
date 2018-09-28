@@ -10,6 +10,9 @@ package com.datastax.kafkaconnector.util;
 
 /** Utility methods for manipulating strings. */
 public class StringUtil {
+  /** This is a utility class and should never be instantiated. */
+  private StringUtil() {}
+
   public static String singleQuote(String s) {
     return "'" + s + "'";
   }
@@ -17,6 +20,4 @@ public class StringUtil {
   public static boolean isEmpty(String s) {
     return s == null || s.isEmpty();
   }
-
-  private StringUtil() {}
 }

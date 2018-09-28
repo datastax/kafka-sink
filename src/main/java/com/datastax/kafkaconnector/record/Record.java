@@ -6,13 +6,14 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.record;
 
 import org.apache.kafka.connect.sink.SinkRecord;
 
-/** Exception for when {@link SinkRecord}s fail to parse. */
-class InvalidRecordException extends RuntimeException {
-  InvalidRecordException(String message, Throwable cause) {
-    super(message, cause);
-  }
+/**
+ * A parsed {@link SinkRecord} that is ready to have field mapping applied to it for inserting into
+ * DSE.
+ */
+public interface Record extends KeyOrValue {
+  Long getTimestamp();
 }

@@ -17,6 +17,7 @@ import java.net.SocketAddress;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 
+/** Factory for creating OpenSSL ssl handlers. */
 public class OpenSslHandlerFactory implements SslHandlerFactory {
   private final SslContext context;
   private final boolean requireHostValidation;

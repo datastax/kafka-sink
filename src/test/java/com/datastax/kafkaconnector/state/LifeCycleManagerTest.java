@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector.util;
+package com.datastax.kafkaconnector.state;
 
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
@@ -23,16 +23,15 @@ import com.datastax.dse.driver.api.core.metadata.DseMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseColumnMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
-import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TableConfigBuilder;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,12 +40,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigException;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked")
-class SinkUtilTest {
+class LifeCycleManagerTest {
   private static final String C1 = "c1";
   private static final String C2 = "This is column 2, and its name desperately needs quoting";
   private static final String C3 = "c3";
@@ -127,7 +125,7 @@ class SinkUtilTest {
 
     assertThatThrownBy(
             () ->
-                SinkUtil.getTableMetadata(
+                LifeCycleManager.getTableMetadata(
                     session, makeTableConfig("MyKs", "mytable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage(
@@ -141,7 +139,7 @@ class SinkUtilTest {
 
     assertThatThrownBy(
             () ->
-                SinkUtil.getTableMetadata(
+                LifeCycleManager.getTableMetadata(
                     session, makeTableConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage(
@@ -153,7 +151,9 @@ class SinkUtilTest {
     when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(Optional.empty());
     when(metadata.getKeyspace("myks")).thenReturn(Optional.empty());
     assertThatThrownBy(
-            () -> SinkUtil.getTableMetadata(session, makeTableConfig("MyKs", "t1", "c1=value.f1")))
+            () ->
+                LifeCycleManager.getTableMetadata(
+                    session, makeTableConfig("MyKs", "t1", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage("Keyspace MyKs does not exist.");
   }
@@ -165,36 +165,16 @@ class SinkUtilTest {
 
     assertThatThrownBy(
             () ->
-                SinkUtil.getTableMetadata(
+                LifeCycleManager.getTableMetadata(
                     session, makeTableConfig("ks1", "MyTable", "c1=value.f1")))
         .isInstanceOf(ConfigException.class)
         .hasMessage("Table MyTable does not exist.");
   }
 
   @Test
-  void should_compute_primary_keys() {
-    when((Optional<DseTableMetadata>) keyspace.getTable(CqlIdentifier.fromInternal("MyTable")))
-        .thenReturn(Optional.of(table));
-    when((List<DseColumnMetadata>) table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col3));
-    ImmutableMap<String, String> table1Props =
-        makeTableProps("MyTable", "c1=value.f1, c3=value.f3");
-    Map<String, String> finalProps = new HashMap<>(table1Props);
-    ImmutableMap<String, String> table2Props =
-        makeTableProps(
-            "mytable2", "\"This is column 2, and its name desperately needs quoting\"=value.f2");
-    finalProps.putAll(table2Props);
-    DseSinkConfig config = new DseSinkConfig(finalProps);
-    InstanceState state = SinkUtil.buildInstanceState(session, config);
-    assertThat(state.getPrimaryKeys())
-        .containsOnly(
-            Assertions.entry("ks1.\"MyTable\"", Arrays.asList(C1_IDENT, C3_IDENT)),
-            Assertions.entry("ks1.mytable2", Collections.singletonList(C2_IDENT)));
-  }
-
-  @Test
   void should_error_when_mapping_does_not_use_primary_key_columns() {
     TableConfig config = makeTableConfig("myks", "mytable", C3 + "=key.f3");
-    assertThatThrownBy(() -> SinkUtil.validateMappingColumns(table, config))
+    assertThatThrownBy(() -> LifeCycleManager.validateMappingColumns(table, config))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Invalid value c3=key.f3 for configuration topic.mytopic.myks.mytable.mapping:")
@@ -204,7 +184,7 @@ class SinkUtilTest {
   @Test
   void should_error_when_mapping_has_nonexistent_column() {
     TableConfig config = makeTableConfig("myks", "mytable", "nocol=key.f3");
-    assertThatThrownBy(() -> SinkUtil.validateMappingColumns(table, config))
+    assertThatThrownBy(() -> LifeCycleManager.validateMappingColumns(table, config))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Invalid value nocol=key.f3 for configuration topic.mytopic.myks.mytable.mapping:")
@@ -216,14 +196,14 @@ class SinkUtilTest {
     TableConfig config =
         makeTableConfig(
             "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
-    assertThat(SinkUtil.validateMappingColumns(table, config)).isTrue();
+    assertThat(LifeCycleManager.validateMappingColumns(table, config)).isTrue();
   }
 
   @Test
   void should_compute_that_all_columns_are_not_mapped() {
     TableConfig config =
         makeTableConfig("myks", "mytable", String.format("%s=key.f1, %s=key.f3", C1, C3));
-    assertThat(SinkUtil.validateMappingColumns(table, config)).isFalse();
+    assertThat(LifeCycleManager.validateMappingColumns(table, config)).isFalse();
   }
 
   @Test
@@ -231,7 +211,7 @@ class SinkUtilTest {
     TableConfig config =
         makeTableConfig(
             "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
-    assertThat(SinkUtil.makeInsertStatement(config))
+    assertThat(LifeCycleManager.makeInsertStatement(config))
         .isEqualTo(
             String.format(
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) USING TIMESTAMP :%s",
@@ -246,7 +226,7 @@ class SinkUtilTest {
             "mytable",
             String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3),
             1234);
-    assertThat(SinkUtil.makeInsertStatement(config))
+    assertThat(LifeCycleManager.makeInsertStatement(config))
         .isEqualTo(
             String.format(
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
@@ -263,7 +243,7 @@ class SinkUtilTest {
         makeTableConfig(
             "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
 
-    assertThat(SinkUtil.makeUpdateCounterStatement(config, table))
+    assertThat(LifeCycleManager.makeUpdateCounterStatement(config, table))
         .isEqualTo(
             String.format(
                 "UPDATE myks.mytable SET \"%s\" = \"%s\" + :\"%s\",%s = %s + :%s WHERE %s = :%s",
@@ -279,7 +259,7 @@ class SinkUtilTest {
         makeTableConfig(
             "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
 
-    assertThat(SinkUtil.makeUpdateCounterStatement(config, table))
+    assertThat(LifeCycleManager.makeUpdateCounterStatement(config, table))
         .isEqualTo(
             String.format(
                 "UPDATE myks.mytable SET %s = %s + :%s WHERE %s = :%s AND \"%s\" = :\"%s\"",
@@ -294,7 +274,7 @@ class SinkUtilTest {
         makeTableConfig(
             "myks", "mytable", String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3));
 
-    assertThat(SinkUtil.makeDeleteStatement(config, table))
+    assertThat(LifeCycleManager.makeDeleteStatement(config, table))
         .isEqualTo(
             String.format(
                 "DELETE FROM myks.mytable WHERE %s = :%s AND \"%s\" = :\"%s\"", C1, C1, C2, C2));

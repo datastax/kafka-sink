@@ -60,6 +60,14 @@ public class DseSinkConnector extends SinkConnector {
     return DseSinkTask.class;
   }
 
+  /**
+   * Invoked by the Connect infrastructure to retrieve the settings to pass to new {@link
+   * DseSinkTask}'s. Since all configuration is actually managed by the DseSinkTask, all sink
+   * properties are passed to tasks.
+   *
+   * @param maxTasks max number of tasks the infrastructure will create
+   * @return list of collections of settings, one for each task
+   */
   @Override
   public List<Map<String, String>> taskConfigs(int maxTasks) {
     ArrayList<Map<String, String>> configs = new ArrayList<>();

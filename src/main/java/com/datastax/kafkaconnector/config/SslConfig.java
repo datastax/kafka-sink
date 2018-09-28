@@ -105,7 +105,7 @@ public class SslConfig extends AbstractConfig {
   private final @Nullable Path truststorePath;
   private final @Nullable Path certFilePath;
   private final @Nullable Path privateKeyPath;
-  private final SslContext sslContext;
+  private final @Nullable SslContext sslContext;
 
   SslConfig(Map<String, String> sslSettings) {
     super(CONFIG_DEF, sslSettings, false);
@@ -217,6 +217,7 @@ public class SslConfig extends AbstractConfig {
     return getPassword(TRUSTSTORE_PASSWORD_OPT).value();
   }
 
+  @Nullable
   public SslContext getSslContext() {
     return sslContext;
   }

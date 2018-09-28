@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
@@ -28,7 +28,7 @@ public class RawData implements KeyOrValue, RecordMetadata {
   private final GenericType<?> type;
   private final Object value;
 
-  RawData(Object keyOrValue) {
+  public RawData(Object keyOrValue) {
     // The driver requires a ByteBuffer rather than byte[] when inserting a blob.
     value = keyOrValue instanceof byte[] ? ByteBuffer.wrap((byte[]) keyOrValue) : keyOrValue;
 

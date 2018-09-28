@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector.util;
+package com.datastax.kafkaconnector.state;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -15,9 +15,7 @@ import static org.mockito.Mockito.when;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
@@ -27,9 +25,7 @@ class InstanceStateTest {
   private DseSession session = mock(DseSession.class);
 
   private Map<String, TopicState> topicStates = new HashMap<>();
-  private Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
-  private InstanceState instanceState =
-      new InstanceState(config, session, primaryKeys, topicStates);
+  private InstanceState instanceState = new InstanceState(config, session, topicStates);
 
   @Test
   void getTopicConfig_fail() {

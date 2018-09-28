@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
@@ -14,12 +14,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /** Metadata associated with a {@link KeyValueRecord}. */
-class KeyValueRecordMetadata implements RecordMetadata {
+public class KeyValueRecordMetadata implements RecordMetadata {
 
   private final RecordMetadata keyMetadata;
   private final RecordMetadata valueMetadata;
 
-  KeyValueRecordMetadata(
+  public KeyValueRecordMetadata(
       @Nullable RecordMetadata keyMetadata, @Nullable RecordMetadata valueMetadata) {
     this.keyMetadata = keyMetadata;
     this.valueMetadata = valueMetadata;

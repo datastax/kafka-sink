@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector.util;
+package com.datastax.kafkaconnector.state;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
@@ -19,10 +19,8 @@ import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -34,10 +32,9 @@ import javax.management.ObjectName;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
 
-/** Container for a session, config, etc. */
+/** Container for a session, config, etc. that a connector instance requires to function. */
 public class InstanceState {
   private final DseSession session;
-  private final Map<String, List<CqlIdentifier>> primaryKeys;
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
   private final Semaphore requestBarrier;
@@ -50,10 +47,8 @@ public class InstanceState {
   InstanceState(
       @NotNull DseSinkConfig config,
       @NotNull DseSession session,
-      @NotNull Map<String, List<CqlIdentifier>> primaryKeys,
       @NotNull Map<String, TopicState> topicStates) {
     this.session = session;
-    this.primaryKeys = primaryKeys;
     this.config = config;
     this.topicStates = topicStates;
     this.requestBarrier = new Semaphore(getConfig().getMaxConcurrentRequests());
@@ -130,11 +125,6 @@ public class InstanceState {
   @NotNull
   public DseSession getSession() {
     return session;
-  }
-
-  @NotNull
-  Map<String, List<CqlIdentifier>> getPrimaryKeys() {
-    return primaryKeys;
   }
 
   @NotNull

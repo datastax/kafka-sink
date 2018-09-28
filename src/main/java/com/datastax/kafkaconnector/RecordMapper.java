@@ -11,6 +11,9 @@ package com.datastax.kafkaconnector;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
+import com.datastax.kafkaconnector.record.RawData;
+import com.datastax.kafkaconnector.record.Record;
+import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -38,7 +41,7 @@ import org.jetbrains.annotations.Nullable;
 public class RecordMapper {
   private final PreparedStatement insertUpdateStatement;
   private final PreparedStatement deleteStatement;
-  private final Set<CqlIdentifier> primaryKeys;
+  private final Set<CqlIdentifier> primaryKey;
   private final Mapping mapping;
   private final boolean allowExtraFields;
   private final boolean allowMissingFields;
@@ -49,14 +52,14 @@ public class RecordMapper {
   public RecordMapper(
       PreparedStatement insertUpdateStatement,
       PreparedStatement deleteStatement,
-      List<CqlIdentifier> primaryKeys,
+      List<CqlIdentifier> primaryKey,
       Mapping mapping,
       boolean nullToUnset,
       boolean allowExtraFields,
       boolean allowMissingFields) {
     this.insertUpdateStatement = insertUpdateStatement;
     this.deleteStatement = deleteStatement;
-    this.primaryKeys = new LinkedHashSet<>(primaryKeys);
+    this.primaryKey = new LinkedHashSet<>(primaryKey);
     this.mapping = mapping;
     this.nullToUnset = nullToUnset;
     this.allowExtraFields = allowExtraFields;
@@ -92,7 +95,7 @@ public class RecordMapper {
       // column. If so, this is an insert; otherwise it is a delete. However, there is a
       // special case: if the table only has primary key columns, there is no case for delete.
       isInsertUpdate =
-          mapping.getMappedColumns().equals(primaryKeys)
+          mapping.getMappedColumns().equals(primaryKey)
               || record
                   .fields()
                   .stream()
@@ -103,7 +106,7 @@ public class RecordMapper {
                         Collection<CqlIdentifier> mappedCols =
                             mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
                         return mappedCols != null
-                            && mappedCols.stream().anyMatch(col -> !primaryKeys.contains(col));
+                            && mappedCols.stream().anyMatch(col -> !primaryKey.contains(col));
                       });
       preparedStatement = isInsertUpdate ? insertUpdateStatement : deleteStatement;
     }
@@ -191,7 +194,7 @@ public class RecordMapper {
   }
 
   private boolean isPrimaryKey(CqlIdentifier variable) {
-    return primaryKeys.contains(variable);
+    return primaryKey.contains(variable);
   }
 
   private void ensureAllFieldsPresent(Set<String> recordFields) {
@@ -219,7 +222,7 @@ public class RecordMapper {
     // This cannot fail unless the insert/update CQL is custom and the user didn't specify
     // all key columns.
     String unsetKeys =
-        primaryKeys
+        primaryKey
             .stream()
             .filter(key -> !bs.isSet(key))
             .map(key -> key.asCql(true))

@@ -17,7 +17,8 @@ import static org.mockito.Mockito.when;
 import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
-import com.datastax.kafkaconnector.util.InstanceState;
+import com.datastax.kafkaconnector.record.RecordAndStatement;
+import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import java.nio.ByteBuffer;
@@ -51,7 +52,7 @@ class DseSinkTaskTest {
     // Test that if we have two mappings for one topic, we produce two bound statements.
 
     @SuppressWarnings("unchecked")
-    BlockingQueue<DseSinkTask.RecordAndStatement> queue = new LinkedBlockingQueue<>();
+    BlockingQueue<RecordAndStatement> queue = new LinkedBlockingQueue<>();
 
     // Topic settings, using a LinkedHashMap for deterministic iteration order.
     Map<String, String> settings = new LinkedHashMap<>();
@@ -90,25 +91,21 @@ class DseSinkTaskTest {
     ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3});
     when(bs1.getRoutingKey()).thenReturn(routingKey);
 
-    DseSinkTask.RecordAndStatement recordAndStatement =
-        new DseSinkTask.RecordAndStatement(record, "ks.mytable", bs1);
-    Map<String, Map<ByteBuffer, List<DseSinkTask.RecordAndStatement>>> statementGroups =
-        new HashMap<>();
+    RecordAndStatement recordAndStatement = new RecordAndStatement(record, "ks.mytable", bs1);
+    Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
 
     // We don't care about the args to the constructor for this test.
-    DseSinkTask.BoundStatementProcessor statementProcessor =
-        sinkTask.new BoundStatementProcessor(null, null);
-    List<DseSinkTask.RecordAndStatement> result =
+    BoundStatementProcessor statementProcessor = new BoundStatementProcessor(null, null, null);
+    List<RecordAndStatement> result =
         statementProcessor.categorizeStatement(statementGroups, recordAndStatement);
     assertThat(result.size()).isEqualTo(1);
     assertThat(result.get(0)).isSameAs(recordAndStatement);
     assertThat(statementGroups.size()).isEqualTo(1);
     assertThat(statementGroups.containsKey("ks.mytable")).isTrue();
-    Map<ByteBuffer, List<DseSinkTask.RecordAndStatement>> batchGroups =
-        statementGroups.get("ks.mytable");
+    Map<ByteBuffer, List<RecordAndStatement>> batchGroups = statementGroups.get("ks.mytable");
     assertThat(batchGroups.size()).isEqualTo(1);
     assertThat(batchGroups.containsKey(routingKey)).isTrue();
-    List<DseSinkTask.RecordAndStatement> batchGroup = batchGroups.get(routingKey);
+    List<RecordAndStatement> batchGroup = batchGroups.get(routingKey);
     assertThat(batchGroup).isSameAs(result);
   }
 }

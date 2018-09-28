@@ -26,6 +26,7 @@ import org.apache.kafka.common.config.ConfigException;
 /** Connector configuration and validation. */
 @SuppressWarnings("WeakerAccess")
 public class DseSinkConfig {
+  private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
   static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
@@ -73,7 +74,6 @@ public class DseSinkConfig {
               ConfigDef.Importance.HIGH,
               "None | LZ4 | Snappy");
 
-  private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;

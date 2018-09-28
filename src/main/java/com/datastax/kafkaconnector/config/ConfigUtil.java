@@ -43,12 +43,25 @@ class ConfigUtil {
         .collect(Collectors.joining("\n"));
   }
 
+  /**
+   * Convert the given setting value to an absolute path.
+   *
+   * @param settingValue setting to convert
+   * @return the converted path.
+   */
   static @Nullable Path getFilePath(@Nullable String settingValue) {
     return settingValue == null || settingValue.isEmpty()
         ? null
         : Paths.get(settingValue).toAbsolutePath().normalize();
   }
 
+  /**
+   * Verify that the given file-path exists, is a simple file, and is readable.
+   *
+   * @param filePath file path to validate
+   * @param settingName name of setting whose value is filePath; used in generating error messages
+   *     for failures.
+   */
   static void assertAccessibleFile(@Nullable Path filePath, String settingName) {
     if (filePath == null) {
       // There's no path to check.

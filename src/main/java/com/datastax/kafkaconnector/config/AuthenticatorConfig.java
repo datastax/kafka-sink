@@ -98,6 +98,19 @@ public class AuthenticatorConfig extends AbstractConfig {
     }
   }
 
+  /**
+   * Auth settings may not be fully specified. Fill in the gaps as appropriate:
+   *
+   * <ol>
+   *   <li>If username or password is provided, and auth-provider is None, coerce it to be the DSE
+   *       auth provider.
+   *   <li>If using GSSAPI and the principal isn't provided, try to find it from the keytab (if
+   *       provided).
+   * </ol>
+   *
+   * @param authSettings map of authentication settings
+   * @return fully specified auth settings
+   */
   private static Map<String, String> sanitizeAuthSettings(Map<String, String> authSettings) {
     Map<String, String> mutated = new HashMap<>(authSettings);
     String provider = authSettings.get(PROVIDER_OPT);

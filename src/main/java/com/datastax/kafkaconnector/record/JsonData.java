@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.record;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -27,7 +27,8 @@ public class JsonData implements KeyOrValue {
   private final String json;
   private final Set<String> fields;
 
-  JsonData(ObjectMapper objectMapper, JavaType jsonNodeMapType, String json) throws IOException {
+  public JsonData(ObjectMapper objectMapper, JavaType jsonNodeMapType, String json)
+      throws IOException {
     this.json = json;
     JsonFactory factory = objectMapper.getFactory();
     if (json == null) {
