@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
+/** Session builder specialization that hooks in OpenSSL when that ssl provider is chosen. */
 public class SessionBuilder extends DseSessionBuilder {
   private final SslConfig sslConfig;
 

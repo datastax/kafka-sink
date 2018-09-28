@@ -37,7 +37,7 @@ import com.datastax.dsbulk.commons.tests.simulacron.annotations.SimulacronConfig
 import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
-import com.datastax.kafkaconnector.util.InstanceState;
+import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.request.Batch;
 import com.datastax.oss.protocol.internal.request.Execute;
@@ -372,6 +372,7 @@ class SimpleEndToEndSimulacronIT {
             .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
+    assertThat(queryList.size()).isEqualTo(2);
     assertThat(queryList.get(0).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
     assertThat(queryList.get(1).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
   }

@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+/** Specialization of DseDriverContext that allows the connector to use OpenSSL. */
 public class DriverContext extends DseDriverContext {
   private final SslConfig sslConfig;
 

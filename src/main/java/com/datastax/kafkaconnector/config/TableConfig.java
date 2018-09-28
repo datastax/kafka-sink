@@ -79,6 +79,15 @@ public class TableConfig extends AbstractConfig {
         getBoolean(getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT));
   }
 
+  /**
+   * Given the attributes of a setting, compute its full name/path.
+   *
+   * @param topicName name of topic
+   * @param keyspace name of keyspace
+   * @param table name of table
+   * @param setting base name of setting
+   * @return full path of the setting in the form "topic.[topicname].[keyspace].[table].[setting]".
+   */
   @NotNull
   public static String getTableSettingPath(
       @NotNull String topicName,
@@ -86,53 +95,6 @@ public class TableConfig extends AbstractConfig {
       @NotNull String table,
       @NotNull String setting) {
     return String.format("topic.%s.%s.%s.%s", topicName, keyspace, table, setting);
-  }
-
-  @NotNull
-  private static ConfigDef makeTableConfigDef(
-      @NotNull String topicName, @NotNull String keyspace, @NotNull String table) {
-    return new ConfigDef()
-        .define(
-            getTableSettingPath(topicName, keyspace, table, MAPPING_OPT),
-            ConfigDef.Type.STRING,
-            ConfigDef.Importance.HIGH,
-            "Mapping of record fields to dse columns, in the form of 'col1=value.f1, col2=key.f1'")
-        .define(
-            getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT),
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.HIGH,
-            "Whether to delete rows where only the primary key is non-null")
-        .define(
-            getTableSettingPath(topicName, keyspace, table, CL_OPT),
-            ConfigDef.Type.STRING,
-            "LOCAL_ONE",
-            ConfigDef.Importance.HIGH,
-            "Query consistency level")
-        .define(
-            getTableSettingPath(topicName, keyspace, table, TTL_OPT),
-            ConfigDef.Type.INT,
-            -1,
-            ConfigDef.Range.atLeast(-1),
-            ConfigDef.Importance.HIGH,
-            "TTL of rows inserted in DSE nodes")
-        .define(
-            getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT),
-            ConfigDef.Type.BOOLEAN,
-            true,
-            ConfigDef.Importance.HIGH,
-            "Whether nulls in Kafka should be treated as UNSET in DSE");
-  }
-
-  @NotNull
-  private static CqlIdentifier parseLoosely(@NotNull String value) {
-    // If the value is unquoted, treat it as a literal (no real parsing).
-    // Otherwise parse it as cql. The idea is that users should be able to specify
-    // case-sensitive identifiers in the mapping spec without quotes.
-
-    return value.startsWith("\"")
-        ? CqlIdentifier.fromCql(value)
-        : CqlIdentifier.fromInternal(value);
   }
 
   @NotNull
@@ -226,6 +188,62 @@ public class TableConfig extends AbstractConfig {
             .stream()
             .map(m -> "      " + m)
             .collect(Collectors.joining("\n")));
+  }
+
+  /**
+   * Build up a {@link ConfigDef} for the given table specification.
+   *
+   * @param topicName name of topic
+   * @param keyspace name of keyspace
+   * @param table name of table
+   * @return a ConfigDef of table-settings, where each setting name is the full setting path (e.g.
+   *     topic.[topicname].[keyspace].[table].[setting]).
+   */
+  @NotNull
+  private static ConfigDef makeTableConfigDef(
+      @NotNull String topicName, @NotNull String keyspace, @NotNull String table) {
+    return new ConfigDef()
+        .define(
+            getTableSettingPath(topicName, keyspace, table, MAPPING_OPT),
+            ConfigDef.Type.STRING,
+            ConfigDef.Importance.HIGH,
+            "Mapping of record fields to dse columns, in the form of 'col1=value.f1, col2=key.f1'")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT),
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.HIGH,
+            "Whether to delete rows where only the primary key is non-null")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, CL_OPT),
+            ConfigDef.Type.STRING,
+            "LOCAL_ONE",
+            ConfigDef.Importance.HIGH,
+            "Query consistency level")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, TTL_OPT),
+            ConfigDef.Type.INT,
+            -1,
+            ConfigDef.Range.atLeast(-1),
+            ConfigDef.Importance.HIGH,
+            "TTL of rows inserted in DSE nodes")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT),
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.HIGH,
+            "Whether nulls in Kafka should be treated as UNSET in DSE");
+  }
+
+  @NotNull
+  private static CqlIdentifier parseLoosely(@NotNull String value) {
+    // If the value is unquoted, treat it as a literal (no real parsing).
+    // Otherwise parse it as cql. The idea is that users should be able to specify
+    // case-sensitive identifiers in the mapping spec without quotes.
+
+    return value.startsWith("\"")
+        ? CqlIdentifier.fromCql(value)
+        : CqlIdentifier.fromInternal(value);
   }
 
   @NotNull

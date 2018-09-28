@@ -133,6 +133,13 @@ public class TopicConfig extends AbstractConfig {
     return ConfigFactory.parseString(config);
   }
 
+  /**
+   * Build up a {@link ConfigDef} for the given topic specification.
+   *
+   * @param topicName name of topic
+   * @return a ConfigDef of topic settings, where each setting name is the full setting path (e.g.
+   *     topic.[topicname]).
+   */
   @NotNull
   private static ConfigDef makeTopicConfigDef(String topicName) {
     return new ConfigDef()

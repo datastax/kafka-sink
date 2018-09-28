@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector.util;
+package com.datastax.kafkaconnector.state;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.MetricRegistry;
