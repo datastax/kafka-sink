@@ -16,6 +16,15 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECI
 import com.codahale.metrics.Counter;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.record.JsonData;
+import com.datastax.kafkaconnector.record.KeyOrValue;
+import com.datastax.kafkaconnector.record.KeyValueRecord;
+import com.datastax.kafkaconnector.record.KeyValueRecordMetadata;
+import com.datastax.kafkaconnector.record.RawData;
+import com.datastax.kafkaconnector.record.RecordAndStatement;
+import com.datastax.kafkaconnector.record.RecordMetadata;
+import com.datastax.kafkaconnector.record.StructData;
+import com.datastax.kafkaconnector.record.StructDataMetadata;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;

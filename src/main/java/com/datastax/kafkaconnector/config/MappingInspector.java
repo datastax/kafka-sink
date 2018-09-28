@@ -10,7 +10,7 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
-import com.datastax.kafkaconnector.RawData;
+import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.schema.MappingBaseVisitor;
 import com.datastax.kafkaconnector.schema.MappingLexer;
 import com.datastax.kafkaconnector.schema.MappingParser;

@@ -6,7 +6,7 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.record;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,7 +25,8 @@ public class KeyValueRecord implements Record {
   @NotNull private final Set<String> fields;
   @Nullable private final Long timestamp;
 
-  KeyValueRecord(@Nullable KeyOrValue key, @Nullable KeyOrValue value, @Nullable Long timestamp) {
+  public KeyValueRecord(
+      @Nullable KeyOrValue key, @Nullable KeyOrValue value, @Nullable Long timestamp) {
     this.key = key;
     this.value = value;
     fields = new HashSet<>();

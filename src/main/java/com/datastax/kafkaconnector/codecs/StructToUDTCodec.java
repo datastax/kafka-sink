@@ -9,7 +9,7 @@
 package com.datastax.kafkaconnector.codecs;
 
 import com.datastax.dsbulk.commons.codecs.ConvertingCodec;
-import com.datastax.kafkaconnector.StructDataMetadata;
+import com.datastax.kafkaconnector.record.StructDataMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;

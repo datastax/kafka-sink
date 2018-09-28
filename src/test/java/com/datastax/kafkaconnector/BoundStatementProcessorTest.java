@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import java.nio.ByteBuffer;
 import java.util.HashMap;

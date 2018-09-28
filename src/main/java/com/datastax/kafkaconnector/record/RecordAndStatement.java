@@ -6,32 +6,32 @@
  * and will post the amended terms at
  * https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
  */
-package com.datastax.kafkaconnector;
+package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 /** Simple container class to hold a SinkRecord and its associated BoundStatement. */
-class RecordAndStatement {
+public class RecordAndStatement {
   private final SinkRecord record;
   private final String keyspaceAndTable;
   private final BoundStatement statement;
 
-  RecordAndStatement(SinkRecord record, String keyspaceAndTable, BoundStatement statement) {
+  public RecordAndStatement(SinkRecord record, String keyspaceAndTable, BoundStatement statement) {
     this.record = record;
     this.keyspaceAndTable = keyspaceAndTable;
     this.statement = statement;
   }
 
-  SinkRecord getRecord() {
+  public SinkRecord getRecord() {
     return record;
   }
 
-  String getKeyspaceAndTable() {
+  public String getKeyspaceAndTable() {
     return keyspaceAndTable;
   }
 
-  BoundStatement getStatement() {
+  public BoundStatement getStatement() {
     return statement;
   }
 }

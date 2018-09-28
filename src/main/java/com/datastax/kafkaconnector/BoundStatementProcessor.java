@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector;
 
 import com.codahale.metrics.Histogram;
+import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
