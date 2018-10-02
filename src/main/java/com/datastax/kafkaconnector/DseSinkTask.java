@@ -355,7 +355,7 @@ public class DseSinkTask extends SinkTask {
     }
     if (record.kafkaOffset() < currentOffset) {
       failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
-      context.offset(topicPartition, record.kafkaOffset());
+      context.offset(topicPartition, record.kafkaOffset() - 1);
     }
 
     String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";

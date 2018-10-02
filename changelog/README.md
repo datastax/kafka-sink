@@ -12,6 +12,7 @@
 - [new feature] KAF-21: Delete row when record has no value
 - [new feature] KAF-45: Add 'compression' option to support sending compressed requests to DSE
 - [improvement] KAF-43: Add ability to map a single topic to multiple tables
+- [bug] KAF-47: Connector sometimes loses track of a failed record
 
 ### 1.0.0-alpha2
 - [improvement] KAF-38: Improve performance by parallelizing record mapping and using partition-key-based batches when possible
