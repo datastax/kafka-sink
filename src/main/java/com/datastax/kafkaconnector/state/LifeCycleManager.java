@@ -433,9 +433,8 @@ public class LifeCycleManager {
    * @param config the sink config
    * @return a new InstanceState
    */
-  @VisibleForTesting
   @NotNull
-  static InstanceState buildInstanceState(DseSession session, DseSinkConfig config) {
+  private static InstanceState buildInstanceState(DseSession session, DseSinkConfig config) {
     checkProductCompatibility(session);
 
     // Compute the primary keys of all tables being mapped to. This has the side effect
