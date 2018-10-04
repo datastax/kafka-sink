@@ -87,25 +87,25 @@ class BoundStatementProcessor implements Runnable {
     @NotNull Semaphore requestBarrier = instanceState.getRequestBarrier();
     requestBarrier.acquireUninterruptibly();
     CompletionStage<AsyncResultSet> future = instanceState.getSession().executeAsync(statement);
-    queryFutures.add(future);
-    future.whenComplete(
-        (result, ex) -> {
-          requestBarrier.release();
-          if (ex != null) {
-            statements.forEach(
-                recordAndStatement -> {
-                  SinkRecord record = recordAndStatement.getRecord();
-                  task.handleFailure(
-                      record,
-                      ex,
-                      recordAndStatement.getStatement().getPreparedStatement().getQuery(),
-                      instanceState.getFailedRecordCounter());
-                });
-          } else {
-            successfulRecordCount.addAndGet(statements.size());
-          }
-          instanceState.getRecordCountMeter().mark(statements.size());
-        });
+    queryFutures.add(
+        future.whenComplete(
+            (result, ex) -> {
+              requestBarrier.release();
+              if (ex != null) {
+                statements.forEach(
+                    recordAndStatement -> {
+                      SinkRecord record = recordAndStatement.getRecord();
+                      task.handleFailure(
+                          record,
+                          ex,
+                          recordAndStatement.getStatement().getPreparedStatement().getQuery(),
+                          instanceState.getFailedRecordCounter());
+                    });
+              } else {
+                successfulRecordCount.addAndGet(statements.size());
+              }
+              instanceState.getRecordCountMeter().mark(statements.size());
+            }));
   }
 
   int getSuccessfulRecordCount() {

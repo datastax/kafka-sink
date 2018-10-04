@@ -288,7 +288,7 @@ public class DseSinkTask extends SinkTask {
   }
 
   /**
-   * Create a metadata object desribing the structure of the given key or value (extracted from a
+   * Create a metadata object describing the structure of the given key or value (extracted from a
    * {@link SinkRecord} and a data object that homogenizes interactions with the given key/value
    * (e.g. an implementation of {@link KeyOrValue}).
    *
@@ -355,7 +355,7 @@ public class DseSinkTask extends SinkTask {
     }
     if (record.kafkaOffset() < currentOffset) {
       failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
-      context.offset(topicPartition, record.kafkaOffset() - 1);
+      context.offset(topicPartition, record.kafkaOffset());
     }
 
     String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";

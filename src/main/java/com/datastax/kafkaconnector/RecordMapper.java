@@ -33,12 +33,15 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Maps {@link Record}s into {@link BoundStatement}s, applying any necessary transformations via
  * codecs.
  */
 public class RecordMapper {
+  private static final Logger log = LoggerFactory.getLogger(RecordMapper.class);
   private final PreparedStatement insertUpdateStatement;
   private final PreparedStatement deleteStatement;
   private final Set<CqlIdentifier> primaryKey;
@@ -133,6 +136,8 @@ public class RecordMapper {
           GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
           if (fieldType != null) {
             raw = record.getFieldValue(field);
+            log.trace(
+                "binding field {} with value {} to column {}", field, raw, column.asInternal());
             bindColumn(builder, column, raw, cqlType, fieldType);
           }
         }
