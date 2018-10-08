@@ -8,6 +8,7 @@
         "loadBalancing.localDc": "",
         "port": 9042,
         "maxConcurrentRequests": 500,
+        "queryExecutionTimeout": 30,
         "jmx": true,
         "compression": "None",
         "auth.provider": "None",
