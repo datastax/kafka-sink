@@ -534,6 +534,9 @@ public class LifeCycleManager {
           DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
     }
 
+    configLoaderBuilder.withDuration(
+        DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
+
     if (config.getJmx()) {
       configLoaderBuilder.withStringList(
           METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));

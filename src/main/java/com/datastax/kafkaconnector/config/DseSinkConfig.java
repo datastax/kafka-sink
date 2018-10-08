@@ -31,6 +31,7 @@ public class DseSinkConfig {
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
+  static final String QUERY_EXECUTION_TIMEOUT_OPT = "queryExecutionTimeout";
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
@@ -72,7 +73,14 @@ public class DseSinkConfig {
               ConfigDef.Type.STRING,
               "None",
               ConfigDef.Importance.HIGH,
-              "None | LZ4 | Snappy");
+              "None | LZ4 | Snappy")
+          .define(
+              QUERY_EXECUTION_TIMEOUT_OPT,
+              ConfigDef.Type.INT,
+              30,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "CQL statement execution timeout, in seconds");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -156,6 +164,10 @@ public class DseSinkConfig {
     return globalConfig.getInt(CONCURRENT_REQUESTS_OPT);
   }
 
+  public int getQueryExecutionTimeout() {
+    return globalConfig.getInt(QUERY_EXECUTION_TIMEOUT_OPT);
+  }
+
   public boolean getJmx() {
     return globalConfig.getBoolean(JMX_OPT);
   }
@@ -197,6 +209,7 @@ public class DseSinkConfig {
             + "        port: %d%n"
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
+            + "        queryExecutionTimeout: %d%n"
             + "        jmx: %b%n"
             + "        compression: %s%n"
             + "SSL configuration:%n%s%n"
@@ -206,6 +219,7 @@ public class DseSinkConfig {
         getPort(),
         getLocalDc(),
         getMaxConcurrentRequests(),
+        getQueryExecutionTimeout(),
         getJmx(),
         getCompressionType(),
         Splitter.on("\n")

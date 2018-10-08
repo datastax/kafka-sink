@@ -19,6 +19,9 @@ topics=my_topic
 # Maximum number of requests to send to DSE at a single time. Defaults to 500.
 #maxConcurrentRequests=500
 
+# CQL statement execution timeout, in seconds. Defaults to 30 seconds.
+#queryExecutionTimeout=30
+
 # Whether or not to enable stats reporting through JMX. Defaults to true.
 #jmx=true
 
