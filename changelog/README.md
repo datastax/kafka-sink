@@ -2,6 +2,7 @@
 
 ### 1.0.0 (in progress)
 - [new feature] KAF-49: Add queryExecutionTimeout global setting
+- [improvement] KAF-52: Refactor kafka-sink repo into a few Maven modules
 
 ### 1.0.0-alpha3
 - [bug] KAF-39: Partitions don't rebalance in distributed mode across multiple workers
