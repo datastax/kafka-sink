@@ -140,7 +140,8 @@ public class DseSinkTask extends SinkTask {
 
     Instant start = Instant.now();
     List<CompletableFuture<Void>> mappingFutures;
-    Collection<CompletionStage<AsyncResultSet>> queryFutures = new ConcurrentLinkedQueue<>();
+    Collection<CompletionStage<? extends AsyncResultSet>> queryFutures =
+        new ConcurrentLinkedQueue<>();
     BlockingQueue<RecordAndStatement> boundStatementsQueue = new LinkedBlockingQueue<>();
     BoundStatementProcessor boundStatementProcessor =
         new BoundStatementProcessor(this, boundStatementsQueue, queryFutures);
@@ -165,7 +166,7 @@ public class DseSinkTask extends SinkTask {
         // No-op.
       }
       log.debug("Query futures: {}", queryFutures.size());
-      for (CompletionStage<AsyncResultSet> f : queryFutures) {
+      for (CompletionStage<? extends AsyncResultSet> f : queryFutures) {
         try {
           f.toCompletableFuture().get();
         } catch (ExecutionException e) {
