@@ -87,7 +87,7 @@ topics=my_topic
 #### Settings for table my_ks.my_table in topic my_topic ####
 
 # Kafka record field to DSE table column mapping spec, in the form 'col1=value.f1, col2=key.f1'.
-topic.my_topic.my_ks.my_table.mapping=col1=value.f1, col2=key.f1
+topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1
 
 # Query consistency level; defaults to LOCAL_ONE.
 #topic.my_topic.my_ks.my_table.consistencyLevel=LOCAL_ONE
