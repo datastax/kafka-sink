@@ -42,13 +42,13 @@ class BoundStatementProcessor implements Runnable {
   private final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
   private final DseSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
-  private final Collection<CompletionStage<AsyncResultSet>> queryFutures;
+  private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
   private final AtomicInteger successfulRecordCount = new AtomicInteger();
 
   BoundStatementProcessor(
       DseSinkTask task,
       BlockingQueue<RecordAndStatement> boundStatementsQueue,
-      Collection<CompletionStage<AsyncResultSet>> queryFutures) {
+      Collection<CompletionStage<? extends AsyncResultSet>> queryFutures) {
     this.task = task;
     this.boundStatementsQueue = boundStatementsQueue;
     this.queryFutures = queryFutures;
@@ -86,7 +86,8 @@ class BoundStatementProcessor implements Runnable {
     }
     @NotNull Semaphore requestBarrier = instanceState.getRequestBarrier();
     requestBarrier.acquireUninterruptibly();
-    CompletionStage<AsyncResultSet> future = instanceState.getSession().executeAsync(statement);
+    CompletionStage<? extends AsyncResultSet> future =
+        instanceState.getSession().executeAsync(statement);
     queryFutures.add(
         future.whenComplete(
             (result, ex) -> {

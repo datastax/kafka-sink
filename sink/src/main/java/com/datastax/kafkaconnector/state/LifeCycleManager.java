@@ -660,16 +660,17 @@ public class LifeCycleManager {
             ? makeUpdateCounterStatement(tableConfig, table)
             : makeInsertStatement(tableConfig);
 
-    CompletionStage<PreparedStatement> insertUpdateFuture =
+    CompletionStage<? extends PreparedStatement> insertUpdateFuture =
         session.prepareAsync(insertUpdateStatement);
-    CompletionStage<PreparedStatement> deleteFuture;
+    CompletionStage<? extends PreparedStatement> deleteFuture;
     String deleteStatement = makeDeleteStatement(tableConfig, table);
     if (tableConfig.isDeletesEnabled() && allColumnsMapped) {
       deleteFuture = session.prepareAsync(deleteStatement);
     } else {
       // Make a dummy future that's already completed since there is no work to do here.
-      deleteFuture = new CompletableFuture<>();
-      ((CompletableFuture<PreparedStatement>) deleteFuture).complete(null);
+      CompletableFuture<PreparedStatement> dummyFuture = new CompletableFuture<>();
+      dummyFuture.complete(null);
+      deleteFuture = dummyFuture;
     }
     return insertUpdateFuture
         .thenAcceptBoth(
