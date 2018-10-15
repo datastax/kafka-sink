@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 class TaskStateManager {
   private static final Logger log = LoggerFactory.getLogger(TaskStateManager.class);
-  AtomicReference<TaskState> state;
-  private CountDownLatch stopLatch;
+  final AtomicReference<TaskState> state;
+  private final CountDownLatch stopLatch;
 
   TaskStateManager() {
     state = new AtomicReference<>(WAIT);
@@ -54,25 +54,20 @@ class TaskStateManager {
     //    is running put and hasn't completed yet. Either way, this thread waits on the
     //    latch. If the latch has been opened already, there's nothing to wait for
     //    and we immediately return.
-    // 4. The put() method can finish, making transition from RUN to wait after state.compareAndSet(WAIT, STOP) check
+    // 4. The put() method can finish, making transition from RUN to wait after
+    // state.compareAndSet(WAIT, STOP) check
     //    To prevent that we need to double check for CAS WAIT -> STOP
     try {
-      if (state != null) {
-        if (state.compareAndSet(WAIT, STOP)) {
-          // Clean stop; nothing running/in-progress.
-          stopLatch.countDown();
-          return;
-        }
-        action.run();
-        state.compareAndSet(RUN, STOP);
-        state.compareAndSet(WAIT, STOP);
-        stopLatch.await();
-      } else if (stopLatch != null) { // todo is it possible? stopLatch is init AFTER state
-        // There is no state, so we didn't get far in starting up the task. If by some chance
-        // there is a stopLatch initialized, decrement it to indicate to any callers that
-        // we're done and they need not wait on us.
+      if (state.compareAndSet(WAIT, STOP)) {
+        // Clean stop; nothing running/in-progress.
         stopLatch.countDown();
+        return;
       }
+      action.run();
+      state.compareAndSet(RUN, STOP);
+      state.compareAndSet(WAIT, STOP);
+      stopLatch.await();
+
     } catch (InterruptedException e) {
       // "put" is likely also interrupted, so we're effectively stopped.
       Thread.currentThread().interrupt();
