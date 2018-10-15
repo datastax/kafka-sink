@@ -8,11 +8,6 @@
  */
 package com.datastax.kafkaconnector;
 
-import static com.datastax.kafkaconnector.DseSinkTask.TaskState.RUN;
-import static com.datastax.kafkaconnector.DseSinkTask.TaskState.STOP;
-import static com.datastax.kafkaconnector.DseSinkTask.TaskState.WAIT;
-import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
-
 import com.codahale.metrics.Counter;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
@@ -36,6 +31,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.RetriableException;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -47,29 +52,25 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.RetriableException;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
+import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
+
+/**
+ * DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE.
+ */
 public class DseSinkTask extends SinkTask {
+  private static final Runnable NO_OP = () -> {
+  };
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final JavaType JSON_NODE_MAP_TYPE =
-      OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
+      OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {
+      }.getType());
   private static final RecordMetadata JSON_RECORD_METADATA =
       (field, cqlType) ->
           field.equals(RawData.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
@@ -80,8 +81,7 @@ public class DseSinkTask extends SinkTask {
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
   private InstanceState instanceState;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
-  private AtomicReference<TaskState> state;
-  private CountDownLatch stopLatch;
+  private TaskStateManager taskStateManager;
 
   static {
     // Configure the json object mapper
@@ -96,11 +96,10 @@ public class DseSinkTask extends SinkTask {
   @Override
   public void start(Map<String, String> props) {
     log.debug("Task DseSinkTask starting with props: {}", props);
-    state = new AtomicReference<>();
-    state.set(TaskState.WAIT);
+    taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
-    stopLatch = new CountDownLatch(1);
     instanceState = LifeCycleManager.startTask(this, props);
+    taskStateManager.setDseSinkTask(this);
   }
 
   /**
@@ -134,113 +133,74 @@ public class DseSinkTask extends SinkTask {
 
     log.debug("Received {} records", sinkRecords.size());
 
-    state.compareAndSet(TaskState.WAIT, TaskState.RUN);
+    taskStateManager.waitToRunTransitionLogic(() -> {
+      failureOffsets.clear();
 
-    failureOffsets.clear();
-
-    Instant start = Instant.now();
-    List<CompletableFuture<Void>> mappingFutures;
-    Collection<CompletionStage<? extends AsyncResultSet>> queryFutures =
-        new ConcurrentLinkedQueue<>();
-    BlockingQueue<RecordAndStatement> boundStatementsQueue = new LinkedBlockingQueue<>();
-    BoundStatementProcessor boundStatementProcessor =
-        new BoundStatementProcessor(this, boundStatementsQueue, queryFutures);
-    try {
-      Future<?> boundStatementProcessorTask =
-          boundStatementProcessorService.submit(boundStatementProcessor);
-      mappingFutures =
-          sinkRecords
-              .stream()
-              .map(
-                  record ->
-                      CompletableFuture.runAsync(
-                          () -> mapAndQueueRecord(boundStatementsQueue, record),
-                          instanceState.getMappingExecutor()))
-              .collect(Collectors.toList());
-
-      CompletableFuture.allOf(mappingFutures.toArray(new CompletableFuture[0])).join();
-      boundStatementProcessor.stop();
+      Instant start = Instant.now();
+      List<CompletableFuture<Void>> mappingFutures;
+      Collection<CompletionStage<? extends AsyncResultSet>> queryFutures =
+          new ConcurrentLinkedQueue<>();
+      BlockingQueue<RecordAndStatement> boundStatementsQueue = new LinkedBlockingQueue<>();
+      BoundStatementProcessor boundStatementProcessor =
+          new BoundStatementProcessor(this, boundStatementsQueue, queryFutures);
       try {
-        boundStatementProcessorTask.get();
-      } catch (ExecutionException e) {
-        // No-op.
-      }
-      log.debug("Query futures: {}", queryFutures.size());
-      for (CompletionStage<? extends AsyncResultSet> f : queryFutures) {
+        Future<?> boundStatementProcessorTask =
+            boundStatementProcessorService.submit(boundStatementProcessor);
+        mappingFutures =
+            sinkRecords
+                .stream()
+                .map(
+                    record ->
+                        CompletableFuture.runAsync(
+                            () -> mapAndQueueRecord(boundStatementsQueue, record),
+                            instanceState.getMappingExecutor()))
+                .collect(Collectors.toList());
+
+        CompletableFuture.allOf(mappingFutures.toArray(new CompletableFuture[0])).join();
+        boundStatementProcessor.stop();
         try {
-          f.toCompletableFuture().get();
+          boundStatementProcessorTask.get();
         } catch (ExecutionException e) {
-          // If any requests failed, they were handled by the "whenComplete" of the individual
-          // future, so nothing to do here.
+          // No-op.
         }
-      }
+        log.debug("Query futures: {}", queryFutures.size());
+        for (CompletionStage<? extends AsyncResultSet> f : queryFutures) {
+          try {
+            f.toCompletableFuture().get();
+          } catch (ExecutionException e) {
+            // If any requests failed, they were handled by the "whenComplete" of the individual
+            // future, so nothing to do here.
+          }
+        }
 
-      Instant end = Instant.now();
-      long ms = Duration.between(start, end).toMillis();
-      log.debug(
-          "Completed {}/{} inserts in {} ms",
-          boundStatementProcessor.getSuccessfulRecordCount(),
-          sinkRecords.size(),
-          ms);
-    } catch (InterruptedException e) {
-      boundStatementProcessor.stop();
-      queryFutures.forEach(
-          f -> {
-            f.toCompletableFuture().cancel(true);
-            try {
-              f.toCompletableFuture().get();
-            } catch (InterruptedException | ExecutionException e1) {
-              // swallow
-            }
-          });
+        Instant end = Instant.now();
+        long ms = Duration.between(start, end).toMillis();
+        log.debug(
+            "Completed {}/{} inserts in {} ms",
+            boundStatementProcessor.getSuccessfulRecordCount(),
+            sinkRecords.size(),
+            ms);
+      } catch (InterruptedException e) {
+        boundStatementProcessor.stop();
+        queryFutures.forEach(
+            f -> {
+              f.toCompletableFuture().cancel(true);
+              try {
+                f.toCompletableFuture().get();
+              } catch (InterruptedException | ExecutionException e1) {
+                // swallow
+              }
+            });
 
-      throw new RetriableException("Interrupted while issuing queries");
-    } finally {
-      state.compareAndSet(TaskState.RUN, TaskState.WAIT);
-      if (state.get() == STOP) {
-        // Task is stopping. Notify the caller of stop() that we're done working.
-        stopLatch.countDown();
+        throw new RetriableException("Interrupted while issuing queries");
       }
-    }
+    });
   }
+
 
   @Override
   public void stop() {
-    // Stopping has a few scenarios:
-    // 1. We're not currently processing records (e.g. we are in the WAIT state).
-    //    Just transition to the STOP state and return. Signal stopLatch
-    //    since we are effectively the entity declaring that this task is stopped.
-    // 2. We're currently processing records (e.g. we are in the RUN state).
-    //    Transition to the STOP state and wait for the thread processing records
-    //    (e.g. running put()) to signal stopLatch.
-    // 3. We're currently in the STOP state. This could mean that no work is occurring
-    //    (because a previous call to stop occurred when we were in the WAIT state or
-    //    a previous call to put completed and signaled the latch) or that a thread
-    //    is running put and hasn't completed yet. Either way, this thread waits on the
-    //    latch. If the latch has been opened already, there's nothing to wait for
-    //    and we immediately return.
-    try {
-      if (state != null) {
-        if (state.compareAndSet(WAIT, STOP)) {
-          // Clean stop; nothing running/in-progress.
-          stopLatch.countDown();
-          return;
-        }
-        state.compareAndSet(RUN, STOP);
-        stopLatch.await();
-      } else if (stopLatch != null) {
-        // There is no state, so we didn't get far in starting up the task. If by some chance
-        // there is a stopLatch initialized, decrement it to indicate to any callers that
-        // we're done and they need not wait on us.
-        stopLatch.countDown();
-      }
-    } catch (InterruptedException e) {
-      // "put" is likely also interrupted, so we're effectively stopped.
-      Thread.currentThread().interrupt();
-    } finally {
-      log.info("Task is stopped.");
-      LifeCycleManager.stopTask(instanceState, this);
-    }
+    taskStateManager.toStopTransitionLogic(NO_OP);
   }
 
   InstanceState getInstanceState() {
@@ -252,7 +212,7 @@ public class DseSinkTask extends SinkTask {
    * BoundStatement}'s to the given queue for further processing.
    *
    * @param boundStatementsQueue the queue that processes {@link RecordAndStatement}'s
-   * @param record the {@link SinkRecord} to map
+   * @param record               the {@link SinkRecord} to map
    */
   @VisibleForTesting
   void mapAndQueueRecord(
@@ -296,7 +256,7 @@ public class DseSinkTask extends SinkTask {
    * @param keyOrValue the key or value
    * @return a pair of (RecordMetadata, KeyOrValue)
    * @throws IOException if keyOrValue is a String and JSON parsing fails in some unknown way. It's
-   *     unclear if this exception can ever trigger in the context of this Connector.
+   *                     unclear if this exception can ever trigger in the context of this Connector.
    */
   private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
     KeyOrValue innerData;
@@ -330,9 +290,9 @@ public class DseSinkTask extends SinkTask {
   /**
    * Handle a failed record.
    *
-   * @param record the {@link SinkRecord} that failed to process
-   * @param e the exception
-   * @param cql the cql statement that failed to execute
+   * @param record      the {@link SinkRecord} that failed to process
+   * @param e           the exception
+   * @param cql         the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered
    */
   synchronized void handleFailure(SinkRecord record, Throwable e, String cql, Counter failCounter) {
@@ -368,7 +328,9 @@ public class DseSinkTask extends SinkTask {
         statementError);
   }
 
-  /** Simple container class to tie together a {@link SinkRecord} key/value and its metadata. */
+  /**
+   * Simple container class to tie together a {@link SinkRecord} key/value and its metadata.
+   */
   private static class InnerDataAndMetadata {
     final KeyOrValue innerData;
     final RecordMetadata innerMetadata;
@@ -377,18 +339,5 @@ public class DseSinkTask extends SinkTask {
       this.innerMetadata = innerMetadata;
       this.innerData = innerData;
     }
-  }
-
-  /**
-   * The DseSinkTask can be in one of three states, and shutdown behavior varies depending on the
-   * current state.
-   */
-  enum TaskState {
-    // Task is waiting for records from the infrastructure
-    WAIT,
-    // Task is processing a collection of SinkRecords
-    RUN,
-    // Task is in the process of stopping or is stopped
-    STOP
   }
 }
