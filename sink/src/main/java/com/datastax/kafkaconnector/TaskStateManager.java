@@ -54,6 +54,8 @@ class TaskStateManager {
     //    is running put and hasn't completed yet. Either way, this thread waits on the
     //    latch. If the latch has been opened already, there's nothing to wait for
     //    and we immediately return.
+    // 4. The put() method can finish, making transition from RUN to wait after state.compareAndSet(WAIT, STOP) check
+    //    To prevent that we need to double check for CAS WAIT -> STOP
     try {
       if (state != null) {
         if (state.compareAndSet(WAIT, STOP)) {
