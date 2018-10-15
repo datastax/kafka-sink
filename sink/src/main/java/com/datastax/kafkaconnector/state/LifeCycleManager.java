@@ -437,8 +437,7 @@ public class LifeCycleManager {
   private static InstanceState buildInstanceState(DseSession session, DseSinkConfig config) {
     checkProductCompatibility(session);
 
-    // Compute the primary keys of all tables being mapped to. This has the side effect
-    // of throwing an exception if a table or keyspace doesn't exist.
+    // Compute the primary keys of all tables being mapped to (across topics).
     Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
 
     Config kafkaConfig = ConfigFactory.load().getConfig("kafka");

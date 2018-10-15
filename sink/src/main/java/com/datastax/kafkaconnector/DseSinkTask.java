@@ -304,7 +304,7 @@ public class DseSinkTask extends SinkTask {
 
     if (keyOrValue instanceof Struct) {
       Struct innerRecordStruct = (Struct) keyOrValue;
-      // TODO: PERF: Cache these metadata objects, keyed on schema.
+      // TODO: PERF: Consider caching these metadata objects, keyed on schema.
       innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
       innerData = new StructData(innerRecordStruct);
     } else if (keyOrValue instanceof String) {

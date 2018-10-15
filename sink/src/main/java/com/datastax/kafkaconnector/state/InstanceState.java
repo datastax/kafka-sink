@@ -37,6 +37,8 @@ public class InstanceState {
   private final DseSession session;
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
+
+  /** Semaphore to limit the number of concurrent DSE requests. */
   private final Semaphore requestBarrier;
   private final Set<DseSinkTask> tasks;
   private final Executor mappingExecutor;
