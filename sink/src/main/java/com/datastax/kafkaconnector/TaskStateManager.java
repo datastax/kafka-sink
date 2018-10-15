@@ -1,26 +1,33 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ *   This software is subject to the below license agreement.
+ *   DataStax may make changes to the agreement from time to time,
+ *   and will post the amended terms at
+ *   https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
+ */
 package com.datastax.kafkaconnector;
 
-import com.datastax.kafkaconnector.state.LifeCycleManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.datastax.kafkaconnector.TaskStateManager.TaskState.RUN;
+import static com.datastax.kafkaconnector.TaskStateManager.TaskState.STOP;
+import static com.datastax.kafkaconnector.TaskStateManager.TaskState.WAIT;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static com.datastax.kafkaconnector.TaskStateManager.TaskState.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TaskStateManager {
   private static final Logger log = LoggerFactory.getLogger(TaskStateManager.class);
   AtomicReference<TaskState> state;
   private CountDownLatch stopLatch;
-  private DseSinkTask dseSinkTask;
 
   TaskStateManager() {
     state = new AtomicReference<>(WAIT);
     stopLatch = new CountDownLatch(1);
   }
 
-  void waitToRunTransitionLogic(Runnable action) {
+  void waitRunTransitionLogic(Runnable action) {
     state.compareAndSet(TaskState.WAIT, TaskState.RUN);
     try {
       action.run();
@@ -33,7 +40,7 @@ class TaskStateManager {
     }
   }
 
-  void toStopTransitionLogic(Runnable action) {
+  void toStopTransitionLogic(Runnable action, Runnable stopCallback) {
     // Stopping has a few scenarios:
     // 1. We're not currently processing records (e.g. we are in the WAIT state).
     //    Just transition to the STOP state and return. Signal stopLatch
@@ -58,7 +65,7 @@ class TaskStateManager {
         state.compareAndSet(RUN, STOP);
         state.compareAndSet(WAIT, STOP);
         stopLatch.await();
-      } else if (stopLatch != null) {//todo is it possible? stopLatch is init AFTER state
+      } else if (stopLatch != null) { // todo is it possible? stopLatch is init AFTER state
         // There is no state, so we didn't get far in starting up the task. If by some chance
         // there is a stopLatch initialized, decrement it to indicate to any callers that
         // we're done and they need not wait on us.
@@ -69,14 +76,9 @@ class TaskStateManager {
       Thread.currentThread().interrupt();
     } finally {
       log.info("Task is stopped.");
-      LifeCycleManager.stopTask(dseSinkTask.getInstanceState(), dseSinkTask);
+      stopCallback.run();
     }
   }
-
-  void setDseSinkTask(DseSinkTask dseSinkTask) {
-    this.dseSinkTask = dseSinkTask;
-  }
-
 
   /**
    * The DseSinkTask can be in one of three states, and shutdown behavior varies depending on the

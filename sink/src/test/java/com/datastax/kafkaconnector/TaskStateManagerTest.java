@@ -1,66 +1,74 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ *   This software is subject to the below license agreement.
+ *   DataStax may make changes to the agreement from time to time,
+ *   and will post the amended terms at
+ *   https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
+ */
 package com.datastax.kafkaconnector;
-
-import org.awaitility.Duration;
-import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.CountDownLatch;
 
 import static com.datastax.kafkaconnector.TaskStateManager.TaskState;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
-import static org.mockito.Mockito.mock;
+
+import java.util.concurrent.CountDownLatch;
+import org.awaitility.Duration;
+import org.junit.jupiter.api.Test;
 
 class TaskStateManagerTest {
 
   @Test
   void shouldStartTaskAndEndInWaitState() {
-    //given
+    // given
     TaskStateManager taskStateManager = new TaskStateManager();
 
-    //when
-    taskStateManager.waitToRunTransitionLogic(() -> {
-    });
+    // when
+    taskStateManager.waitRunTransitionLogic(() -> {});
 
-    //then
+    // then
     assertThat(taskStateManager.state.get()).isEqualTo(TaskState.WAIT);
   }
 
   @Test
   void shouldStopProperlyEvenIfTheRunLogicFinishedInTheMeantime() {
-    //given
+    // given
     CountDownLatch countDownLatch = new CountDownLatch(1);
     TaskStateManager taskStateManager = new TaskStateManager();
-    DseSinkTask dseSinkTaskMock = mock(DseSinkTask.class);
-    taskStateManager.setDseSinkTask(dseSinkTaskMock);
 
-    //when
-    Thread putOperation = new Thread(() ->
-        taskStateManager.waitToRunTransitionLogic(() -> {
-          try {
-            countDownLatch.await();
-            Thread.sleep(100);
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-        }));
-    Thread stopOperation = new Thread(() ->
-        taskStateManager.toStopTransitionLogic(() -> {
-          try {
-            countDownLatch.await();
-            Thread.sleep(1000);
-          } catch (InterruptedException e) {
-            e.printStackTrace();
-          }
-        }));
+    // when
+    Thread putOperation =
+        new Thread(
+            () ->
+                taskStateManager.waitRunTransitionLogic(
+                    () -> {
+                      try {
+                        countDownLatch.await();
+                        Thread.sleep(100);
+                      } catch (InterruptedException e) {
+                        e.printStackTrace();
+                      }
+                    }));
+    Thread stopOperation =
+        new Thread(
+            () ->
+                taskStateManager.toStopTransitionLogic(
+                    () -> {
+                      try {
+                        countDownLatch.await();
+                        Thread.sleep(1000);
+                      } catch (InterruptedException e) {
+                        e.printStackTrace();
+                      }
+                    },
+                    () -> {}));
     putOperation.start();
     stopOperation.start();
     countDownLatch.countDown();
 
-
-    //then
+    // then
     await()
         .atMost(Duration.FIVE_SECONDS)
         .until(() -> taskStateManager.state.get() == TaskState.STOP);
   }
-
 }
