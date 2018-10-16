@@ -3,6 +3,7 @@ package com.datastax.kafkaconnector.metadata;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.record.JsonData;
 import com.datastax.kafkaconnector.record.KeyOrValue;
+import com.datastax.kafkaconnector.record.MapData;
 import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.kafkaconnector.record.StructData;
@@ -69,6 +70,8 @@ public class MetadataCreator {
         innerData = new RawData(keyOrValue);
         innerMetadata = (RecordMetadata) innerData;
       }
+    } else if (keyOrValue instanceof Map) {
+      innerData = MapData.fromMap((Map)keyOrValue);
     } else if (keyOrValue != null) {
       innerData = new RawData(keyOrValue);
       innerMetadata = (RecordMetadata) innerData;
