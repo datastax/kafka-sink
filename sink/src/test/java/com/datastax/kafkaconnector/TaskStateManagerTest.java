@@ -8,24 +8,22 @@
  */
 package com.datastax.kafkaconnector;
 
-import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import static com.datastax.kafkaconnector.TaskStateManager.TaskState;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import org.junit.jupiter.api.Test;
+
 class TaskStateManagerTest {
 
-  private static final Runnable NO_OP_RUNNABLE = () -> {
-  };
+  private static final Runnable NO_OP_RUNNABLE = () -> {};
 
   @Test
   void shouldStartTaskAndEndInWaitState() {
@@ -33,8 +31,7 @@ class TaskStateManagerTest {
     TaskStateManager taskStateManager = new TaskStateManager();
 
     // when
-    taskStateManager.waitRunTransitionLogic(() -> {
-    });
+    taskStateManager.waitRunTransitionLogic(() -> {});
 
     // then
     assertThat(taskStateManager.state.get()).isEqualTo(TaskState.WAIT);
@@ -119,11 +116,7 @@ class TaskStateManagerTest {
                     }));
     Future<?> stopFuture =
         executorService.submit(
-            () ->
-                taskStateManager.toStopTransitionLogic(
-                    stopLatch::countDown,
-                    NO_OP_RUNNABLE)
-        );
+            () -> taskStateManager.toStopTransitionLogic(stopLatch::countDown, NO_OP_RUNNABLE));
     runFuture.get();
     stopFuture.get();
 
