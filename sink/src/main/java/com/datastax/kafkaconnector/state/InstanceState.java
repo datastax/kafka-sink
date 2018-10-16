@@ -40,6 +40,7 @@ public class InstanceState {
 
   /** Semaphore to limit the number of concurrent DSE requests. */
   private final Semaphore requestBarrier;
+
   private final Set<DseSinkTask> tasks;
   private final Executor mappingExecutor;
   private final JmxReporter reporter;
