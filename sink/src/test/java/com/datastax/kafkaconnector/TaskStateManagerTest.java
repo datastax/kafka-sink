@@ -18,12 +18,13 @@ import static org.mockito.Mockito.verify;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.awaitility.Duration;
 import org.junit.jupiter.api.Test;
 
 class TaskStateManagerTest {
 
-  private static final Runnable NO_OP_RUNNABLE = () -> { };
+  private static final Runnable NO_OP_RUNNABLE = () -> {};
 
   @Test
   void shouldStartTaskAndEndInWaitState() {
@@ -46,31 +47,32 @@ class TaskStateManagerTest {
     TaskStateManager taskStateManager = new TaskStateManager();
 
     // when
-    executorService.submit(
-        () ->
-            taskStateManager.waitRunTransitionLogic(
-                () -> {
-                  try {
-                    stopLatch.await();
-                  } catch (InterruptedException e) {
-                    e.printStackTrace();
-                  }
-                }));
+    Future<?> runFuture =
+        executorService.submit(
+            () ->
+                taskStateManager.waitRunTransitionLogic(
+                    () -> {
+                      try {
+                        stopLatch.await();
+                      } catch (InterruptedException ignored) {
+                      }
+                    }));
 
-    executorService.submit(
-        () ->
-            taskStateManager.toStopTransitionLogic(
-                () -> {
-                  try {
-                    stopLatch.countDown();
-                    runLatch.await();
-                  } catch (InterruptedException e) {
-                    e.printStackTrace();
-                  }
-                },
-                NO_OP_RUNNABLE));
+    Future<?> stopFuture =
+        executorService.submit(
+            () ->
+                taskStateManager.toStopTransitionLogic(
+                    () -> {
+                      try {
+                        stopLatch.countDown();
+                        runLatch.await();
+                      } catch (InterruptedException ignored) {
+                      }
+                    },
+                    NO_OP_RUNNABLE));
     runLatch.countDown();
-    executorService.submit(() -> taskStateManager.waitRunTransitionLogic(NO_OP_RUNNABLE));
+    Future<?> runFuture2 =
+        executorService.submit(() -> taskStateManager.waitRunTransitionLogic(NO_OP_RUNNABLE));
 
     // then
     executorService.shutdownNow();
@@ -100,19 +102,20 @@ class TaskStateManagerTest {
     TaskStateManager taskStateManager = new TaskStateManager();
 
     // when
-    executorService.submit(
-        () ->
-            taskStateManager.waitRunTransitionLogic(
-                () -> {
-                  try {
-                    stopLatch.await();
-                  } catch (InterruptedException e) {
-                    e.printStackTrace();
-                  }
-                }));
+    Future<?> runFuture =
+        executorService.submit(
+            () ->
+                taskStateManager.waitRunTransitionLogic(
+                    () -> {
+                      try {
+                        stopLatch.await();
+                      } catch (InterruptedException ignored) {
+                      }
+                    }));
 
-    executorService.submit(
-        () -> taskStateManager.toStopTransitionLogic(stopLatch::countDown, NO_OP_RUNNABLE));
+    Future<?> stopFuture =
+        executorService.submit(
+            () -> taskStateManager.toStopTransitionLogic(stopLatch::countDown, NO_OP_RUNNABLE));
 
     // then
     executorService.shutdownNow();
