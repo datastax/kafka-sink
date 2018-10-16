@@ -119,7 +119,7 @@ public class InstanceState {
    * @param task the task
    * @return true if this is the last task to be unregistered in the InstanceState, false otherwise.
    */
-  synchronized boolean unregisterTask(DseSinkTask task) {
+  synchronized boolean unregisterTaskAndCheckIfLast(DseSinkTask task) {
     tasks.remove(task);
     if (tasks.isEmpty()) {
       closeQuietly(session);

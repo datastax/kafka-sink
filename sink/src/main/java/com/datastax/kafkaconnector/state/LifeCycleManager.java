@@ -121,7 +121,7 @@ public class LifeCycleManager {
    */
   public static void stopTask(InstanceState instanceState, DseSinkTask task) {
     log.info("Unregistering task");
-    if (instanceState != null && instanceState.unregisterTask(task)) {
+    if (instanceState != null && instanceState.unregisterTaskAndCheckIfLast(task)) {
       INSTANCE_STATES.remove(instanceState.getConfig().getInstanceName());
     }
     log.info("Task is no longer registered with Connector instance.");
