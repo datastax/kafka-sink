@@ -43,8 +43,7 @@ class TaskStateManagerTest {
   }
 
   @Test
-  void shouldStopProperlyEvenIfTheRunLogicFinishedInTheMeantime()
-      throws ExecutionException, InterruptedException {
+  void shouldStopProperlyEvenIfTheRunLogicFinishedInTheMeantime() {
     // given
     ExecutorService executorService = Executors.newFixedThreadPool(3);
     CountDownLatch stopLatch = new CountDownLatch(1);
