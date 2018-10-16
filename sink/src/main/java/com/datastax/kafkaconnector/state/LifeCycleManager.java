@@ -120,16 +120,11 @@ public class LifeCycleManager {
    * @param task the task
    */
   public static void stopTask(InstanceState instanceState, DseSinkTask task) {
-    log.info("Stopping task");
-    if (instanceState != null) {
-      instanceState.unregisterTask(task);
-      if (instanceState.getTasks().isEmpty()) {
-        closeQuietly(instanceState.getSession());
-        instanceState.stopJmxReporter();
-        INSTANCE_STATES.remove(instanceState.getConfig().getInstanceName());
-      }
+    log.info("Unregistering task");
+    if (instanceState != null && instanceState.unregisterTask(task)) {
+      INSTANCE_STATES.remove(instanceState.getConfig().getInstanceName());
     }
-    log.info("Task is stopped");
+    log.info("Task is no longer registered with Connector instance.");
   }
 
   /**
@@ -368,23 +363,6 @@ public class LifeCycleManager {
       }
     }
     return table.get();
-  }
-
-  /**
-   * Close the given closeable without reporting errors if any occur.
-   *
-   * @param closeable the object close
-   */
-  private static void closeQuietly(AutoCloseable closeable) {
-    if (closeable != null) {
-      try {
-        closeable.close();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      } catch (Exception e) {
-        log.debug(String.format("Failed to close %s", closeable), e);
-      }
-    }
   }
 
   private static boolean isCounterTable(TableMetadata table) {
