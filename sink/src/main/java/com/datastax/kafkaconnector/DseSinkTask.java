@@ -8,34 +8,29 @@
  */
 package com.datastax.kafkaconnector;
 
-import static com.datastax.kafkaconnector.DseSinkTask.TaskState.RUN;
-import static com.datastax.kafkaconnector.DseSinkTask.TaskState.STOP;
-import static com.datastax.kafkaconnector.DseSinkTask.TaskState.WAIT;
-import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
-
 import com.codahale.metrics.Counter;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
-import com.datastax.kafkaconnector.record.JsonData;
-import com.datastax.kafkaconnector.record.KeyOrValue;
+import com.datastax.kafkaconnector.metadata.InnerDataAndMetadata;
+import com.datastax.kafkaconnector.metadata.MetadataCreator;
 import com.datastax.kafkaconnector.record.KeyValueRecord;
 import com.datastax.kafkaconnector.record.KeyValueRecordMetadata;
-import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.RecordAndStatement;
-import com.datastax.kafkaconnector.record.RecordMetadata;
-import com.datastax.kafkaconnector.record.StructData;
-import com.datastax.kafkaconnector.record.StructDataMetadata;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JavaType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.errors.RetriableException;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -55,26 +50,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.RetriableException;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.datastax.kafkaconnector.DseSinkTask.TaskState.RUN;
+import static com.datastax.kafkaconnector.DseSinkTask.TaskState.STOP;
+import static com.datastax.kafkaconnector.DseSinkTask.TaskState.WAIT;
 
 /** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
 public class DseSinkTask extends SinkTask {
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-  private static final JavaType JSON_NODE_MAP_TYPE =
-      OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
-  private static final RecordMetadata JSON_RECORD_METADATA =
-      (field, cqlType) ->
-          field.equals(RawData.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
-  private static final RawData NULL_DATA = new RawData(null);
   private final ExecutorService boundStatementProcessorService =
       Executors.newFixedThreadPool(
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
@@ -82,11 +65,6 @@ public class DseSinkTask extends SinkTask {
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private AtomicReference<TaskState> state;
   private CountDownLatch stopLatch;
-
-  static {
-    // Configure the json object mapper
-    OBJECT_MAPPER.configure(USE_BIG_DECIMAL_FOR_FLOATS, true);
-  }
 
   @Override
   public String version() {
@@ -257,15 +235,21 @@ public class DseSinkTask extends SinkTask {
   @VisibleForTesting
   void mapAndQueueRecord(
       BlockingQueue<RecordAndStatement> boundStatementsQueue, SinkRecord record) {
+    log.info("sinkRecord arrived: {}, key: {}", record, record.key(), record.value());
+    log.info(
+        "sinkRecord arrived: {}, value: {}, valueSchema: {}",
+        record,
+        record.value(),
+        record.valueSchema());
     try {
       String topicName = record.topic();
       TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
 
       for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
-        InnerDataAndMetadata key = makeMeta(record.key());
-        InnerDataAndMetadata value = makeMeta(record.value());
+        InnerDataAndMetadata key = MetadataCreator.makeMeta(record.key());
+        InnerDataAndMetadata value = MetadataCreator.makeMeta(record.value());
         KeyValueRecord keyValueRecord =
-            new KeyValueRecord(key.innerData, value.innerData, record.timestamp());
+            new KeyValueRecord(key.getInnerData(), value.getInnerData(), record.timestamp());
         RecordMapper mapper = instanceState.getRecordMapper(tableConfig);
         boundStatementsQueue.offer(
             new RecordAndStatement(
@@ -273,7 +257,7 @@ public class DseSinkTask extends SinkTask {
                 tableConfig.getKeyspaceAndTable(),
                 mapper
                     .map(
-                        new KeyValueRecordMetadata(key.innerMetadata, value.innerMetadata),
+                        new KeyValueRecordMetadata(key.getInnerMetadata(), value.getInnerMetadata()),
                         keyValueRecord)
                     .setConsistencyLevel(tableConfig.getConsistencyLevel())));
       }
@@ -288,44 +272,7 @@ public class DseSinkTask extends SinkTask {
     }
   }
 
-  /**
-   * Create a metadata object describing the structure of the given key or value (extracted from a
-   * {@link SinkRecord} and a data object that homogenizes interactions with the given key/value
-   * (e.g. an implementation of {@link KeyOrValue}).
-   *
-   * @param keyOrValue the key or value
-   * @return a pair of (RecordMetadata, KeyOrValue)
-   * @throws IOException if keyOrValue is a String and JSON parsing fails in some unknown way. It's
-   *     unclear if this exception can ever trigger in the context of this Connector.
-   */
-  private static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
-    KeyOrValue innerData;
-    RecordMetadata innerMetadata;
 
-    if (keyOrValue instanceof Struct) {
-      Struct innerRecordStruct = (Struct) keyOrValue;
-      // TODO: PERF: Consider caching these metadata objects, keyed on schema.
-      innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
-      innerData = new StructData(innerRecordStruct);
-    } else if (keyOrValue instanceof String) {
-      innerMetadata = JSON_RECORD_METADATA;
-      try {
-        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, (String) keyOrValue);
-      } catch (RuntimeException e) {
-        // Json parsing failed. Treat as raw string.
-        innerData = new RawData(keyOrValue);
-        innerMetadata = (RecordMetadata) innerData;
-      }
-    } else if (keyOrValue != null) {
-      innerData = new RawData(keyOrValue);
-      innerMetadata = (RecordMetadata) innerData;
-    } else {
-      // The key or value is null
-      innerData = NULL_DATA;
-      innerMetadata = NULL_DATA;
-    }
-    return new InnerDataAndMetadata(innerData, innerMetadata);
-  }
 
   /**
    * Handle a failed record.
@@ -368,16 +315,7 @@ public class DseSinkTask extends SinkTask {
         statementError);
   }
 
-  /** Simple container class to tie together a {@link SinkRecord} key/value and its metadata. */
-  private static class InnerDataAndMetadata {
-    final KeyOrValue innerData;
-    final RecordMetadata innerMetadata;
 
-    InnerDataAndMetadata(KeyOrValue innerData, RecordMetadata innerMetadata) {
-      this.innerMetadata = innerMetadata;
-      this.innerData = innerData;
-    }
-  }
 
   /**
    * The DseSinkTask can be in one of three states, and shutdown behavior varies depending on the
