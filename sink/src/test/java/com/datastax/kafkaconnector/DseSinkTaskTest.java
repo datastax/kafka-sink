@@ -21,9 +21,7 @@ import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -83,29 +81,5 @@ class DseSinkTaskTest {
     assertThat(Objects.requireNonNull(queue.poll()).getStatement()).isSameAs(bs2);
     verify(bs1).setConsistencyLevel(DefaultConsistencyLevel.ONE);
     verify(bs2).setConsistencyLevel(DefaultConsistencyLevel.QUORUM);
-  }
-
-  @Test
-  void should_categorize_statement_in_statement_group() {
-    BoundStatement bs1 = mock(BoundStatement.class);
-    ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3});
-    when(bs1.getRoutingKey()).thenReturn(routingKey);
-
-    RecordAndStatement recordAndStatement = new RecordAndStatement(record, "ks.mytable", bs1);
-    Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
-
-    // We don't care about the args to the constructor for this test.
-    BoundStatementProcessor statementProcessor = new BoundStatementProcessor(null, null, null);
-    List<RecordAndStatement> result =
-        statementProcessor.categorizeStatement(statementGroups, recordAndStatement);
-    assertThat(result.size()).isEqualTo(1);
-    assertThat(result.get(0)).isSameAs(recordAndStatement);
-    assertThat(statementGroups.size()).isEqualTo(1);
-    assertThat(statementGroups.containsKey("ks.mytable")).isTrue();
-    Map<ByteBuffer, List<RecordAndStatement>> batchGroups = statementGroups.get("ks.mytable");
-    assertThat(batchGroups.size()).isEqualTo(1);
-    assertThat(batchGroups.containsKey(routingKey)).isTrue();
-    List<RecordAndStatement> batchGroup = batchGroups.get(routingKey);
-    assertThat(batchGroup).isSameAs(result);
   }
 }
