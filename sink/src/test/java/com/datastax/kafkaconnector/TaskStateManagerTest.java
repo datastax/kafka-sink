@@ -37,7 +37,7 @@ class TaskStateManagerTest {
     assertThat(taskStateManager.state.get()).isEqualTo(TaskState.WAIT);
   }
 
-  @Test()
+  @Test
   void shouldStopProperlyEvenIfTheRunLogicFinishedInTheMeantime() {
     // given
     ExecutorService executorService = Executors.newFixedThreadPool(3);
