@@ -20,15 +20,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import org.awaitility.Duration;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 class TaskStateManagerTest {
 
-  private static final Runnable NO_OP_RUNNABLE = () -> {
-  };
+  private static final Runnable NO_OP_RUNNABLE = () -> {};
 
   @Test
   void shouldStartTaskAndEndInWaitState() {
