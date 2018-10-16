@@ -4,6 +4,9 @@
 - [new feature] KAF-49: Add queryExecutionTimeout global setting
 - [improvement] KAF-52: Refactor kafka-sink repo into a few Maven modules
 - [improvement] KAF-54: Change default-properties to be more intuitive
+- [bug] KAF-55 Potential deadlock during connector shutdown
+- [bug] KAF-53: Jar file name is wrong
+- [bug] KAF-57: CL for one topic/table may mask another
 - [bug] KAF-59: LifeCycleManager.stopTask has a race condition
 
 ### 1.0.0-alpha3
