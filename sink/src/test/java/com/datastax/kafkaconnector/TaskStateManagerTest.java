@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector;
 
 import static com.datastax.kafkaconnector.TaskStateManager.TaskState;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,11 +20,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+
+import org.awaitility.Duration;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 class TaskStateManagerTest {
 
-  private static final Runnable NO_OP_RUNNABLE = () -> {};
+  private static final Runnable NO_OP_RUNNABLE = () -> {
+  };
 
   @Test
   void shouldStartTaskAndEndInWaitState() {
@@ -31,7 +36,7 @@ class TaskStateManagerTest {
     TaskStateManager taskStateManager = new TaskStateManager();
 
     // when
-    taskStateManager.waitRunTransitionLogic(() -> {});
+    taskStateManager.waitRunTransitionLogic(NO_OP_RUNNABLE);
 
     // then
     assertThat(taskStateManager.state.get()).isEqualTo(TaskState.WAIT);
@@ -47,38 +52,37 @@ class TaskStateManagerTest {
     TaskStateManager taskStateManager = new TaskStateManager();
 
     // when
-    Future<?> runFuture =
-        executorService.submit(
-            () ->
-                taskStateManager.waitRunTransitionLogic(
-                    () -> {
-                      try {
-                        stopLatch.await();
-                      } catch (InterruptedException e) {
-                        e.printStackTrace();
-                      }
-                    }));
-    Future<?> stopFuture =
-        executorService.submit(
-            () ->
-                taskStateManager.toStopTransitionLogic(
-                    () -> {
-                      try {
-                        stopLatch.countDown();
-                        runLatch.await();
-                      } catch (InterruptedException e) {
-                        e.printStackTrace();
-                      }
-                    },
-                    NO_OP_RUNNABLE));
-    runFuture.get();
+    executorService.submit(
+        () ->
+            taskStateManager.waitRunTransitionLogic(
+                () -> {
+                  try {
+                    stopLatch.await();
+                  } catch (InterruptedException e) {
+                    e.printStackTrace();
+                  }
+                }));
+
+    executorService.submit(
+        () ->
+            taskStateManager.toStopTransitionLogic(
+                () -> {
+                  try {
+                    stopLatch.countDown();
+                    runLatch.await();
+                  } catch (InterruptedException e) {
+                    e.printStackTrace();
+                  }
+                },
+                NO_OP_RUNNABLE));
     runLatch.countDown();
-    executorService.submit(() -> taskStateManager.waitRunTransitionLogic(NO_OP_RUNNABLE)).get();
-    stopFuture.get();
+    executorService.submit(() -> taskStateManager.waitRunTransitionLogic(NO_OP_RUNNABLE));
 
     // then
-    executorService.shutdown();
-    assertThat(taskStateManager.state.get()).isEqualTo(TaskState.STOP);
+    executorService.shutdownNow();
+    await()
+        .atMost(Duration.FIVE_SECONDS)
+        .until(() -> taskStateManager.state.get() == TaskState.STOP);
   }
 
   @Test
