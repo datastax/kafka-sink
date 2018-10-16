@@ -44,7 +44,7 @@
     </fileSet>
 
     <fileSet>
-      <directory>${project.basedir}/../sink/target</directory>
+      <directory>${project.build.directory}</directory>
       <outputDirectory>.</outputDirectory>
       <includes>
         <include>kafka-connect-dse-*.jar</include>
