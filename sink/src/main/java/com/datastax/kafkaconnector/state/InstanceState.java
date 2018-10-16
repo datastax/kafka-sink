@@ -31,9 +31,12 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Container for a session, config, etc. that a connector instance requires to function. */
 public class InstanceState {
+  private static final Logger log = LoggerFactory.getLogger(InstanceState.class);
   private final DseSession session;
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
@@ -107,17 +110,26 @@ public class InstanceState {
     tasks.add(task);
   }
 
-  void unregisterTask(DseSinkTask task) {
+  /**
+   * Unregister the given task. This method is synchronized because it also handles cleaning up the
+   * InstanceState if this is the last task. Without synchronization, two threads that unregister
+   * the last tasks simultaneously may both believe they are the last, causing multiple cleanups to
+   * occur.
+   *
+   * @param task the task
+   * @return true if this is the last task to be unregistered in the InstanceState, false otherwise.
+   */
+  synchronized boolean unregisterTaskAndCheckIfLast(DseSinkTask task) {
     tasks.remove(task);
-  }
+    if (tasks.isEmpty()) {
+      closeQuietly(session);
+      reporter.stop();
+      // Indicate to the caller that this is the last task in the InstanceState.
+      return true;
+    }
 
-  @NotNull
-  Set<DseSinkTask> getTasks() {
-    return tasks;
-  }
-
-  void stopJmxReporter() {
-    reporter.stop();
+    // Indicate to the caller that this is not the last task in the InstanceState.
+    return false;
   }
 
   @NotNull
@@ -182,5 +194,22 @@ public class InstanceState {
               topicName));
     }
     return topicState;
+  }
+
+  /**
+   * Close the given closeable without reporting errors if any occur.
+   *
+   * @param closeable the object close
+   */
+  private static void closeQuietly(AutoCloseable closeable) {
+    if (closeable != null) {
+      try {
+        closeable.close();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        log.debug(String.format("Failed to close %s", closeable), e);
+      }
+    }
   }
 }
