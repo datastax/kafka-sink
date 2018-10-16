@@ -67,7 +67,6 @@ class TaskStateManager {
       state.compareAndSet(RUN, STOP);
       state.compareAndSet(WAIT, STOP);
       stopLatch.await();
-
     } catch (InterruptedException e) {
       // "put" is likely also interrupted, so we're effectively stopped.
       Thread.currentThread().interrupt();
