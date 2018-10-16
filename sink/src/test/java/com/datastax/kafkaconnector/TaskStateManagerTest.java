@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 
 class TaskStateManagerTest {
 
-  public static final Runnable NO_OP_RUNNABLE = () -> {};
+  private static final Runnable NO_OP_RUNNABLE = () -> {};
 
   @Test
   void shouldStartTaskAndEndInWaitState() {
@@ -40,11 +40,11 @@ class TaskStateManagerTest {
     // given
     ExecutorService executorService = Executors.newFixedThreadPool(3);
     CountDownLatch stopLatch = new CountDownLatch(1);
-    CountDownLatch putLatch = new CountDownLatch(1);
+    CountDownLatch runLatch = new CountDownLatch(1);
     TaskStateManager taskStateManager = new TaskStateManager();
 
     // when
-    Future<?> putFuture =
+    Future<?> runFuture =
         executorService.submit(
             () ->
                 taskStateManager.waitRunTransitionLogic(
@@ -62,14 +62,14 @@ class TaskStateManagerTest {
                     () -> {
                       try {
                         stopLatch.countDown();
-                        putLatch.await();
+                        runLatch.await();
                       } catch (InterruptedException e) {
                         e.printStackTrace();
                       }
                     },
                     NO_OP_RUNNABLE));
-    putFuture.get();
-    putLatch.countDown();
+    runFuture.get();
+    runLatch.countDown();
     executorService.submit(() -> taskStateManager.waitRunTransitionLogic(NO_OP_RUNNABLE)).get();
     stopFuture.get();
 
