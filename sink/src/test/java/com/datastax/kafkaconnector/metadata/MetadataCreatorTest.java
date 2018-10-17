@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.metadata;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import java.io.IOException;
 import java.util.HashMap;
@@ -51,6 +52,23 @@ class MetadataCreatorTest {
 
     // then
     assertThat(((TextNode) innerDataAndMetadata.getInnerData().getFieldValue("name")).textValue())
+        .isEqualTo("Mike");
+    assertThat(innerDataAndMetadata.getInnerMetadata()).isNotNull();
+  }
+
+  @Test
+  void shouldMakeMetadataForEnclosedJson() throws IOException {
+    // given
+    String json = "{\"name\": {\"name2\": \"Mike\"}}";
+
+    // when
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(json);
+
+    // then
+    assertThat(
+            ((ObjectNode) innerDataAndMetadata.getInnerData().getFieldValue("name"))
+                .get("name2")
+                .textValue())
         .isEqualTo("Mike");
     assertThat(innerDataAndMetadata.getInnerMetadata()).isNotNull();
   }
