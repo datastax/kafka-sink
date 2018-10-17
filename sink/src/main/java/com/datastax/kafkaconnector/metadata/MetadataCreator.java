@@ -16,6 +16,7 @@ import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.kafkaconnector.record.StructData;
 import com.datastax.kafkaconnector.record.StructDataMetadata;
+import com.datastax.kafkaconnector.util.CheckedFunction;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -65,29 +66,9 @@ public class MetadataCreator {
       innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
       innerData = new StructData(innerRecordStruct);
     } else if (keyOrValue instanceof String) {
-      innerMetadata = JSON_RECORD_METADATA;
-      try {
-        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, (String) keyOrValue);
-      } catch (RuntimeException e) {
-        // Json parsing failed. Treat as raw string.
-        innerData = new RawData(keyOrValue);
-        innerMetadata = (RecordMetadata) innerData;
-      }
+      return handleJsonRecord(keyOrValue, (k) -> (String) k);
     } else if (keyOrValue instanceof Map) {
-      innerMetadata = JSON_RECORD_METADATA;
-      try {
-        String json = OBJECT_MAPPER.writeValueAsString(keyOrValue);
-        log.info("after transform map:{} to json:{}", keyOrValue, json);
-        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, json);
-      } catch (RuntimeException e) {
-        // Json parsing failed. Treat as raw string.
-        innerData = new RawData(keyOrValue);
-        innerMetadata = (RecordMetadata) innerData;
-      }
-      //      innerData = MapData.fromMap((Map) keyOrValue);
-      //      innerMetadata = (RecordMetadata) innerData;
-      //      log.info("innerData: {}", innerData);
-      //      log.info("innerMetadata: {}", innerMetadata);
+      return handleJsonRecord(keyOrValue, OBJECT_MAPPER::writeValueAsString);
     } else if (keyOrValue != null) {
       innerData = new RawData(keyOrValue);
       innerMetadata = (RecordMetadata) innerData;
@@ -97,5 +78,18 @@ public class MetadataCreator {
       innerMetadata = NULL_DATA;
     }
     return new InnerDataAndMetadata(innerData, innerMetadata);
+  }
+
+  private static InnerDataAndMetadata handleJsonRecord(
+      Object originalRecord, CheckedFunction<Object, String> recordTransformer) throws IOException {
+    try {
+      KeyOrValue innerData =
+          new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, recordTransformer.apply(originalRecord));
+      return new InnerDataAndMetadata(innerData, JSON_RECORD_METADATA);
+    } catch (RuntimeException e) {
+      // Json parsing failed. Treat as raw string.
+      KeyOrValue innerData = new RawData(originalRecord);
+      return new InnerDataAndMetadata(innerData, (RecordMetadata) innerData);
+    }
   }
 }

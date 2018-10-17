@@ -11,11 +11,9 @@ package com.datastax.kafkaconnector.metadata;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.node.TextNode;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -80,7 +78,8 @@ class MetadataCreatorTest {
     InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(fields);
 
     // then
-    assertThat(((TextNode) innerDataAndMetadata.getInnerData().getFieldValue("f_1")).textValue()).isEqualTo("v_1");
+    assertThat(((TextNode) innerDataAndMetadata.getInnerData().getFieldValue("f_1")).textValue())
+        .isEqualTo("v_1");
     assertThat(innerDataAndMetadata.getInnerMetadata()).isNotNull();
   }
 }
