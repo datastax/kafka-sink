@@ -12,7 +12,6 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECI
 
 import com.datastax.kafkaconnector.record.JsonData;
 import com.datastax.kafkaconnector.record.KeyOrValue;
-import com.datastax.kafkaconnector.record.MapData;
 import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.kafkaconnector.record.StructData;
@@ -22,10 +21,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.util.Map;
-
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
@@ -35,8 +32,7 @@ public class MetadataCreator {
   private static final Logger log = LoggerFactory.getLogger(MetadataCreator.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final JavaType JSON_NODE_MAP_TYPE =
-      OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {
-      }.getType());
+      OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
   private static final RecordMetadata JSON_RECORD_METADATA =
       (field, cqlType) ->
           field.equals(RawData.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
@@ -55,7 +51,7 @@ public class MetadataCreator {
    * @param keyOrValue the key or value
    * @return a pair of (RecordMetadata, KeyOrValue)
    * @throws IOException if keyOrValue is a String and JSON parsing fails in some unknown way. It's
-   *                     unclear if this exception can ever trigger in the context of this Connector.
+   *     unclear if this exception can ever trigger in the context of this Connector.
    */
   public static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
     KeyOrValue innerData;
@@ -78,8 +74,20 @@ public class MetadataCreator {
         innerMetadata = (RecordMetadata) innerData;
       }
     } else if (keyOrValue instanceof Map) {
-      innerData = MapData.fromMap((Map) keyOrValue);
-      innerMetadata = (RecordMetadata) innerData;
+      innerMetadata = JSON_RECORD_METADATA;
+      try {
+        String json = OBJECT_MAPPER.writeValueAsString(keyOrValue);
+        log.info("after transform map:{} to json:{}", keyOrValue, json);
+        innerData = new JsonData(OBJECT_MAPPER, JSON_NODE_MAP_TYPE, json);
+      } catch (RuntimeException e) {
+        // Json parsing failed. Treat as raw string.
+        innerData = new RawData(keyOrValue);
+        innerMetadata = (RecordMetadata) innerData;
+      }
+      //      innerData = MapData.fromMap((Map) keyOrValue);
+      //      innerMetadata = (RecordMetadata) innerData;
+      //      log.info("innerData: {}", innerData);
+      //      log.info("innerMetadata: {}", innerMetadata);
     } else if (keyOrValue != null) {
       innerData = new RawData(keyOrValue);
       innerMetadata = (RecordMetadata) innerData;

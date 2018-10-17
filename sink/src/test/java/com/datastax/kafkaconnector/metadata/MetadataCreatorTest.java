@@ -80,7 +80,7 @@ class MetadataCreatorTest {
     InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(fields);
 
     // then
-    assertThat(innerDataAndMetadata.getInnerData().getFieldValue("f_1")).isEqualTo("v_1");
+    assertThat(((TextNode) innerDataAndMetadata.getInnerData().getFieldValue("f_1")).textValue()).isEqualTo("v_1");
     assertThat(innerDataAndMetadata.getInnerMetadata()).isNotNull();
   }
 }

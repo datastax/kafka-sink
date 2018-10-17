@@ -12,12 +12,14 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableMap;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Map;
 import java.util.Set;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MapData implements KeyOrValue, RecordMetadata {
+  private static final Logger log = LoggerFactory.getLogger(MapData.class);
   private final Map<String, Object> data;
   private final Set<String> fields;
 
@@ -28,10 +30,7 @@ public class MapData implements KeyOrValue, RecordMetadata {
 
   @SuppressWarnings("unchecked")
   public static KeyOrValue fromMap(Map data) {
-    return new MapData(
-        ImmutableMap.copyOf(data),
-        ImmutableSet.copyOf(data.keySet())
-    );
+    return new MapData(ImmutableMap.copyOf(data), ImmutableSet.copyOf(data.keySet()));
   }
 
   @Override
@@ -46,6 +45,12 @@ public class MapData implements KeyOrValue, RecordMetadata {
 
   @Override
   public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
-    return GenericType.of(Map.class);
+    log.info("getFieldType for: {} and cqlType: {}", field, cqlType);
+    return GenericType.STRING;
+  }
+
+  @Override
+  public String toString() {
+    return "MapData{" + "data=" + data + ", fields=" + fields + '}';
   }
 }
