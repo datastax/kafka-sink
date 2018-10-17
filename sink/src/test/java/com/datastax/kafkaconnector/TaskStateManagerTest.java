@@ -86,8 +86,10 @@ class TaskStateManagerTest {
     TaskState state = taskStateManager.state.get();
     endRunActionLatch.countDown();
     waitFuture(runFuture);
+    TaskState stateAfter = taskStateManager.state.get();
 
     assertThat(state).isEqualTo(TaskState.RUN);
+    assertThat(stateAfter).isEqualTo(TaskState.WAIT);
   }
 
   @Test
