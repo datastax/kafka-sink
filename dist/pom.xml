@@ -85,12 +85,38 @@
       </plugin>
 
       <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <!-- http://stackoverflow.com/questions/13218313/unable-to-disable-generation-of-empty-jar-maven-jar-plugin -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.1.1</version>
         <executions>
           <execution>
-            <id>default-jar</id>
-            <phase>none</phase>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <excludes>
+                  <exclude>ch.qos.logback:*</exclude>
+                  <exclude>com.datastax.oss.simulacron:*</exclude>
+                  <exclude>net.bytebuddy:*</exclude>
+                  <exclude>org.apache.kafka:*</exclude>
+                  <exclude>org.assertj:*</exclude>
+                  <exclude>org.junit.jupiter:*</exclude>
+                  <exclude>org.junit.platform:*</exclude>
+                  <exclude>org.lz4:*</exclude>
+                  <exclude>org.objenesis:*</exclude>
+                  <exclude>org.opentest4j:*</exclude>
+                  <exclude>org.mockito:*</exclude>
+                  <exclude>org.slf4j:*</exclude>
+                </excludes>
+              </artifactSet>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>reference.conf</resource>
+                </transformer>
+              </transformers>
+            </configuration>
           </execution>
         </executions>
       </plugin>

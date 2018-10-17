@@ -24,27 +24,44 @@ import org.junit.jupiter.api.Test;
 class BoundStatementProcessorTest {
   @Test
   void should_categorize_statement_in_statement_group() {
-    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);
 
     BoundStatement bs1 = mock(BoundStatement.class);
     ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3});
     when(bs1.getRoutingKey()).thenReturn(routingKey);
 
-    RecordAndStatement recordAndStatement = new RecordAndStatement(record, "ks.mytable", bs1);
+    SinkRecord record1 = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);
+    RecordAndStatement recordAndStatement1 = new RecordAndStatement(record1, "ks.mytable", bs1);
+
+    SinkRecord record2 = new SinkRecord("yourtopic", 0, null, null, null, "value", 1234L);
+    RecordAndStatement recordAndStatement2 = new RecordAndStatement(record2, "ks.mytable", bs1);
+
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
 
     // We don't care about the args to the constructor for this test.
     BoundStatementProcessor statementProcessor = new BoundStatementProcessor(null, null, null);
-    List<RecordAndStatement> result =
-        statementProcessor.categorizeStatement(statementGroups, recordAndStatement);
-    assertThat(result.size()).isEqualTo(1);
-    assertThat(result.get(0)).isSameAs(recordAndStatement);
-    assertThat(statementGroups.size()).isEqualTo(1);
-    assertThat(statementGroups.containsKey("ks.mytable")).isTrue();
-    Map<ByteBuffer, List<RecordAndStatement>> batchGroups = statementGroups.get("ks.mytable");
+
+    // Categorize the two statements. Although they refer to the same ks/table and have the
+    // same routing key, they should be in different buckets.
+    List<RecordAndStatement> result1 =
+        statementProcessor.categorizeStatement(statementGroups, recordAndStatement1);
+    List<RecordAndStatement> result2 =
+        statementProcessor.categorizeStatement(statementGroups, recordAndStatement2);
+
+    assertThat(result1.size()).isEqualTo(1);
+    assertThat(result1.get(0)).isSameAs(recordAndStatement1);
+    assertThat(statementGroups.size()).isEqualTo(2);
+    assertThat(statementGroups.containsKey("mytopic.ks.mytable")).isTrue();
+    Map<ByteBuffer, List<RecordAndStatement>> batchGroups =
+        statementGroups.get("mytopic.ks.mytable");
     assertThat(batchGroups.size()).isEqualTo(1);
     assertThat(batchGroups.containsKey(routingKey)).isTrue();
     List<RecordAndStatement> batchGroup = batchGroups.get(routingKey);
-    assertThat(batchGroup).isSameAs(result);
+    assertThat(batchGroup).isSameAs(result1);
+
+    batchGroups = statementGroups.get("yourtopic.ks.mytable");
+    assertThat(batchGroups.size()).isEqualTo(1);
+    assertThat(batchGroups.containsKey(routingKey)).isTrue();
+    batchGroup = batchGroups.get(routingKey);
+    assertThat(batchGroup).isSameAs(result2);
   }
 }
