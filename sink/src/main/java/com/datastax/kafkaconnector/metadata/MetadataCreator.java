@@ -57,9 +57,6 @@ public class MetadataCreator {
   public static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
     KeyOrValue innerData;
     RecordMetadata innerMetadata;
-    if (keyOrValue != null) {
-      log.info("instanceOf keyOrValue: {} is: {}", keyOrValue, keyOrValue.getClass());
-    }
     if (keyOrValue instanceof Struct) {
       Struct innerRecordStruct = (Struct) keyOrValue;
       // TODO: PERF: Consider caching these metadata objects, keyed on schema.
