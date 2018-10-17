@@ -1,6 +1,15 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ *   This software is subject to the below license agreement.
+ *   DataStax may make changes to the agreement from time to time,
+ *   and will post the amended terms at
+ *   https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
+ */
 package com.datastax.kafkaconnector.metadata;
 
-import com.datastax.kafkaconnector.DseSinkTask;
+import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
+
 import com.datastax.kafkaconnector.record.JsonData;
 import com.datastax.kafkaconnector.record.KeyOrValue;
 import com.datastax.kafkaconnector.record.MapData;
@@ -13,15 +22,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetadataCreator {
   private static final Logger log = LoggerFactory.getLogger(MetadataCreator.class);
@@ -33,7 +41,6 @@ public class MetadataCreator {
       (field, cqlType) ->
           field.equals(RawData.FIELD_NAME) ? GenericType.STRING : GenericType.of(JsonNode.class);
   private static final RawData NULL_DATA = new RawData(null);
-
 
   static {
     // Configure the json object mapper
@@ -71,7 +78,8 @@ public class MetadataCreator {
         innerMetadata = (RecordMetadata) innerData;
       }
     } else if (keyOrValue instanceof Map) {
-      innerData = MapData.fromMap((Map)keyOrValue);
+      innerData = MapData.fromMap((Map) keyOrValue);
+      innerMetadata = (RecordMetadata) innerData;
     } else if (keyOrValue != null) {
       innerData = new RawData(keyOrValue);
       innerMetadata = (RecordMetadata) innerData;
@@ -82,6 +90,4 @@ public class MetadataCreator {
     }
     return new InnerDataAndMetadata(innerData, innerMetadata);
   }
-
-
 }

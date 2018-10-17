@@ -22,15 +22,6 @@ import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.connect.errors.RetriableException;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTask;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -48,10 +39,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.errors.RetriableException;
+import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE.
- */
+/** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
 public class DseSinkTask extends SinkTask {
   private static final Runnable NO_OP = () -> {};
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
@@ -61,7 +58,6 @@ public class DseSinkTask extends SinkTask {
   private InstanceState instanceState;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private TaskStateManager taskStateManager;
-
 
   @Override
   public String version() {
@@ -187,7 +183,7 @@ public class DseSinkTask extends SinkTask {
    * BoundStatement}'s to the given queue for further processing.
    *
    * @param boundStatementsQueue the queue that processes {@link RecordAndStatement}'s
-   * @param record               the {@link SinkRecord} to map
+   * @param record the {@link SinkRecord} to map
    */
   @VisibleForTesting
   void mapAndQueueRecord(
@@ -208,7 +204,8 @@ public class DseSinkTask extends SinkTask {
                 tableConfig.getKeyspaceAndTable(),
                 mapper
                     .map(
-                        new KeyValueRecordMetadata(key.getInnerMetadata(), value.getInnerMetadata()),
+                        new KeyValueRecordMetadata(
+                            key.getInnerMetadata(), value.getInnerMetadata()),
                         keyValueRecord)
                     .setConsistencyLevel(tableConfig.getConsistencyLevel())));
       }
@@ -226,9 +223,9 @@ public class DseSinkTask extends SinkTask {
   /**
    * Handle a failed record.
    *
-   * @param record      the {@link SinkRecord} that failed to process
-   * @param e           the exception
-   * @param cql         the cql statement that failed to execute
+   * @param record the {@link SinkRecord} that failed to process
+   * @param e the exception
+   * @param cql the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered
    */
   synchronized void handleFailure(SinkRecord record, Throwable e, String cql, Counter failCounter) {
