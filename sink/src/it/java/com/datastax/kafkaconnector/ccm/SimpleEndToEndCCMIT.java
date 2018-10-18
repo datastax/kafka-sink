@@ -41,6 +41,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -1228,6 +1229,74 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     // Verify that the record was deleted from DSE.
     results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void map_only() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, "
+                + "booleancol=value.boolean, "
+                + "doublecol=value.double, "
+                + "floatcol=value.float, "
+                + "intcol=value.int, "
+                + "smallintcol=value.smallint, "
+                + "textcol=value.text,"
+                + "mapnestedcol=value.mapnested,"
+                + "mapcol=value.map,"
+                + "tinyintcol=value.tinyint"));
+
+    Long baseValue = 1234567L;
+
+    Map<String, Integer> mapValue =
+        ImmutableMap.<String, Integer>builder().put("sub1", 37).put("sub2", 96).build();
+
+    Map<String, Map<Integer, String>> nestedMapValue =
+        ImmutableMap.<String, Map<Integer, String>>builder()
+            .put(
+                "sub1",
+                ImmutableMap.<Integer, String>builder()
+                    .put(37, "sub1sub1")
+                    .put(96, "sub1sub2")
+                    .build())
+            .put(
+                "sub2",
+                ImmutableMap.<Integer, String>builder()
+                    .put(47, "sub2sub1")
+                    .put(90, "sub2sub2")
+                    .build())
+            .build();
+
+    Map<String, Object> value = new HashMap<>();
+    value.put("bigint", baseValue);
+    value.put("boolean", (baseValue.intValue() & 1) == 1);
+    value.put("double", (double) baseValue + 0.123);
+    value.put("float", baseValue.floatValue() + 0.987f);
+    value.put("int", baseValue.intValue());
+    value.put("smallint", baseValue.shortValue());
+    value.put("text", baseValue.toString());
+    value.put("map", mapValue);
+    value.put("mapnested", nestedMapValue);
+    value.put("tinyint", baseValue.byteValue());
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
+    assertThat(row.getBoolean("booleancol")).isEqualTo((baseValue.intValue() & 1) == 1);
+    assertThat(row.getDouble("doublecol")).isEqualTo((double) baseValue + 0.123);
+    assertThat(row.getFloat("floatcol")).isEqualTo(baseValue.floatValue() + 0.987f);
+    assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
+    assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
+    assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
+    assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
+    assertThat(row.getMap("mapcol", String.class, Integer.class)).isEqualTo(mapValue);
+    assertThat(row.getMap("mapnestedcol", String.class, Map.class)).isEqualTo(nestedMapValue);
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
