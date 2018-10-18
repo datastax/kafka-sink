@@ -178,6 +178,14 @@
       <artifactId>snappy-java</artifactId>
     </dependency>
 
+    <!--
+    This is needed because dse driver 2.0.0-alpha1 uses it, but makes it an optional dep.
+    Consider removing this when upgrading to the next version of the dse driver.
+    -->
+    <dependency>
+      <groupId>com.github.stephenc.jcip</groupId>
+      <artifactId>jcip-annotations</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
