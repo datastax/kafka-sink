@@ -85,8 +85,8 @@ public class MetadataCreator {
       return new InnerDataAndMetadata(innerData, JSON_RECORD_METADATA);
     } catch (RuntimeException e) {
       // Json parsing failed. Treat as raw string.
-      KeyOrValue innerData = new RawData(originalRecord);
-      return new InnerDataAndMetadata(innerData, (RecordMetadata) innerData);
+      RawData rawData = new RawData(originalRecord);
+      return new InnerDataAndMetadata(rawData, rawData);
     }
   }
 }
