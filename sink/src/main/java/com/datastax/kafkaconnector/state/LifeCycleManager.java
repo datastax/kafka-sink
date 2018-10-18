@@ -9,7 +9,7 @@
 package com.datastax.kafkaconnector.state;
 
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
-import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROTOCOL;
+import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SERVICE;
 import static com.datastax.dse.driver.api.core.metadata.DseNodeProperties.DSE_VERSION;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
@@ -28,9 +28,9 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.auth.DseGssApiAuthProvider;
-import com.datastax.dse.driver.api.core.auth.DsePlainTextAuthProvider;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
+import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
+import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
 import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
@@ -606,7 +606,7 @@ public class LifeCycleManager {
       }
       configLoaderBuilder
           .withClass(AUTH_PROVIDER_CLASS, DseGssApiAuthProvider.class)
-          .withString(AUTH_PROVIDER_SASL_PROTOCOL, authConfig.getService())
+          .withString(AUTH_PROVIDER_SERVICE, authConfig.getService())
           .withStringMap(
               AUTH_PROVIDER_SASL_PROPERTIES, ImmutableMap.of("javax.security.sasl.qop", "auth"))
           .withStringMap(DseDriverOption.AUTH_PROVIDER_LOGIN_CONFIGURATION, loginConfig);
