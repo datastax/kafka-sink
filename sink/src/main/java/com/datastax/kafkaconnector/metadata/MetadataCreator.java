@@ -26,11 +26,8 @@ import java.io.IOException;
 import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MetadataCreator {
-  private static final Logger log = LoggerFactory.getLogger(MetadataCreator.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final JavaType JSON_NODE_MAP_TYPE =
       OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
@@ -55,26 +52,22 @@ public class MetadataCreator {
    *     unclear if this exception can ever trigger in the context of this Connector.
    */
   public static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
-    KeyOrValue innerData;
-    RecordMetadata innerMetadata;
     if (keyOrValue instanceof Struct) {
       Struct innerRecordStruct = (Struct) keyOrValue;
       // TODO: PERF: Consider caching these metadata objects, keyed on schema.
-      innerMetadata = new StructDataMetadata(innerRecordStruct.schema());
-      innerData = new StructData(innerRecordStruct);
+      return new InnerDataAndMetadata(
+          new StructData(innerRecordStruct), new StructDataMetadata(innerRecordStruct.schema()));
     } else if (keyOrValue instanceof String) {
       return handleJsonRecord(keyOrValue, (k) -> (String) k);
     } else if (keyOrValue instanceof Map) {
       return handleJsonRecord(keyOrValue, OBJECT_MAPPER::writeValueAsString);
     } else if (keyOrValue != null) {
-      innerData = new RawData(keyOrValue);
-      innerMetadata = (RecordMetadata) innerData;
+      KeyOrValue innerData = new RawData(keyOrValue);
+      return new InnerDataAndMetadata(innerData, (RecordMetadata) innerData);
     } else {
       // The key or value is null
-      innerData = NULL_DATA;
-      innerMetadata = NULL_DATA;
+      return new InnerDataAndMetadata(NULL_DATA, NULL_DATA);
     }
-    return new InnerDataAndMetadata(innerData, innerMetadata);
   }
 
   private static InnerDataAndMetadata handleJsonRecord(
