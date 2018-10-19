@@ -12,7 +12,10 @@ import java.io.IOException;
 
 /**
  * Standard java.util.Function does not allow to throw checked exception from the apply call To make
- * it explicit we need a CheckedFunction interface that declares that it throws Exception
+ * it explicit we need a CheckedFunction interface that declares that it throws IOException We are
+ * specifying IOException instead of Exception to give caller of that function more information
+ * about inner behaviour of apply(). If in the future someone wish to make it more generic by
+ * throwing Exception will need to change callers to catch Exception instead of IOException.
  */
 @FunctionalInterface
 public interface CheckedFunction<T, R> {
