@@ -1299,6 +1299,36 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getMap("mapnestedcol", String.class, Map.class)).isEqualTo(nestedMapValue);
   }
 
+  @Test
+  void raw_udt_value_map() {
+    // given
+    conn.start(makeConnectorProperties("bigintcol=key, udtcol=value"));
+
+    Map<String, Object> value = new HashMap<>();
+    value.put("udtmem1", 42);
+    value.put("udtmem2", "the answer");
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+
+    // when
+    runTaskWithRecords(record);
+
+    // then
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+  }
+
   private Map<String, String> makeConnectorProperties(String mappingString) {
     return makeConnectorProperties(mappingString, null);
   }
