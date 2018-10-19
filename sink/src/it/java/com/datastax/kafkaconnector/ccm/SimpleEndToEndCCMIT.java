@@ -1302,11 +1302,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   @Test
   void raw_udt_value_map() {
     // given
-    conn.start(makeConnectorProperties("bigintcol=key, udtcol=value"));
+    conn.start(makeConnectorProperties("bigintcol=key, listudtcol=value"));
 
     Map<String, Object> value = new HashMap<>();
-    value.put("udtmem1", 42);
-    value.put("udtmem2", "the answer");
+    value.put("a", 42);
+    value.put("b", "the answer");
+    value.put("c", Arrays.asList(1, 2, 3));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
 
@@ -1315,18 +1316,20 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
     // then
     // Verify that the record was inserted properly in DSE.
-    List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
+    List<Row> results = session.execute("SELECT bigintcol, listudtcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
 
     UserDefinedType udt =
-        new UserDefinedTypeBuilder(keyspaceName, "myudt")
-            .withField("udtmem1", DataTypes.INT)
-            .withField("udtmem2", DataTypes.TEXT)
+        new UserDefinedTypeBuilder(keyspaceName, "mycomplexudt")
+            .withField("a", DataTypes.INT)
+            .withField("b", DataTypes.TEXT)
+            .withField("c", DataTypes.listOf(DataTypes.INT))
             .build();
     udt.attach(attachmentPoint);
-    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+    assertThat(row.getUdtValue("listudtcol"))
+        .isEqualTo(udt.newValue(42, "the answer", Arrays.asList(1, 2, 3)));
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
