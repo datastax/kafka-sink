@@ -187,8 +187,7 @@ class BoundStatementProcessor implements Runnable {
     ByteBuffer routingKey = statement.getRoutingKey();
     Map<ByteBuffer, List<RecordAndStatement>> statementGroup =
         statementGroups.computeIfAbsent(
-            makeGroupKey(recordAndStatement, sinkRecord),
-            t -> new HashMap<>());
+            makeGroupKey(recordAndStatement, sinkRecord), t -> new HashMap<>());
     List<RecordAndStatement> recordsAndStatements =
         statementGroup.computeIfAbsent(routingKey, t -> new ArrayList<>());
     recordsAndStatements.add(recordAndStatement);

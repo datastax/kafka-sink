@@ -68,6 +68,7 @@ abstract class EndToEndCCMITBase {
   @BeforeAll
   void createTables() {
     session.execute("CREATE TYPE IF NOT EXISTS myudt (udtmem1 int, udtmem2 text)");
+    session.execute("CREATE TYPE IF NOT EXISTS mycomplexudt (a int, b text, c list<int>)");
     session.execute("CREATE TYPE IF NOT EXISTS mybooleanudt (udtmem1 boolean, udtmem2 text)");
     String withDateRange = hasDateRange ? "dateRangeCol 'DateRangeType', " : "";
     String withGeoTypes =
@@ -96,6 +97,7 @@ abstract class EndToEndCCMITBase {
                     + "udtFromListCol frozen<myudt>, "
                     + "booleanUdtCol frozen<mybooleanudt>, "
                     + "booleanUdtFromListCol frozen<mybooleanudt>, "
+                    + "listUdtCol frozen<mycomplexudt>, "
                     + "blobCol blob, "
                     + withGeoTypes
                     + withDateRange
