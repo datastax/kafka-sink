@@ -19,6 +19,9 @@ topics=my_topic
 # Maximum number of requests to send to DSE at a single time. Defaults to 500.
 #maxConcurrentRequests=500
 
+# Maximum number of records that could be send in one batch request to DSE
+#maxNumberOfRecordsInBatch=30
+
 # CQL statement execution timeout, in seconds. Defaults to 30 seconds.
 #queryExecutionTimeout=30
 

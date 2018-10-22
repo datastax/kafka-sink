@@ -38,7 +38,7 @@ class BoundStatementProcessorTest {
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
 
     // We don't care about the args to the constructor for this test.
-    BoundStatementProcessor statementProcessor = new BoundStatementProcessor(null, null, null);
+    BoundStatementProcessor statementProcessor = new BoundStatementProcessor(null, null, null, 32);
 
     // Categorize the two statements. Although they refer to the same ks/table and have the
     // same routing key, they should be in different buckets.

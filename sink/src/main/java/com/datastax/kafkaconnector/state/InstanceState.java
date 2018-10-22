@@ -148,6 +148,11 @@ public class InstanceState {
   }
 
   @NotNull
+  public int getMaxNumberOfRecordsInBatch() {
+    return config.getMaxNumberOfRecordsInBatch();
+  }
+
+  @NotNull
   public TopicConfig getTopicConfig(String topicName) {
     TopicConfig topicConfig = this.config.getTopicConfigs().get(topicName);
     if (topicConfig == null) {

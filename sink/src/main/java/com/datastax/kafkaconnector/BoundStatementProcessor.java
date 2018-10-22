@@ -38,20 +38,22 @@ import org.jetbrains.annotations.NotNull;
  * BoundStatements will be added to the queue.
  */
 class BoundStatementProcessor implements Runnable {
-  private static final int MAX_BATCH_SIZE = 32;
   private final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
   private final DseSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
   private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
+  private final int maxNumberOfRecordsInBatch;
   private final AtomicInteger successfulRecordCount = new AtomicInteger();
 
   BoundStatementProcessor(
       DseSinkTask task,
       BlockingQueue<RecordAndStatement> boundStatementsQueue,
-      Collection<CompletionStage<? extends AsyncResultSet>> queryFutures) {
+      Collection<CompletionStage<? extends AsyncResultSet>> queryFutures,
+      int maxNumberOfRecordsInBatch) {
     this.task = task;
     this.boundStatementsQueue = boundStatementsQueue;
     this.queryFutures = queryFutures;
+    this.maxNumberOfRecordsInBatch = maxNumberOfRecordsInBatch;
   }
 
   /**
@@ -155,7 +157,7 @@ class BoundStatementProcessor implements Runnable {
 
           List<RecordAndStatement> recordsAndStatements =
               categorizeStatement(statementGroups, recordAndStatement);
-          if (recordsAndStatements.size() == MAX_BATCH_SIZE) {
+          if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
             // We're ready to send out a batch request!
             executeStatements(recordsAndStatements);
             recordsAndStatements.clear();
