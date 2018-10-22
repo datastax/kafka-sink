@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -16,9 +17,15 @@ import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.awaitility.Duration;
 import org.junit.jupiter.api.Test;
 
 class BoundStatementProcessorTest {
@@ -63,5 +70,56 @@ class BoundStatementProcessorTest {
     assertThat(batchGroups.containsKey(routingKey)).isTrue();
     batchGroup = batchGroups.get(routingKey);
     assertThat(batchGroup).isSameAs(result2);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void shouldExecuteOneStatementIfThereIsMaxNumberOfRecordsConfiguredToOne() {
+    // given
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 1);
+
+    AtomicInteger called = new AtomicInteger();
+    Consumer mockConsumer = o -> called.incrementAndGet();
+    // when
+    Thread thread = new Thread(() -> statementProcessor.runLoop(mockConsumer));
+
+    recordAndStatements.add(
+        new RecordAndStatement(
+            new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
+            "ks.tb",
+            mock(BoundStatement.class)));
+
+    thread.start();
+    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void shouldExecuteOneStatementsIfThereIsMaxNumberOfRecordsConfiguredToN() {
+    // given
+    int N = 6;
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), N);
+
+    AtomicInteger called = new AtomicInteger();
+    Consumer mockConsumer = o -> called.incrementAndGet();
+    // when
+    Thread thread = new Thread(() -> statementProcessor.runLoop(mockConsumer));
+
+    for (int i = 0; i < N; i++) {
+      recordAndStatements.add(
+          new RecordAndStatement(
+              new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
+              "ks.tb",
+              mock(BoundStatement.class)));
+    }
+
+    thread.start();
+    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
   }
 }

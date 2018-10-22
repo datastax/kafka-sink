@@ -50,7 +50,7 @@ public class InstanceState {
   private final Meter recordCountMeter;
   private final Counter failedRecordCounter;
 
-  InstanceState(
+  public InstanceState(
       @NotNull DseSinkConfig config,
       @NotNull DseSession session,
       @NotNull Map<String, TopicState> topicStates) {

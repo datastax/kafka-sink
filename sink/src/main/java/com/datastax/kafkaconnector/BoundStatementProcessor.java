@@ -28,6 +28,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 
@@ -117,6 +118,11 @@ class BoundStatementProcessor implements Runnable {
 
   @Override
   public void run() {
+    runLoop(this::executeStatements);
+  }
+
+  @VisibleForTesting
+  void runLoop(Consumer<List<RecordAndStatement>> consumer) {
     // Map of <topic, map<partition-key, list<recordAndStatement>>
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
     List<RecordAndStatement> pendingStatements = new ArrayList<>();
@@ -146,7 +152,7 @@ class BoundStatementProcessor implements Runnable {
                 .stream()
                 .map(Map::values)
                 .flatMap(Collection::stream)
-                .forEach(this::executeStatements);
+                .forEach(consumer);
             return;
           }
 
@@ -159,7 +165,7 @@ class BoundStatementProcessor implements Runnable {
               categorizeStatement(statementGroups, recordAndStatement);
           if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
             // We're ready to send out a batch request!
-            executeStatements(recordsAndStatements);
+            consumer.accept(recordsAndStatements);
             recordsAndStatements.clear();
           }
         }
