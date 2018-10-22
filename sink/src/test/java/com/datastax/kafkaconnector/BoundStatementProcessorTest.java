@@ -15,15 +15,18 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.awaitility.Duration;
 import org.junit.jupiter.api.Test;
@@ -33,7 +36,7 @@ class BoundStatementProcessorTest {
   void should_categorize_statement_in_statement_group() {
 
     BoundStatement bs1 = mock(BoundStatement.class);
-    ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3});
+    ByteBuffer routingKey = ByteBuffer.wrap(new byte[]{1, 2, 3});
     when(bs1.getRoutingKey()).thenReturn(routingKey);
 
     SinkRecord record1 = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);
@@ -121,5 +124,75 @@ class BoundStatementProcessorTest {
 
     thread.start();
     await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
+  }
+
+  //todo bug?
+  @Test
+  @SuppressWarnings("unchecked")
+  void shouldExecuteOneStatementsIfThereIsMaxNumberOfRecordsConfiguredToMore() {
+    // given
+    int N = 6;
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), N);
+
+    AtomicInteger called = new AtomicInteger();
+    Consumer mockConsumer = o -> called.incrementAndGet();
+    // when
+    Thread thread = new Thread(() -> statementProcessor.runLoop(mockConsumer));
+
+    for (int i = 0; i < N - 1; i++) {
+      recordAndStatements.add(
+          new RecordAndStatement(
+              new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
+              "ks.tb",
+              mock(BoundStatement.class)));
+    }
+
+    thread.start();
+    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
+    //todo will not send until END_STATEMENT, but in case of sigkill may we lose events from buffer?
+    //or can wait indefinite time if no new events arrived, nor stop of connector
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void shouldExecuteOneStatementsIfThereIsMaxNumberOfRecordsConfiguredToNInTwoBatches() throws InterruptedException {
+    // given
+    int N = 6;
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), N);
+
+    AtomicInteger called = new AtomicInteger();
+    Consumer mockConsumer = o -> called.incrementAndGet();
+    CountDownLatch sendLatch = new CountDownLatch(1);
+    // when
+    Thread thread = new Thread(() -> {
+      sendLatch.countDown();
+      statementProcessor.runLoop(mockConsumer);
+    });
+
+
+    for (int i = 0; i < N - 1; i++) {
+      recordAndStatements.add(
+          new RecordAndStatement(
+              new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
+              "ks.tb",
+              mock(BoundStatement.class)));
+    }
+
+    thread.start();
+    sendLatch.await();
+    Thread.sleep(5_000);
+
+    recordAndStatements.add(
+        new RecordAndStatement(
+            new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
+            "ks.tb",
+            mock(BoundStatement.class)));
+    await().atMost(Duration.FIVE_MINUTES).until(() -> called.get() == 1);
   }
 }

@@ -18,6 +18,7 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.annotations.VisibleForTesting;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,6 +30,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 
@@ -181,7 +183,7 @@ class BoundStatementProcessor implements Runnable {
    * Categorize the given statement into the appropriate statement group, based on keyspace/table
    * and routing key.
    *
-   * @param statementGroups running collection of categorized statements that are pending execution
+   * @param statementGroups    running collection of categorized statements that are pending execution
    * @param recordAndStatement the record/statement that needs to be put in a bucket
    * @return The specific bucket (list) to which the record/statement was added.
    */
