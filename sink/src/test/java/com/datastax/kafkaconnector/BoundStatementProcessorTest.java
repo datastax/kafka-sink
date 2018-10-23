@@ -75,7 +75,7 @@ class BoundStatementProcessorTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void shouldExecuteOneStatementIfThereIsMaxNumberOfRecordsConfiguredToOne() {
+  void should_execute_one_statement_when_max_number_of_records_is_one() {
     // given
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
@@ -99,7 +99,7 @@ class BoundStatementProcessorTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void shouldExecuteOneStatementsIfThereIsMaxNumberOfRecordsConfiguredToN() {
+  void should_execute_one_statement_when_max_number_of_records_is_N() {
     // given
     int N = 6;
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
@@ -126,7 +126,7 @@ class BoundStatementProcessorTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  void shouldExecuteOneStatementsIfThereIsMaxNumberOfRecordsConfiguredToNInTwoBatches()
+  void should_execute_one_statement_when_max_number_of_records_is_N_in_two_batches()
       throws InterruptedException {
     // given
     int N = 6;
@@ -156,13 +156,13 @@ class BoundStatementProcessorTest {
 
     thread.start();
     sendLatch.await();
-    Thread.sleep(5_000);
+    Thread.sleep(500);
 
     recordAndStatements.add(
         new RecordAndStatement(
             new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
             "ks.tb",
             mock(BoundStatement.class)));
-    await().atMost(Duration.FIVE_MINUTES).until(() -> called.get() == 1);
+    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
   }
 }
