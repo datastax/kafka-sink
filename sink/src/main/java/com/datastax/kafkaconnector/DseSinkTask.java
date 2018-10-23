@@ -113,7 +113,11 @@ public class DseSinkTask extends SinkTask {
               new ConcurrentLinkedQueue<>();
           BlockingQueue<RecordAndStatement> boundStatementsQueue = new LinkedBlockingQueue<>();
           BoundStatementProcessor boundStatementProcessor =
-              new BoundStatementProcessor(this, boundStatementsQueue, queryFutures);
+              new BoundStatementProcessor(
+                  this,
+                  boundStatementsQueue,
+                  queryFutures,
+                  instanceState.getMaxNumberOfRecordsInBatch());
           try {
             Future<?> boundStatementProcessorTask =
                 boundStatementProcessorService.submit(boundStatementProcessor);

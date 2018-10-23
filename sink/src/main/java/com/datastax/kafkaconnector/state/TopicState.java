@@ -26,13 +26,13 @@ import org.jetbrains.annotations.NotNull;
  * Container for a topic-scoped entities that the sink tasks need (codec-registry, prepared
  * statement, etc.)
  */
-class TopicState {
+public class TopicState {
   private final String name;
   private final KafkaCodecRegistry codecRegistry;
   private final Map<TableConfig, RecordMapper> recordMappers;
   private Map<String, Histogram> batchSizeHistograms;
 
-  TopicState(String name, KafkaCodecRegistry codecRegistry) {
+  public TopicState(String name, KafkaCodecRegistry codecRegistry) {
     this.name = name;
     this.codecRegistry = codecRegistry;
     recordMappers = new ConcurrentHashMap<>();

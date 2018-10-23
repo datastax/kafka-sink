@@ -28,6 +28,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,20 +39,22 @@ import org.jetbrains.annotations.NotNull;
  * BoundStatements will be added to the queue.
  */
 class BoundStatementProcessor implements Runnable {
-  private static final int MAX_BATCH_SIZE = 32;
   private final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
   private final DseSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
   private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
+  private final int maxNumberOfRecordsInBatch;
   private final AtomicInteger successfulRecordCount = new AtomicInteger();
 
   BoundStatementProcessor(
       DseSinkTask task,
       BlockingQueue<RecordAndStatement> boundStatementsQueue,
-      Collection<CompletionStage<? extends AsyncResultSet>> queryFutures) {
+      Collection<CompletionStage<? extends AsyncResultSet>> queryFutures,
+      int maxNumberOfRecordsInBatch) {
     this.task = task;
     this.boundStatementsQueue = boundStatementsQueue;
     this.queryFutures = queryFutures;
+    this.maxNumberOfRecordsInBatch = maxNumberOfRecordsInBatch;
   }
 
   /**
@@ -115,6 +118,11 @@ class BoundStatementProcessor implements Runnable {
 
   @Override
   public void run() {
+    runLoop(this::executeStatements);
+  }
+
+  @VisibleForTesting
+  void runLoop(Consumer<List<RecordAndStatement>> consumer) {
     // Map of <topic, map<partition-key, list<recordAndStatement>>
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
     List<RecordAndStatement> pendingStatements = new ArrayList<>();
@@ -144,7 +152,7 @@ class BoundStatementProcessor implements Runnable {
                 .stream()
                 .map(Map::values)
                 .flatMap(Collection::stream)
-                .forEach(this::executeStatements);
+                .forEach(consumer);
             return;
           }
 
@@ -155,9 +163,9 @@ class BoundStatementProcessor implements Runnable {
 
           List<RecordAndStatement> recordsAndStatements =
               categorizeStatement(statementGroups, recordAndStatement);
-          if (recordsAndStatements.size() == MAX_BATCH_SIZE) {
+          if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
             // We're ready to send out a batch request!
-            executeStatements(recordsAndStatements);
+            consumer.accept(recordsAndStatements);
             recordsAndStatements.clear();
           }
         }

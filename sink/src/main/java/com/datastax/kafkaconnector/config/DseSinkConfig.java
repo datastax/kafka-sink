@@ -34,6 +34,7 @@ public class DseSinkConfig {
   static final String QUERY_EXECUTION_TIMEOUT_OPT = "queryExecutionTimeout";
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
+  static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -80,7 +81,14 @@ public class DseSinkConfig {
               30,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "CQL statement execution timeout, in seconds");
+              "CQL statement execution timeout, in seconds")
+          .define(
+              MAX_NUMBER_OF_RECORDS_IN_BATCH,
+              ConfigDef.Type.INT,
+              32,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "Maximum number of records that could be send in one batch request to DSE");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -201,6 +209,10 @@ public class DseSinkConfig {
     return sslConfig;
   }
 
+  public int getMaxNumberOfRecordsInBatch() {
+    return globalConfig.getInt(MAX_NUMBER_OF_RECORDS_IN_BATCH);
+  }
+
   @Override
   public String toString() {
     return String.format(
@@ -210,6 +222,7 @@ public class DseSinkConfig {
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "        queryExecutionTimeout: %d%n"
+            + "        maxNumberOfRecordsInBatch: %d%n "
             + "        jmx: %b%n"
             + "        compression: %s%n"
             + "SSL configuration:%n%s%n"
@@ -220,6 +233,7 @@ public class DseSinkConfig {
         getLocalDc(),
         getMaxConcurrentRequests(),
         getQueryExecutionTimeout(),
+        getMaxNumberOfRecordsInBatch(),
         getJmx(),
         getCompressionType(),
         Splitter.on("\n")
