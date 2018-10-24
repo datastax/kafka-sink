@@ -18,7 +18,6 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -39,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
  * (currently 32). Execute BoundStatement's when there is only one in a group and we know no more
  * BoundStatements will be added to the queue.
  */
-class BoundStatementProcessor implements Runnable {
+class BoundStatementProcessor implements Callable<Void> {
   private static final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
   private final DseSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
@@ -118,19 +118,19 @@ class BoundStatementProcessor implements Runnable {
   }
 
   @Override
-  public void run() {
+  public Void call() throws InterruptedException {
     runLoop(this::executeStatements);
+    return null;
   }
 
   @VisibleForTesting
-  void runLoop(Consumer<List<RecordAndStatement>> consumer) {
+  void runLoop(Consumer<List<RecordAndStatement>> consumer) throws InterruptedException {
     // Map of <topic, map<partition-key, list<recordAndStatement>>
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
     //noinspection InfiniteLoopStatement
     while (true) {
 
-      RecordAndStatement recordAndStatement =
-          Uninterruptibles.takeUninterruptibly(boundStatementsQueue);
+      RecordAndStatement recordAndStatement = boundStatementsQueue.take();
 
       if (recordAndStatement == END_STATEMENT) {
         // There are no more bound-statements being produced.
