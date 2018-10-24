@@ -91,6 +91,7 @@ class BoundStatementProcessorTest {
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+    ByteBuffer routingKey = ByteBuffer.wrap(new byte[]{1, 2, 3, 4});
 
     // when
     // emulate DseSinkTask.put() behavior
@@ -98,11 +99,10 @@ class BoundStatementProcessorTest {
         new Thread(
             () -> {
               for (int i = 0; i < totalNumberOfRecords; i++) {
-                recordAndStatements.add(
-                    new RecordAndStatement(
-                        new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
-                        "ks.tb",
-                        mock(BoundStatement.class)));
+                SinkRecord record = new SinkRecord("mytopic", i, null, null, null, i, i);
+                BoundStatement statement = mock(BoundStatement.class);
+                when(statement.getRoutingKey()).thenReturn(routingKey);
+                recordAndStatements.add(new RecordAndStatement(record, "ks.tb", statement));
               }
               statementProcessor.stop();
             });
