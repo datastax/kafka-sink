@@ -108,12 +108,14 @@ class BoundStatementProcessorTest {
             });
 
     // emulate BoundStatementProcessor.run() behavior
-    Thread consumer = new Thread(() -> {
-      try {
-        statementProcessor.runLoop(mockConsumer);
-      } catch (InterruptedException ignored) {
-      }
-    });
+    Thread consumer =
+        new Thread(
+            () -> {
+              try {
+                statementProcessor.runLoop(mockConsumer);
+              } catch (InterruptedException ignored) {
+              }
+            });
 
     producer.start();
     consumer.start();
