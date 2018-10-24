@@ -9,27 +9,29 @@
 package com.datastax.kafkaconnector;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.awaitility.Duration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class BoundStatementProcessorTest {
+
   @Test
   void should_categorize_statement_in_statement_group() {
 
@@ -73,96 +75,60 @@ class BoundStatementProcessorTest {
     assertThat(batchGroup).isSameAs(result2);
   }
 
-  @Test
-  @SuppressWarnings("unchecked")
-  void should_execute_one_statement_when_max_number_of_records_is_one() {
-    // given
-    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
-    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 1);
-
-    AtomicInteger called = new AtomicInteger();
-    Consumer mockConsumer = o -> called.incrementAndGet();
-    // when
-    Thread thread = new Thread(() -> statementProcessor.runLoop(mockConsumer));
-
-    recordAndStatements.add(
-        new RecordAndStatement(
-            new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
-            "ks.tb",
-            mock(BoundStatement.class)));
-
-    thread.start();
-    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void should_execute_one_statement_when_max_number_of_records_is_N() {
-    // given
-    int N = 6;
-    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
-    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), N);
-
-    AtomicInteger called = new AtomicInteger();
-    Consumer mockConsumer = o -> called.incrementAndGet();
-    // when
-    Thread thread = new Thread(() -> statementProcessor.runLoop(mockConsumer));
-
-    for (int i = 0; i < N; i++) {
-      recordAndStatements.add(
-          new RecordAndStatement(
-              new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
-              "ks.tb",
-              mock(BoundStatement.class)));
-    }
-
-    thread.start();
-    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  void should_execute_one_statement_when_max_number_of_records_is_N_in_two_batches()
+  @ParameterizedTest(
+      name =
+          "[{index}] totalNumberOfRecords={0}, maxNumberOfRecordsInBatch={1}, expectedBatchSizes={2}")
+  @MethodSource("batchSizes")
+  void should_create_batches_of_expected_size(
+      int totalNumberOfRecords, int maxNumberOfRecordsInBatch, int[] expectedBatchSizes)
       throws InterruptedException {
     // given
-    int N = 6;
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), N);
+        new BoundStatementProcessor(
+            dseSinkTask, recordAndStatements, new LinkedList<>(), maxNumberOfRecordsInBatch);
+    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    // we need to copy the batch into a new list since the original one may be cleared after
+    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
 
-    AtomicInteger called = new AtomicInteger();
-    Consumer mockConsumer = o -> called.incrementAndGet();
-    CountDownLatch sendLatch = new CountDownLatch(1);
     // when
-    Thread thread =
+    // emulate DseSinkTask.put() behavior
+    Thread producer =
         new Thread(
             () -> {
-              sendLatch.countDown();
-              statementProcessor.runLoop(mockConsumer);
+              for (int i = 0; i < totalNumberOfRecords; i++) {
+                recordAndStatements.add(
+                    new RecordAndStatement(
+                        new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
+                        "ks.tb",
+                        mock(BoundStatement.class)));
+              }
+              statementProcessor.stop();
             });
 
-    for (int i = 0; i < N - 1; i++) {
-      recordAndStatements.add(
-          new RecordAndStatement(
-              new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
-              "ks.tb",
-              mock(BoundStatement.class)));
+    // emulate BoundStatementProcessor.run() behavior
+    Thread consumer = new Thread(() -> statementProcessor.runLoop(mockConsumer));
+
+    producer.start();
+    consumer.start();
+    producer.join();
+    consumer.join();
+
+    // then
+    assertThat(actualBatches).hasSize(expectedBatchSizes.length);
+    for (int i = 0; i < actualBatches.size(); i++) {
+      assertThat(actualBatches.get(i)).hasSize(expectedBatchSizes[i]);
     }
+  }
 
-    thread.start();
-    sendLatch.await();
-    Thread.sleep(500);
-
-    recordAndStatements.add(
-        new RecordAndStatement(
-            new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L),
-            "ks.tb",
-            mock(BoundStatement.class)));
-    await().atMost(Duration.FIVE_SECONDS).until(() -> called.get() == 1);
+  private static Stream<? extends Arguments> batchSizes() {
+    return Stream.of(
+        Arguments.of(1, 1, new int[]{1}),
+        Arguments.of(10, 10, new int[]{10}),
+        Arguments.of(10, 5, new int[]{5, 5}),
+        Arguments.of(9, 5, new int[]{5, 4}),
+        Arguments.of(11, 5, new int[]{5, 5, 1}),
+        Arguments.of(0, 1, new int[]{}));
   }
 }
