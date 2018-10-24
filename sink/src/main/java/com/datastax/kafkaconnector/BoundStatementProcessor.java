@@ -130,6 +130,9 @@ class BoundStatementProcessor implements Callable<Void> {
     //noinspection InfiniteLoopStatement
     while (true) {
 
+      // Note: this call may block indefinitely if stop() is never called.
+      // It is the producer's responsibility to call stop() when there are no more records
+      // to process.
       RecordAndStatement recordAndStatement = boundStatementsQueue.take();
 
       if (recordAndStatement == END_STATEMENT) {
