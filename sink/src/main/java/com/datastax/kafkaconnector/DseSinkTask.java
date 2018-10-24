@@ -166,7 +166,9 @@ public class DseSinkTask extends SinkTask {
                   f.toCompletableFuture().cancel(true);
                   try {
                     f.toCompletableFuture().get();
-                  } catch (InterruptedException | ExecutionException e1) {
+                  } catch (InterruptedException
+                      | ExecutionException
+                      | CancellationException ignored) {
                     // swallow
                   }
                 });
