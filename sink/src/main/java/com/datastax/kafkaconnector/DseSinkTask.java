@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -131,8 +132,11 @@ public class DseSinkTask extends SinkTask {
                                 instanceState.getMappingExecutor()))
                     .collect(Collectors.toList());
 
-            CompletableFuture.allOf(mappingFutures.toArray(new CompletableFuture[0])).join();
-            boundStatementProcessor.stop();
+            try {
+              CompletableFuture.allOf(mappingFutures.toArray(new CompletableFuture[0])).join();
+            } finally {
+              boundStatementProcessor.stop();
+            }
             try {
               boundStatementProcessorTask.get();
             } catch (ExecutionException e) {
@@ -162,7 +166,9 @@ public class DseSinkTask extends SinkTask {
                   f.toCompletableFuture().cancel(true);
                   try {
                     f.toCompletableFuture().get();
-                  } catch (InterruptedException | ExecutionException e1) {
+                  } catch (InterruptedException
+                      | ExecutionException
+                      | CancellationException ignored) {
                     // swallow
                   }
                 });

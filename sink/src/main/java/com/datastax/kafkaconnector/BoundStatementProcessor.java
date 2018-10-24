@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,8 +39,8 @@ import org.jetbrains.annotations.NotNull;
  * (currently 32). Execute BoundStatement's when there is only one in a group and we know no more
  * BoundStatements will be added to the queue.
  */
-class BoundStatementProcessor implements Runnable {
-  private final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
+class BoundStatementProcessor implements Callable<Void> {
+  private static final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
   private final DseSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
   private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
@@ -117,62 +118,49 @@ class BoundStatementProcessor implements Runnable {
   }
 
   @Override
-  public void run() {
+  public Void call() throws InterruptedException {
     runLoop(this::executeStatements);
+    return null;
   }
 
   @VisibleForTesting
-  void runLoop(Consumer<List<RecordAndStatement>> consumer) {
+  void runLoop(Consumer<List<RecordAndStatement>> consumer) throws InterruptedException {
     // Map of <topic, map<partition-key, list<recordAndStatement>>
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
-    List<RecordAndStatement> pendingStatements = new ArrayList<>();
-    boolean interrupted = false;
-    try {
-      //noinspection InfiniteLoopStatement
-      while (true) {
-        pendingStatements.clear();
-        boundStatementsQueue.drainTo(pendingStatements);
-        if (pendingStatements.isEmpty()) {
-          try {
-            pendingStatements.add(boundStatementsQueue.take());
-          } catch (InterruptedException e) {
-            interrupted = true;
-            continue;
-          }
-        }
+    //noinspection InfiniteLoopStatement
+    while (true) {
 
-        for (RecordAndStatement recordAndStatement : pendingStatements) {
-          if (recordAndStatement.equals(END_STATEMENT)) {
-            // There are no more bound-statements being produced.
-            // Create and execute remaining statement groups,
-            // creating BatchStatement's when a group has more than
-            // one BoundStatement.
-            statementGroups
-                .values()
-                .stream()
-                .map(Map::values)
-                .flatMap(Collection::stream)
-                .forEach(consumer);
-            return;
-          }
+      // Note: this call may block indefinitely if stop() is never called.
+      // It is the producer's responsibility to call stop() when there are no more records
+      // to process.
+      RecordAndStatement recordAndStatement = boundStatementsQueue.take();
 
-          // Get the routing-key and add this statement to the appropriate
-          // statement group. A statement group contains collections of
-          // bound statements for a particular table. Each collection contains
-          // statements for a particular routing key (a representation of partition key).
-
-          List<RecordAndStatement> recordsAndStatements =
-              categorizeStatement(statementGroups, recordAndStatement);
-          if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
-            // We're ready to send out a batch request!
-            consumer.accept(recordsAndStatements);
-            recordsAndStatements.clear();
-          }
-        }
+      if (recordAndStatement == END_STATEMENT) {
+        // There are no more bound-statements being produced.
+        // Create and execute remaining statement groups,
+        // creating BatchStatement's when a group has more than
+        // one BoundStatement.
+        statementGroups
+            .values()
+            .stream()
+            .map(Map::values)
+            .flatMap(Collection::stream)
+            .filter(recordAndStatements -> !recordAndStatements.isEmpty())
+            .forEach(consumer);
+        return;
       }
-    } finally {
-      if (interrupted) {
-        Thread.currentThread().interrupt();
+
+      // Get the routing-key and add this statement to the appropriate
+      // statement group. A statement group contains collections of
+      // bound statements for a particular table. Each collection contains
+      // statements for a particular routing key (a representation of partition key).
+
+      List<RecordAndStatement> recordsAndStatements =
+          categorizeStatement(statementGroups, recordAndStatement);
+      if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
+        // We're ready to send out a batch request!
+        consumer.accept(recordsAndStatements);
+        recordsAndStatements.clear();
       }
     }
   }
