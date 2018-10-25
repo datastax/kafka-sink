@@ -76,8 +76,9 @@ class BoundStatementProcessorTest {
   }
 
   @ParameterizedTest(
-      name =
-          "[{index}] totalNumberOfRecords={0}, maxNumberOfRecordsInBatch={1}, expectedBatchSizes={2}")
+    name =
+        "[{index}] totalNumberOfRecords={0}, maxNumberOfRecordsInBatch={1}, expectedBatchSizes={2}"
+  )
   @MethodSource("batchSizes")
   void should_create_batches_of_expected_size(
       int totalNumberOfRecords, int maxNumberOfRecordsInBatch, int[] expectedBatchSizes)
@@ -91,7 +92,7 @@ class BoundStatementProcessorTest {
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
-    ByteBuffer routingKey = ByteBuffer.wrap(new byte[]{1, 2, 3, 4});
+    ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3, 4});
 
     // when
     // emulate DseSinkTask.put() behavior
@@ -131,11 +132,11 @@ class BoundStatementProcessorTest {
 
   private static Stream<? extends Arguments> batchSizes() {
     return Stream.of(
-        Arguments.of(1, 1, new int[]{1}),
-        Arguments.of(10, 10, new int[]{10}),
-        Arguments.of(10, 5, new int[]{5, 5}),
-        Arguments.of(9, 5, new int[]{5, 4}),
-        Arguments.of(11, 5, new int[]{5, 5, 1}),
-        Arguments.of(0, 1, new int[]{}));
+        Arguments.of(1, 1, new int[] {1}),
+        Arguments.of(10, 10, new int[] {10}),
+        Arguments.of(10, 5, new int[] {5, 5}),
+        Arguments.of(9, 5, new int[] {5, 4}),
+        Arguments.of(11, 5, new int[] {5, 5, 1}),
+        Arguments.of(0, 1, new int[] {}));
   }
 }
