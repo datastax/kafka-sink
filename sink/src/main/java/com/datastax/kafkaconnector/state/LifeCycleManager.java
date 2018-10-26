@@ -26,6 +26,7 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_KE
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PATH;
 
+import com.codahale.metrics.MetricRegistry;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
@@ -87,6 +88,7 @@ public class LifeCycleManager {
   private static final Logger log = LoggerFactory.getLogger(LifeCycleManager.class);
   private static final ConcurrentMap<String, InstanceState> INSTANCE_STATES =
       new ConcurrentHashMap<>();
+  private static final MetricRegistry metricRegistry = new MetricRegistry();
 
   /** This is a utility class that no one should instantiate. */
   private LifeCycleManager() {}
@@ -486,7 +488,7 @@ public class LifeCycleManager {
           }
         });
 
-    return new InstanceState(config, session, topicStates);
+    return new InstanceState(config, session, topicStates, metricRegistry);
   }
 
   /**

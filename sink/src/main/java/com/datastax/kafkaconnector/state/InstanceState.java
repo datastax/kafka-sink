@@ -50,7 +50,8 @@ public class InstanceState {
   public InstanceState(
       @NotNull DseSinkConfig config,
       @NotNull DseSession session,
-      @NotNull Map<String, TopicState> topicStates) {
+      @NotNull Map<String, TopicState> topicStates,
+      @NotNull MetricRegistry metricRegistry) {
     this.session = session;
     this.config = config;
     this.topicStates = topicStates;
@@ -59,7 +60,6 @@ public class InstanceState {
     mappingExecutor =
         Executors.newFixedThreadPool(
             8, new ThreadFactoryBuilder().setNameFormat("mapping-%d").build());
-    MetricRegistry metricRegistry = new MetricRegistry();
     // Add driver metrics to our registry.
     session
         .getMetrics()
@@ -71,6 +71,7 @@ public class InstanceState {
 
     topicStates.values().forEach(ts -> ts.initializeMetrics(metricRegistry));
     globalSinkMetrics = new GlobalSinkMetrics(metricRegistry);
+    log.info("globalSinkMetrics.count: {}", globalSinkMetrics.getRecordCountMeter().getCount());
     reporter = MetricsJmxReporter.createJmxReporter(config.getInstanceName(), metricRegistry);
 
     if (config.getJmx()) {
@@ -94,6 +95,7 @@ public class InstanceState {
   synchronized boolean unregisterTaskAndCheckIfLast(DseSinkTask task) {
     tasks.remove(task);
     if (tasks.isEmpty()) {
+      log.info("last task unregister close");
       closeQuietly(session);
       reporter.stop();
       // Indicate to the caller that this is the last task in the InstanceState.
@@ -190,7 +192,7 @@ public class InstanceState {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       } catch (Exception e) {
-        log.debug(String.format("Failed to close %s", closeable), e);
+        log.error(String.format("Failed to close %s", closeable), e);
       }
     }
   }
