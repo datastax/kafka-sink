@@ -95,7 +95,7 @@ public class InstanceState {
   synchronized boolean unregisterTaskAndCheckIfLast(DseSinkTask task) {
     tasks.remove(task);
     if (tasks.isEmpty()) {
-      log.info("last task unregister close");
+      log.debug("last task unregister close");
       closeQuietly(session);
       reporter.stop();
       // Indicate to the caller that this is the last task in the InstanceState.
@@ -192,7 +192,7 @@ public class InstanceState {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       } catch (Exception e) {
-        log.error(String.format("Failed to close %s", closeable), e);
+        log.debug(String.format("Failed to close %s", closeable), e);
       }
     }
   }

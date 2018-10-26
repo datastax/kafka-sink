@@ -51,8 +51,6 @@ import org.slf4j.LoggerFactory;
 
 /** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
 public class DseSinkTask extends SinkTask {
-  private static final AtomicInteger idGen = new AtomicInteger();
-  private Integer id;
   private static final Runnable NO_OP = () -> {};
   private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
   private final ExecutorService boundStatementProcessorService =
@@ -69,8 +67,7 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    id = idGen.getAndIncrement();
-    log.info("Task: {}, DseSinkTask starting with props: {}", id, props);
+    log.debug("DseSinkTask starting with props: {}", props);
     taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
     instanceState = LifeCycleManager.startTask(this, props);
