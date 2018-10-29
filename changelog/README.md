@@ -11,6 +11,7 @@
 - [task] KAF-62: Update dependencies to released driver versions
 - [new feature] KAF-60 Make BoundStatements limit for the batches configurable
 - [bug] KAF-64: BoundStatementProcessor should not block indefinitely
+- [bug] KAF-70: recordCount is not accurate
 
 ### 1.0.0-alpha3
 - [bug] KAF-39: Partitions don't rebalance in distributed mode across multiple workers

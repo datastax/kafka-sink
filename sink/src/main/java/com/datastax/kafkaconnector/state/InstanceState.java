@@ -8,9 +8,7 @@
  */
 package com.datastax.kafkaconnector.state;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
 import com.datastax.dse.driver.api.core.DseSession;
@@ -19,16 +17,16 @@ import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
+import com.datastax.kafkaconnector.metrics.GlobalSinkMetrics;
+import com.datastax.kafkaconnector.metrics.MetricsJmxReporter;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
 import org.apache.kafka.common.KafkaException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -47,13 +45,13 @@ public class InstanceState {
   private final Set<DseSinkTask> tasks;
   private final Executor mappingExecutor;
   private final JmxReporter reporter;
-  private final Meter recordCountMeter;
-  private final Counter failedRecordCounter;
+  private final GlobalSinkMetrics globalSinkMetrics;
 
   public InstanceState(
       @NotNull DseSinkConfig config,
       @NotNull DseSession session,
-      @NotNull Map<String, TopicState> topicStates) {
+      @NotNull Map<String, TopicState> topicStates,
+      @NotNull MetricRegistry metricRegistry) {
     this.session = session;
     this.config = config;
     this.topicStates = topicStates;
@@ -62,7 +60,6 @@ public class InstanceState {
     mappingExecutor =
         Executors.newFixedThreadPool(
             8, new ThreadFactoryBuilder().setNameFormat("mapping-%d").build());
-    MetricRegistry metricRegistry = new MetricRegistry();
     // Add driver metrics to our registry.
     session
         .getMetrics()
@@ -73,34 +70,10 @@ public class InstanceState {
                     .forEach((name, metric) -> metricRegistry.register("driver/" + name, metric)));
 
     topicStates.values().forEach(ts -> ts.initializeMetrics(metricRegistry));
-    recordCountMeter = metricRegistry.meter("recordCount");
-    failedRecordCounter = metricRegistry.counter("failedRecordCount");
-    reporter =
-        JmxReporter.forRegistry(metricRegistry)
-            .inDomain("datastax.kafkaconnector." + config.getInstanceName())
-            .createsObjectNamesWith(
-                (type, domain, name) -> {
-                  try {
-                    StringBuilder sb =
-                        new StringBuilder("com.datastax.kafkaconnector:0=")
-                            .append(config.getInstanceName())
-                            .append(',');
-                    StringTokenizer tokenizer = new StringTokenizer(name, "/");
-                    int i = 1;
-                    while (tokenizer.hasMoreTokens()) {
-                      String token = tokenizer.nextToken();
-                      if (tokenizer.hasMoreTokens()) {
-                        sb.append(i++).append('=').append(token).append(',');
-                      } else {
-                        sb.append("name=").append(token);
-                      }
-                    }
-                    return new ObjectName(sb.toString());
-                  } catch (MalformedObjectNameException e) {
-                    throw new RuntimeException(e);
-                  }
-                })
-            .build();
+    globalSinkMetrics = new GlobalSinkMetrics(metricRegistry);
+    log.info("globalSinkMetrics.count: {}", globalSinkMetrics.getRecordCountMeter().getCount());
+    reporter = MetricsJmxReporter.createJmxReporter(config.getInstanceName(), metricRegistry);
+
     if (config.getJmx()) {
       reporter.start();
     }
@@ -122,6 +95,7 @@ public class InstanceState {
   synchronized boolean unregisterTaskAndCheckIfLast(DseSinkTask task) {
     tasks.remove(task);
     if (tasks.isEmpty()) {
+      log.debug("last task unregister close");
       closeQuietly(session);
       reporter.stop();
       // Indicate to the caller that this is the last task in the InstanceState.
@@ -180,13 +154,18 @@ public class InstanceState {
   }
 
   @NotNull
-  public Meter getRecordCountMeter() {
-    return recordCountMeter;
+  public void incrementRecordCount(int incrementBy) {
+    globalSinkMetrics.incrementRecordCounter(incrementBy);
   }
 
   @NotNull
-  public Counter getFailedRecordCounter() {
-    return failedRecordCounter;
+  public void incrementFailedCount() {
+    globalSinkMetrics.incrementFailedCounter();
+  }
+
+  @VisibleForTesting
+  public GlobalSinkMetrics getGlobalSinkMetrics() {
+    return globalSinkMetrics;
   }
 
   @NotNull

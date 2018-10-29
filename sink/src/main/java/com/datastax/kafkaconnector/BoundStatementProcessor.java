@@ -104,12 +104,12 @@ class BoundStatementProcessor implements Callable<Void> {
                           record,
                           ex,
                           recordAndStatement.getStatement().getPreparedStatement().getQuery(),
-                          instanceState.getFailedRecordCounter());
+                          instanceState::incrementFailedCount);
                     });
               } else {
                 successfulRecordCount.addAndGet(statements.size());
               }
-              instanceState.getRecordCountMeter().mark(statements.size());
+              instanceState.incrementRecordCount(statements.size());
             }));
   }
 

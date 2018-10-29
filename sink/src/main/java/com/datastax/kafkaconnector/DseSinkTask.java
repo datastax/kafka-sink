@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector;
 
-import com.codahale.metrics.Counter;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.metadata.InnerDataAndMetadata;
@@ -39,6 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
@@ -67,7 +67,7 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    log.debug("Task DseSinkTask starting with props: {}", props);
+    log.debug("DseSinkTask starting with props: {}", props);
     taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
     instanceState = LifeCycleManager.startTask(this, props);
@@ -226,7 +226,7 @@ public class DseSinkTask extends SinkTask {
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
 
-      handleFailure(record, e, null, instanceState.getFailedRecordCounter());
+      handleFailure(record, e, null, instanceState::incrementFailedCount);
     }
   }
 
@@ -238,7 +238,8 @@ public class DseSinkTask extends SinkTask {
    * @param cql the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered
    */
-  synchronized void handleFailure(SinkRecord record, Throwable e, String cql, Counter failCounter) {
+  synchronized void handleFailure(
+      SinkRecord record, Throwable e, String cql, Runnable failCounter) {
     // Store the topic-partition and offset that had an error. However, we want
     // to keep track of the *lowest* offset in a topic-partition that failed. Because
     // requests are sent in parallel and response ordering is non-deterministic,
@@ -251,7 +252,7 @@ public class DseSinkTask extends SinkTask {
     // we perform these checks/updates in a synchronized block. Presumably failures
     // don't occur that often, so we don't have to be very fancy here.
 
-    failCounter.inc();
+    failCounter.run();
     TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
     long currentOffset = Long.MAX_VALUE;
     if (failureOffsets.containsKey(topicPartition)) {
