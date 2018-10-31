@@ -196,7 +196,7 @@ class BoundStatementProcessorTest {
   }
 
   @Test
-  void should_create_two_batches_for_a_same_dse_tables_but_different_input_topics()
+  void should_create_two_batches_for_the_same_dse_tables_but_different_input_topics()
       throws InterruptedException {
     // given
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
@@ -262,7 +262,7 @@ class BoundStatementProcessorTest {
   }
 
   @Test
-  void should_create_two_batches_for_a_different_dse_tables_and_same_partition_key()
+  void should_create_two_batches_for_different_dse_tables_and_same_partition_key()
       throws InterruptedException {
     // given
     // given
