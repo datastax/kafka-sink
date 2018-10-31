@@ -130,6 +130,210 @@ class BoundStatementProcessorTest {
     }
   }
 
+  @Test
+  void should_group_batch_by_a_partition_key_not_an_input_topic_key() throws InterruptedException {
+    // given
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 3);
+    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    // we need to copy the batch into a new list since the original one may be cleared after
+    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+
+    // when
+    // emulate DseSinkTask.put() behavior
+    Thread producer =
+        new Thread(
+            () -> {
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table1",
+                  1,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table1",
+                  2,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table1",
+                  3,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {2}));
+
+              statementProcessor.stop();
+            });
+
+    // emulate BoundStatementProcessor.run() behavior
+    Thread consumer =
+        new Thread(
+            () -> {
+              try {
+                statementProcessor.runLoop(mockConsumer);
+              } catch (InterruptedException ignored) {
+              }
+            });
+
+    producer.start();
+    consumer.start();
+    producer.join();
+    consumer.join();
+
+    // then
+    assertThat(actualBatches.size()).isEqualTo(2);
+    assertThat(actualBatches.get(0).size()).isEqualTo(2);
+    assertThat(actualBatches.get(1).size()).isEqualTo(1);
+  }
+
+  @Test
+  void should_create_two_batches_for_the_same_dse_tables_but_different_input_topics()
+      throws InterruptedException {
+    // given
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 3);
+    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    // we need to copy the batch into a new list since the original one may be cleared after
+    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+
+    // when
+    // emulate DseSinkTask.put() behavior
+    Thread producer =
+        new Thread(
+            () -> {
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table1",
+                  1,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table1",
+                  2,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic-different",
+                  "keyspace1",
+                  "table1",
+                  2,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+
+              statementProcessor.stop();
+            });
+
+    // emulate BoundStatementProcessor.run() behavior
+    Thread consumer =
+        new Thread(
+            () -> {
+              try {
+                statementProcessor.runLoop(mockConsumer);
+              } catch (InterruptedException ignored) {
+              }
+            });
+
+    producer.start();
+    consumer.start();
+    producer.join();
+    consumer.join();
+
+    // then
+    assertThat(actualBatches.size()).isEqualTo(2);
+    assertThat(actualBatches.get(0).size()).isEqualTo(2);
+    assertThat(actualBatches.get(1).size()).isEqualTo(1);
+  }
+
+  @Test
+  void should_create_two_batches_for_different_dse_tables_and_same_partition_key()
+      throws InterruptedException {
+    // given
+    // given
+    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
+    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 2);
+    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    // we need to copy the batch into a new list since the original one may be cleared after
+    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+
+    // when
+    // emulate DseSinkTask.put() behavior
+    Thread producer =
+        new Thread(
+            () -> {
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table1",
+                  1,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+              addSinkRecord(
+                  recordAndStatements,
+                  "topic1",
+                  "keyspace1",
+                  "table-different",
+                  2,
+                  "value_1",
+                  ByteBuffer.wrap(new byte[] {1}));
+
+              statementProcessor.stop();
+            });
+
+    // emulate BoundStatementProcessor.run() behavior
+    Thread consumer =
+        new Thread(
+            () -> {
+              try {
+                statementProcessor.runLoop(mockConsumer);
+              } catch (InterruptedException ignored) {
+              }
+            });
+
+    producer.start();
+    consumer.start();
+    producer.join();
+    consumer.join();
+
+    // then
+    assertThat(actualBatches.size()).isEqualTo(2);
+    assertThat(actualBatches.get(0).size()).isEqualTo(1);
+    assertThat(actualBatches.get(1).size()).isEqualTo(1);
+  }
+
+  private void addSinkRecord(
+      BlockingQueue<RecordAndStatement> recordAndStatements,
+      String topic,
+      String keyspace,
+      String table,
+      Object kafkaKey,
+      Object kafkaValue,
+      ByteBuffer dseRoutingKey) {
+    SinkRecord record = new SinkRecord(topic, 1, null, kafkaKey, null, kafkaValue, 1234);
+    BoundStatement statement = mock(BoundStatement.class);
+    when(statement.getRoutingKey()).thenReturn(dseRoutingKey);
+    recordAndStatements.add(new RecordAndStatement(record, keyspace + "." + table, statement));
+  }
+
   private static Stream<? extends Arguments> batchSizes() {
     return Stream.of(
         Arguments.of(1, 1, new int[] {1}),
