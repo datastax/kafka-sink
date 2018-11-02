@@ -8,7 +8,6 @@
 - [bug] KAF-53: Jar file name is wrong
 - [bug] KAF-57: CL for one topic/table may mask another
 - [bug] KAF-59: LifeCycleManager.stopTask has a race condition
-- [task] KAF-62: Update dependencies to released driver versions
 - [new feature] KAF-60 Make BoundStatements limit for the batches configurable
 - [bug] KAF-64: BoundStatementProcessor should not block indefinitely
 - [bug] KAF-70: recordCount is not accurate
