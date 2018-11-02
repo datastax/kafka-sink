@@ -4,7 +4,7 @@
  *   This software is subject to the below license agreement.
  *   DataStax may make changes to the agreement from time to time,
  *   and will post the amended terms at
- *   https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms.
+ *   https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
  */
 package com.datastax.kafkaconnector.state;
 
@@ -17,7 +17,6 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +28,8 @@ class InstanceStateTest {
   private DseSession session = mock(DseSession.class);
 
   private Map<String, TopicState> topicStates = new HashMap<>();
-  private InstanceState instanceState = new InstanceState(config, session, topicStates, new MetricRegistry());
+  private InstanceState instanceState =
+      new InstanceState(config, session, topicStates, new MetricRegistry());
 
   @Test
   void getTopicConfig_fail() {
@@ -57,32 +57,32 @@ class InstanceStateTest {
   }
 
   @Test
-  void should_not_reset_counter_when_create_new_instance_state(){
-    //given
+  void should_not_reset_counter_when_create_new_instance_state() {
+    // given
     MetricRegistry metricRegistry = new MetricRegistry();
     Map<String, TopicState> topicStates = new HashMap<>();
-    InstanceState instanceState = new InstanceState(
-        new DseSinkConfig(Collections.emptyMap()),
+    InstanceState instanceState =
+        new InstanceState(
+            new DseSinkConfig(Collections.emptyMap()),
             mock(DseSession.class),
-          topicStates,
-          metricRegistry
-        );
+            topicStates,
+            metricRegistry);
 
-    //when
+    // when
     instanceState.incrementRecordCount(1);
 
-    //then
+    // then
     assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(1);
 
-    //when create new instanceState
-    InstanceState instanceState2 = new InstanceState(
-        new DseSinkConfig(Collections.emptyMap()),
-        mock(DseSession.class),
-        topicStates,
-        metricRegistry
-    );
+    // when create new instanceState
+    InstanceState instanceState2 =
+        new InstanceState(
+            new DseSinkConfig(Collections.emptyMap()),
+            mock(DseSession.class),
+            topicStates,
+            metricRegistry);
 
-    //then metrics should not reset
+    // then metrics should not reset
     assertThat(instanceState2.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(1);
   }
 }
