@@ -38,6 +38,7 @@ import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.state.InstanceState;
+import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.request.Batch;
 import com.datastax.oss.protocol.internal.request.Execute;
@@ -178,6 +179,11 @@ class SimpleEndToEndSimulacronIT {
     configurator.setContext(context);
     context.reset();
     configurator.doConfigure(ClassLoader.getSystemResource("logback-test.xml"));
+  }
+
+  @AfterEach
+  void cleanupMetrics() {
+    LifeCycleManager.cleanMetrics();
   }
 
   @AfterEach
@@ -341,7 +347,7 @@ class SimpleEndToEndSimulacronIT {
     InstanceState instanceState =
         (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
     assertThat(instanceState.getGlobalSinkMetrics().getFailedRecordCounter().getCount())
-        .isEqualTo(5);
+        .isEqualTo(3);
     assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(5);
   }
 
