@@ -75,6 +75,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
+import org.javatuples.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -497,15 +498,22 @@ public class LifeCycleManager {
    * @param config the sink config
    * @return a new DseSession
    */
+  @VisibleForTesting
   @NotNull
-  private static DseSession buildDseSession(DseSinkConfig config) {
+  static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
-    config
-        .getContactPoints()
-        .forEach(
-            hostStr -> builder.addContactPoint(new InetSocketAddress(hostStr, config.getPort())));
+    List<InetSocketAddress> contactPointsInetAddresses =
+        config
+            .getContactPoints()
+            .stream()
+            .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
+            .collect(Collectors.toList());
+
+    validateContactPoints(contactPointsInetAddresses);
+
+    contactPointsInetAddresses.forEach(builder::addContactPoint);
 
     DefaultDriverConfigLoaderBuilder configLoaderBuilder = DefaultDseDriverConfigLoader.builder();
     if (!config.getLocalDc().isEmpty()) {
@@ -533,6 +541,20 @@ public class LifeCycleManager {
     builder.withConfigLoader(configLoaderBuilder.build());
 
     return builder.build();
+  }
+
+  private static void validateContactPoints(List<InetSocketAddress> contactPointsInetAddresses) {
+    String errorMsg =
+        contactPointsInetAddresses
+            .stream()
+            .map(address -> Pair.with(address, address.isUnresolved()))
+            .filter(Pair::getValue1)
+            .map(p -> p.getValue0().toString())
+            .collect(Collectors.joining(","));
+    if (!errorMsg.isEmpty()) {
+      throw new ConfigException(
+          String.format("Incorrect %s: %s", DseSinkConfig.CONTACT_POINTS_OPT, errorMsg));
+    }
   }
 
   /**

@@ -22,12 +22,15 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Connector configuration and validation. */
 @SuppressWarnings("WeakerAccess")
 public class DseSinkConfig {
+  private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
   private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
-  static final String CONTACT_POINTS_OPT = "contactPoints";
+  public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
@@ -97,6 +100,7 @@ public class DseSinkConfig {
   private final AuthenticatorConfig authConfig;
 
   public DseSinkConfig(Map<String, String> settings) {
+    log.debug("create DseSinkConfig for settings:{} ", settings);
     instanceName = settings.get(NAME_OPT);
     // Walk through the settings and separate out "globals" from "topics", "ssl", and "auth".
     Map<String, String> globalSettings = new HashMap<>();
@@ -152,6 +156,7 @@ public class DseSinkConfig {
 
     // Verify that if contact-points are provided, local dc is also specified.
     List<String> contactPoints = getContactPoints();
+    log.debug("contactPoints: {}", contactPoints);
     if (!contactPoints.isEmpty() && StringUtil.isEmpty(getLocalDc())) {
       throw new ConfigException(
           CONTACT_POINTS_OPT,

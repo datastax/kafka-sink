@@ -23,6 +23,7 @@ import com.datastax.dse.driver.api.core.metadata.DseMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseColumnMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
+import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TableConfigBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
@@ -278,6 +279,50 @@ class LifeCycleManagerTest {
         .isEqualTo(
             String.format(
                 "DELETE FROM myks.mytable WHERE %s = :%s AND \"%s\" = :\"%s\"", C1, C1, C2, C2));
+  }
+
+  @Test
+  void should_create_dse_session() {
+    // given
+    Map<String, String> config =
+        ImmutableMap.of(
+            "contactPoints", "127.0.0.1,127.0.0.2",
+            "loadBalancing.localDc", "dc1");
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+
+    // when
+    DseSession dseSession = LifeCycleManager.buildDseSession(dseSinkConfig);
+
+    // then
+    assertThat(dseSession).isNotNull();
+  }
+
+  @Test
+  void should_throw_config_exception_if_contact_points_are_correct_but_localDc_not_supplied() {
+    // given
+    Map<String, String> config = ImmutableMap.of("contactPoints", "127.0.0.1");
+
+    // when, then
+    assertThatThrownBy(() -> new DseSinkConfig(config))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("loadBalancing.localDc");
+  }
+
+  @Test
+  void should_throw_config_exception_for_incorrect_contact_points() {
+    // given
+    Map<String, String> config =
+        ImmutableMap.of(
+            "contactPoints", "\"127.0.0.1\",\"127.0.0.2\"",
+            "loadBalancing.localDc", "dc1");
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+
+    // when, then
+    assertThatThrownBy(() -> LifeCycleManager.buildDseSession(dseSinkConfig))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("127.0.0.1")
+        .hasMessageContaining("127.0.0.2")
+        .hasMessageContaining("contactPoints");
   }
 
   private static TableConfig makeTableConfig(
