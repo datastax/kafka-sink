@@ -341,7 +341,7 @@ class SimpleEndToEndSimulacronIT {
     InstanceState instanceState =
         (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
     assertThat(instanceState.getGlobalSinkMetrics().getFailedRecordCounter().getCount())
-        .isEqualTo(3);
+        .isEqualTo(5);
     assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(5);
   }
 
