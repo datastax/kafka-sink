@@ -22,7 +22,7 @@ public class ContactPointsValidator {
    * invalid. The correct contact point is proper IPv4 address in a format X.X.X.X or correct domain
    * name according to RFC: http://www.ietf.org/rfc/rfc3490.txt
    *
-   * @param contactPoints
+   * @param contactPoints - list of contact points to validate
    */
   public static void validateContactPoints(List<String> contactPoints) {
     Set<String> invalid =
