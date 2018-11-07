@@ -37,6 +37,7 @@ import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.AuthenticatorConfig;
+import com.datastax.kafkaconnector.config.ContactPointsValidator;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
@@ -75,7 +76,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
-import org.javatuples.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -504,16 +504,14 @@ public class LifeCycleManager {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
-    List<InetSocketAddress> contactPointsInetAddresses =
-        config
-            .getContactPoints()
-            .stream()
-            .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
-            .collect(Collectors.toList());
 
-    validateContactPoints(contactPointsInetAddresses);
+    ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
-    contactPointsInetAddresses.forEach(builder::addContactPoint);
+    config
+        .getContactPoints()
+        .stream()
+        .map(hostStr -> InetSocketAddress.createUnresolved(hostStr, config.getPort()))
+        .forEach(builder::addContactPoint);
 
     DefaultDriverConfigLoaderBuilder configLoaderBuilder = DefaultDseDriverConfigLoader.builder();
     if (!config.getLocalDc().isEmpty()) {
@@ -541,20 +539,6 @@ public class LifeCycleManager {
     builder.withConfigLoader(configLoaderBuilder.build());
 
     return builder.build();
-  }
-
-  private static void validateContactPoints(List<InetSocketAddress> contactPointsInetAddresses) {
-    String errorMsg =
-        contactPointsInetAddresses
-            .stream()
-            .map(address -> Pair.with(address, address.isUnresolved()))
-            .filter(Pair::getValue1)
-            .map(p -> p.getValue0().toString())
-            .collect(Collectors.joining(","));
-    if (!errorMsg.isEmpty()) {
-      throw new ConfigException(
-          String.format("Incorrect %s: %s", DseSinkConfig.CONTACT_POINTS_OPT, errorMsg));
-    }
   }
 
   /**

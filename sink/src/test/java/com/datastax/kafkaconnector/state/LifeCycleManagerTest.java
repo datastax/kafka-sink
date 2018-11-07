@@ -40,15 +40,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 @SuppressWarnings("unchecked")
 class LifeCycleManagerTest {
@@ -287,21 +281,6 @@ class LifeCycleManagerTest {
                 "DELETE FROM myks.mytable WHERE %s = :%s AND \"%s\" = :\"%s\"", C1, C1, C2, C2));
   }
 
-  @ParameterizedTest(name = "[{index}] contactPointsList={0}")
-  @MethodSource("correctContactPoints")
-  void should_create_dse_session(String contactPointsList) {
-    // given
-    Map<String, String> config =
-        ImmutableMap.of("contactPoints", contactPointsList, "loadBalancing.localDc", "dc1");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
-
-    // when
-    DseSession dseSession = LifeCycleManager.buildDseSession(dseSinkConfig);
-
-    // then
-    assertThat(dseSession).isNotNull();
-  }
-
   @Test
   void should_throw_config_exception_if_contact_points_are_correct_but_localDc_not_supplied() {
     // given
@@ -311,20 +290,6 @@ class LifeCycleManagerTest {
     assertThatThrownBy(() -> new DseSinkConfig(config))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("loadBalancing.localDc");
-  }
-
-  @ParameterizedTest(name = "[{index}] contactPointsList={0}")
-  @MethodSource("incorrectContactPoints")
-  void should_throw_config_exception_for_incorrect_contact_points(String contactPointsList) {
-    // given
-    Map<String, String> config =
-        ImmutableMap.of("contactPoints", contactPointsList, "loadBalancing.localDc", "dc1");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
-
-    // when, then
-    assertThatThrownBy(() -> LifeCycleManager.buildDseSession(dseSinkConfig))
-        .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("contactPoints");
   }
 
   private static TableConfig makeTableConfig(
@@ -338,23 +303,5 @@ class LifeCycleManagerTest {
         .addSimpleSetting(MAPPING_OPT, mapping)
         .addSimpleSetting(TTL_OPT, String.valueOf(ttl))
         .build();
-  }
-
-  private static Stream<? extends Arguments> correctContactPoints() {
-    return Stream.of(
-        Arguments.of("127.0.0.1"),
-        Arguments.of("127.0.0.1,127.0.0.2"),
-        Arguments.of(tenIp4Addresses()));
-  }
-
-  private static Stream<? extends Arguments> incorrectContactPoints() {
-    return Stream.of(
-        Arguments.of("\"127.0.0.1\",\"127.0.0.2\""),
-        Arguments.of("not-an-url"),
-        Arguments.of("*.0.0.1"));
-  }
-
-  private static String tenIp4Addresses() {
-    return IntStream.range(1, 10).mapToObj(i -> "127.0.0" + i).collect(Collectors.joining(","));
   }
 }
