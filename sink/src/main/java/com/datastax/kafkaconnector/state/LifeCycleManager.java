@@ -510,7 +510,7 @@ public class LifeCycleManager {
     config
         .getContactPoints()
         .stream()
-        .map(hostStr -> InetSocketAddress.createUnresolved(hostStr, config.getPort()))
+        .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
         .forEach(builder::addContactPoint);
 
     DefaultDriverConfigLoaderBuilder configLoaderBuilder = DefaultDseDriverConfigLoader.builder();
