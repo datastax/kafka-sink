@@ -19,7 +19,7 @@ public class ContactPointsValidator {
 
   /**
    * This method validates all contact points and throws ConfigException if there is at least one
-   * invalid. The correct contact point is proper IPv4 address in a format X.X.X.X or correct domain
+   * invalid. The correct contact point is proper IP address in a format X.X.X.X or correct domain
    * name according to RFC: http://www.ietf.org/rfc/rfc3490.txt
    *
    * @param contactPoints - list of contact points to validate
