@@ -18,7 +18,7 @@ import org.apache.kafka.common.config.ConfigException;
 public class ContactPointsValidator {
 
   /**
-   * * This method validates all contact points and throws ConfigException if there is at least one
+   * This method validates all contact points and throws ConfigException if there is at least one
    * invalid. The correct contact point is proper IPv4 address in a format X.X.X.X or correct domain
    * name according to RFC: http://www.ietf.org/rfc/rfc3490.txt
    *
