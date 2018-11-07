@@ -88,7 +88,7 @@ public class LifeCycleManager {
   private static final Logger log = LoggerFactory.getLogger(LifeCycleManager.class);
   private static final ConcurrentMap<String, InstanceState> INSTANCE_STATES =
       new ConcurrentHashMap<>();
-  private static final MetricRegistry metricRegistry = new MetricRegistry();
+  private static MetricRegistry metricRegistry = new MetricRegistry();
 
   /** This is a utility class that no one should instantiate. */
   private LifeCycleManager() {}
@@ -666,5 +666,10 @@ public class LifeCycleManager {
               throw new RuntimeException(
                   String.format("Prepare failed for statement: %s", statements), e.getCause());
             });
+  }
+
+  @VisibleForTesting
+  public static void cleanMetrics() {
+    metricRegistry = new MetricRegistry();
   }
 }
