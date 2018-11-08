@@ -23,6 +23,7 @@ import com.datastax.dse.driver.api.core.metadata.DseMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseColumnMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
+import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TableConfigBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
@@ -280,6 +281,17 @@ class LifeCycleManagerTest {
                 "DELETE FROM myks.mytable WHERE %s = :%s AND \"%s\" = :\"%s\"", C1, C1, C2, C2));
   }
 
+  @Test
+  void should_throw_config_exception_if_contact_points_are_correct_but_localDc_not_supplied() {
+    // given
+    Map<String, String> config = ImmutableMap.of("contactPoints", "127.0.0.1");
+
+    // when, then
+    assertThatThrownBy(() -> new DseSinkConfig(config))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("loadBalancing.localDc");
+  }
+
   private static TableConfig makeTableConfig(
       String keyspaceName, String tableName, String mapping) {
     return makeTableConfig(keyspaceName, tableName, mapping, -1);
@@ -290,15 +302,6 @@ class LifeCycleManagerTest {
     return new TableConfigBuilder("mytopic", keyspaceName, tableName)
         .addSimpleSetting(MAPPING_OPT, mapping)
         .addSimpleSetting(TTL_OPT, String.valueOf(ttl))
-        .build();
-  }
-
-  private static ImmutableMap<String, String> makeTableProps(String tableName, String mapping) {
-    return ImmutableMap.<String, String>builder()
-        .put(TableConfig.getTableSettingPath("mytopic", "ks1", tableName, MAPPING_OPT), mapping)
-        .put(
-            TableConfig.getTableSettingPath("mytopic", "ks1", tableName, TTL_OPT),
-            String.valueOf(-1))
         .build();
   }
 }

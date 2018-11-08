@@ -37,6 +37,7 @@ import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.AuthenticatorConfig;
+import com.datastax.kafkaconnector.config.ContactPointsValidator;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
@@ -497,15 +498,20 @@ public class LifeCycleManager {
    * @param config the sink config
    * @return a new DseSession
    */
+  @VisibleForTesting
   @NotNull
-  private static DseSession buildDseSession(DseSinkConfig config) {
+  static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
+
+    ContactPointsValidator.validateContactPoints(config.getContactPoints());
+
     config
         .getContactPoints()
-        .forEach(
-            hostStr -> builder.addContactPoint(new InetSocketAddress(hostStr, config.getPort())));
+        .stream()
+        .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
+        .forEach(builder::addContactPoint);
 
     DefaultDriverConfigLoaderBuilder configLoaderBuilder = DefaultDseDriverConfigLoader.builder();
     if (!config.getLocalDc().isEmpty()) {
