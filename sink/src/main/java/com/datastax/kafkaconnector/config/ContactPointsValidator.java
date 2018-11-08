@@ -19,7 +19,7 @@ public class ContactPointsValidator {
 
   /**
    * This method validates all contact points and throws ConfigException if there is at least one
-   * invalid. The correct A valid contact point is either a valid IP address in its canonical form,
+   * invalid. A valid contact point is either a valid IP address in its canonical form,
    * or a valid domain name.
    *
    * @param contactPoints - list of contact points to validate
