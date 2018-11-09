@@ -1349,33 +1349,37 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build());
     conn.start(
         makeConnectorProperties(
-            "\"bigint col\" = \"value.bigint field\", "
-                + "\"boolean-col\" = \"value.boolean-field\", "
+            "\"bigint col\" = \"key.bigint field\", "
+                + "\"boolean-col\" = \"key.boolean-field\", "
                 + "\"INT COL\" = \"value.INT FIELD\", "
                 + "\"TEXT.COL\" = \"value.TEXT.FIELD\"",
             "CASE_SENSITIVE",
             null));
 
     // Set up records for "mytopic"
-    Schema schema =
-        SchemaBuilder.struct()
-            .name("Kafka")
-            .field("bigint field", Schema.INT64_SCHEMA)
-            .field("boolean-field", Schema.BOOLEAN_SCHEMA)
-            .field("INT FIELD", Schema.INT32_SCHEMA)
-            .field("TEXT.FIELD", Schema.STRING_SCHEMA)
-            .build();
-    Struct value =
-        new Struct(schema)
+    Struct key =
+        new Struct(
+                SchemaBuilder.struct()
+                    .name("Kafka")
+                    .field("bigint field", Schema.INT64_SCHEMA)
+                    .field("boolean-field", Schema.BOOLEAN_SCHEMA)
+                    .build())
             .put("bigint field", 1234567L)
-            .put("boolean-field", true)
+            .put("boolean-field", true);
+    Struct value =
+        new Struct(
+                SchemaBuilder.struct()
+                    .name("Kafka")
+                    .field("INT FIELD", Schema.INT32_SCHEMA)
+                    .field("TEXT.FIELD", Schema.STRING_SCHEMA)
+                    .build())
             .put("INT FIELD", 5725)
             .put("TEXT.FIELD", "foo");
 
     // Note: with the current mapping grammar, it is not possible to distinguish f1.f2 (i.e. a field
     // "f1" containing a nested field "f2") from a field named "f1.f2".
 
-    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, value, 1234L);
 
     runTaskWithRecords(record);
 
