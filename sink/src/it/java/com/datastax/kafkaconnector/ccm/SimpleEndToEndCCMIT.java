@@ -107,12 +107,25 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + ")")
             .withTimeout(Duration.ofSeconds(10))
             .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS \"CASE_SENSITIVE\" ("
+                    + "\"bigint col\" bigint, "
+                    + "\"boolean-col\" boolean, "
+                    + "\"INT COL\" int,"
+                    + "\"TEXT.COL\" text,"
+                    + "PRIMARY KEY (\"bigint col\", \"boolean-col\")"
+                    + ")")
+            .withTimeout(Duration.ofSeconds(10))
+            .build());
   }
 
   @BeforeEach
   void truncateTables() {
     session.execute("TRUNCATE small_simple");
     session.execute("TRUNCATE small_compound");
+    session.execute("TRUNCATE \"CASE_SENSITIVE\"");
   }
 
   @Test
@@ -1333,21 +1346,64 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         .isEqualTo(udt.newValue(42, "the answer", Arrays.asList(1, 2, 3)));
   }
 
-  /**
-   * Test for KAF-84.
-   */
+  /** Test for KAF-83 (case-sensitive fields and columns). */
+  @Test
+  void single_map_quoted_fields_to_quoted_columns() {
+    conn.start(
+        makeConnectorProperties(
+            "\"bigint col\" = \"value.bigint field\", "
+                + "\"boolean-col\" = \"value.boolean-field\", "
+                + "\"INT COL\" = \"value.INT FIELD\", "
+                + "\"TEXT.COL\" = \"value.TEXT.FIELD\"",
+            "CASE_SENSITIVE",
+            new HashMap<>()));
+
+    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint field", Schema.INT64_SCHEMA)
+            .field("boolean-field", Schema.BOOLEAN_SCHEMA)
+            .field("INT FIELD", Schema.INT32_SCHEMA)
+            .field("TEXT.FIELD", Schema.STRING_SCHEMA)
+            .build();
+    Struct value =
+        new Struct(schema)
+            .put("bigint field", 1234567L)
+            .put("boolean-field", true)
+            .put("INT FIELD", 5725)
+            .put("TEXT.FIELD", "foo");
+
+    // Note: with the current mapping grammar, it is not possible to distinguish f1.f2 (i.e. a field
+    // "f1" containing a nested field "f2") from a field named "f1.f2".
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that a record was inserted
+    List<Row> results = session.execute("SELECT * FROM \"CASE_SENSITIVE\"").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("\"bigint col\"")).isEqualTo(1234567L);
+    assertThat(row.getBoolean("\"boolean-col\"")).isTrue();
+    assertThat(row.getInt("\"INT COL\"")).isEqualTo(5725);
+    assertThat(row.getString("\"TEXT.COL\"")).isEqualTo("foo");
+  }
+
+  /** Test for KAF-84. */
   @Test
   void raw_udt_value_map_case_sensitive() {
     // given
     session.execute(
         SimpleStatement.builder(
-            "CREATE TYPE case_sensitive_udt (\"Field A\" int, \"Field-B\" text, \"Field.C\" list<int>)")
+                "CREATE TYPE case_sensitive_udt (\"Field A\" int, \"Field-B\" text, \"Field.C\" list<int>)")
             .withTimeout(Duration.ofSeconds(10))
             .build());
 
     session.execute(
         SimpleStatement.builder(
-            "CREATE TABLE \"CASE_SENSITIVE_UDT\" (pk bigint PRIMARY KEY, value frozen<case_sensitive_udt>)")
+                "CREATE TABLE \"CASE_SENSITIVE_UDT\" (pk bigint PRIMARY KEY, value frozen<case_sensitive_udt>)")
             .withTimeout(Duration.ofSeconds(10))
             .build());
 
