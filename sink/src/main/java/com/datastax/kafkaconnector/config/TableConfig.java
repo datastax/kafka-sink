@@ -119,7 +119,7 @@ public class TableConfig extends AbstractConfig {
 
   @NotNull
   public String getKeyspaceAndTable() {
-    return String.format("%s.%s", keyspace.asInternal(), table.asInternal());
+    return String.format("%s.%s", keyspace.asCql(true), table.asCql(true));
   }
 
   @NotNull

@@ -66,7 +66,11 @@ public class TopicState {
                     TableConfig::getKeyspaceAndTable,
                     t ->
                         metricRegistry.histogram(
-                            String.format("%s/%s/batchSize", name, t.getKeyspaceAndTable()))));
+                            String.format(
+                                "%s/%s.%s/batchSize",
+                                // KAF-85: use internal CQL forms because JMX MBean names
+                                // cannot contain double-quotes.
+                                name, t.getKeyspace().asInternal(), t.getTable().asInternal()))));
   }
 
   @NotNull
