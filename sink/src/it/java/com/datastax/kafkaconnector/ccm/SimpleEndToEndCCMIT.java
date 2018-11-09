@@ -107,25 +107,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + ")")
             .withTimeout(Duration.ofSeconds(10))
             .build());
-
-    session.execute(
-        SimpleStatement.builder(
-                "CREATE TABLE IF NOT EXISTS \"CASE_SENSITIVE\" ("
-                    + "\"bigint col\" bigint, "
-                    + "\"boolean-col\" boolean, "
-                    + "\"INT COL\" int,"
-                    + "\"TEXT.COL\" text,"
-                    + "PRIMARY KEY (\"bigint col\", \"boolean-col\")"
-                    + ")")
-            .withTimeout(Duration.ofSeconds(10))
-            .build());
   }
 
   @BeforeEach
   void truncateTables() {
     session.execute("TRUNCATE small_simple");
     session.execute("TRUNCATE small_compound");
-    session.execute("TRUNCATE \"CASE_SENSITIVE\"");
   }
 
   @Test
@@ -1349,6 +1336,17 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   /** Test for KAF-83 (case-sensitive fields and columns). */
   @Test
   void single_map_quoted_fields_to_quoted_columns() {
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE \"CASE_SENSITIVE\" ("
+                    + "\"bigint col\" bigint, "
+                    + "\"boolean-col\" boolean, "
+                    + "\"INT COL\" int,"
+                    + "\"TEXT.COL\" text,"
+                    + "PRIMARY KEY (\"bigint col\", \"boolean-col\")"
+                    + ")")
+            .withTimeout(Duration.ofSeconds(10))
+            .build());
     conn.start(
         makeConnectorProperties(
             "\"bigint col\" = \"value.bigint field\", "
@@ -1356,7 +1354,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 + "\"INT COL\" = \"value.INT FIELD\", "
                 + "\"TEXT.COL\" = \"value.TEXT.FIELD\"",
             "CASE_SENSITIVE",
-            new HashMap<>()));
+            null));
 
     // Set up records for "mytopic"
     Schema schema =
