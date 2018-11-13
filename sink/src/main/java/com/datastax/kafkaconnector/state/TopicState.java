@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import javax.management.ObjectName;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -68,11 +67,8 @@ public class TopicState {
                     t ->
                         metricRegistry.histogram(
                             String.format(
-                                "%s/%s.%s/batchSize",
-                                // KAF-85: quote object names if they contain forbidden chars.
-                                name,
-                                ObjectName.quote(t.getKeyspace().asInternal()),
-                                ObjectName.quote(t.getTable().asInternal())))));
+                                "%s/%s/%s/batchSize",
+                                name, sanitize(t.getKeyspace()), sanitize(t.getTable())))));
   }
 
   @NotNull
@@ -83,5 +79,11 @@ public class TopicState {
   @NotNull
   RecordMapper getRecordMapper(TableConfig tableConfig) {
     return recordMappers.get(tableConfig);
+  }
+
+  private static String sanitize(CqlIdentifier identifier) {
+    String sanitized = identifier.asInternal();
+    // remove any slashes from CQL identifier names as they will interfere with hierarchical names
+    return sanitized.replace("//", "");
   }
 }
