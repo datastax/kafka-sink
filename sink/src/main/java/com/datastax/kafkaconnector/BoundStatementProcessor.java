@@ -18,6 +18,7 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +33,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runnable class that pulls [sink-record, bound-statement] pairs from a queue and groups them based
@@ -40,6 +43,7 @@ import org.jetbrains.annotations.NotNull;
  * BoundStatements will be added to the queue.
  */
 class BoundStatementProcessor implements Callable<Void> {
+  private static final Logger log = LoggerFactory.getLogger(BoundStatementProcessor.class);
   private static final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
   private final DseSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
@@ -65,6 +69,7 @@ class BoundStatementProcessor implements Callable<Void> {
    * @param statements list of statements to execute
    */
   private void executeStatements(List<RecordAndStatement> statements) {
+    log.info("statements at the beginning: {}", statements.size());
     Statement statement;
     if (statements.isEmpty()) {
       // Should never happen, but just in case. No-op.
@@ -107,8 +112,13 @@ class BoundStatementProcessor implements Callable<Void> {
                           instanceState::incrementFailedCount);
                     });
               } else {
+                log.info("increment successfulRecordCount by: {}", statements.size());
                 successfulRecordCount.addAndGet(statements.size());
               }
+              log.info(
+                  "increment recordCounter by: {}, while successful records count is: {}",
+                  statements.size(),
+                  successfulRecordCount.get());
               instanceState.incrementRecordCount(statements.size());
             }));
   }
@@ -159,7 +169,9 @@ class BoundStatementProcessor implements Callable<Void> {
           categorizeStatement(statementGroups, recordAndStatement);
       if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
         // We're ready to send out a batch request!
-        consumer.accept(recordsAndStatements);
+        log.info("before consumer.accept");
+        consumer.accept(ImmutableList.copyOf(recordsAndStatements));
+        log.info("before clear");
         recordsAndStatements.clear();
       }
     }

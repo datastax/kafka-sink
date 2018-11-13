@@ -55,7 +55,7 @@ public class DseSinkTask extends SinkTask {
   private final ExecutorService boundStatementProcessorService =
       Executors.newFixedThreadPool(
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
-  private InstanceState instanceState;
+  public InstanceState instanceState;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private TaskStateManager taskStateManager;
 
@@ -66,7 +66,7 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    log.debug("DseSinkTask starting with props: {}", props);
+    log.info("DseSinkTask starting with props: {}", props);
     taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
     instanceState = LifeCycleManager.startTask(this, props);
@@ -153,11 +153,12 @@ public class DseSinkTask extends SinkTask {
 
             Instant end = Instant.now();
             long ms = Duration.between(start, end).toMillis();
-            log.debug(
-                "Completed {}/{} inserts in {} ms",
+            log.info(
+                "Completed {}/{} inserts in {} ms, while global metrics is: {}",
                 boundStatementProcessor.getSuccessfulRecordCount(),
                 sinkRecords.size(),
-                ms);
+                ms,
+                instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount());
           } catch (InterruptedException e) {
             boundStatementProcessor.stop();
             queryFutures.forEach(
