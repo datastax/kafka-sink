@@ -55,7 +55,7 @@ public class DseSinkTask extends SinkTask {
   private final ExecutorService boundStatementProcessorService =
       Executors.newFixedThreadPool(
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
-  public InstanceState instanceState;
+  private InstanceState instanceState;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private TaskStateManager taskStateManager;
 
@@ -66,7 +66,7 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    log.info("DseSinkTask starting with props: {}", props);
+    log.debug("DseSinkTask starting with props: {}", props);
     taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
     instanceState = LifeCycleManager.startTask(this, props);
