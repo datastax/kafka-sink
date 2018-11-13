@@ -173,7 +173,7 @@ class BoundStatementProcessor implements Callable<Void> {
    * Categorize the given statement into the appropriate statement group, based on keyspace/table
    * and routing key.
    *
-   * @param statementGroups    running collection of categorized statements that are pending execution
+   * @param statementGroups running collection of categorized statements that are pending execution
    * @param recordAndStatement the record/statement that needs to be put in a bucket
    * @return The specific bucket (list) to which the record/statement was added.
    */
