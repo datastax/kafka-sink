@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import javax.management.ObjectName;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -68,9 +69,10 @@ public class TopicState {
                         metricRegistry.histogram(
                             String.format(
                                 "%s/%s.%s/batchSize",
-                                // KAF-85: use internal CQL forms because JMX MBean names
-                                // cannot contain double-quotes.
-                                name, t.getKeyspace().asInternal(), t.getTable().asInternal()))));
+                                // KAF-85: quote object names if they contain forbidden chars.
+                                name,
+                                ObjectName.quote(t.getKeyspace().asInternal()),
+                                ObjectName.quote(t.getTable().asInternal())))));
   }
 
   @NotNull
