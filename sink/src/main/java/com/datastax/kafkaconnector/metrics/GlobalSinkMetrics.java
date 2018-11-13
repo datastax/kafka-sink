@@ -13,27 +13,27 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 
 public class GlobalSinkMetrics {
-  private final Meter recordCountMeter;
-  private final Counter failedRecordCounter;
+  private static final String RECORD_COUNT = "recordCount";
+  private static final String FAILED_RECORD_COUNT = "failedRecordCount";
+  private MetricRegistry metricRegistry;
 
   public GlobalSinkMetrics(MetricRegistry metricRegistry) {
-    recordCountMeter = metricRegistry.meter("recordCount");
-    failedRecordCounter = metricRegistry.counter("failedRecordCount");
+    this.metricRegistry = metricRegistry;
   }
 
   public void incrementRecordCounter(int incrementBy) {
-    recordCountMeter.mark(incrementBy);
+    metricRegistry.meter(RECORD_COUNT).mark(incrementBy);
   }
 
   public void incrementFailedCounter() {
-    failedRecordCounter.inc();
+    metricRegistry.counter(FAILED_RECORD_COUNT).inc();
   }
 
   public Meter getRecordCountMeter() {
-    return recordCountMeter;
+    return metricRegistry.meter(RECORD_COUNT);
   }
 
   public Counter getFailedRecordCounter() {
-    return failedRecordCounter;
+    return metricRegistry.counter(FAILED_RECORD_COUNT);
   }
 }
