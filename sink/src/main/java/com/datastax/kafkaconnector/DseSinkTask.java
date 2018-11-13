@@ -157,8 +157,7 @@ public class DseSinkTask extends SinkTask {
                 "Completed {}/{} inserts in {} ms",
                 boundStatementProcessor.getSuccessfulRecordCount(),
                 sinkRecords.size(),
-                ms,
-                instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount());
+                ms);
           } catch (InterruptedException e) {
             boundStatementProcessor.stop();
             queryFutures.forEach(
