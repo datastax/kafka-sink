@@ -14,6 +14,7 @@ import com.datastax.kafkaconnector.Mapping;
 import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TableConfig;
+import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import java.util.List;
@@ -66,9 +67,8 @@ public class TopicState {
                     TableConfig::getKeyspaceAndTable,
                     t ->
                         metricRegistry.histogram(
-                            String.format(
-                                "%s/%s/%s/batchSize",
-                                name, sanitize(t.getKeyspace()), sanitize(t.getTable())))));
+                            MetricNamesCreator.createBatchSizeMetricName(
+                                name, t.getKeyspace(), t.getTable()))));
   }
 
   @NotNull
@@ -79,11 +79,5 @@ public class TopicState {
   @NotNull
   RecordMapper getRecordMapper(TableConfig tableConfig) {
     return recordMappers.get(tableConfig);
-  }
-
-  private static String sanitize(CqlIdentifier identifier) {
-    String sanitized = identifier.asInternal();
-    // remove any slashes from CQL identifier names as they will interfere with hierarchical names
-    return sanitized.replace("//", "");
   }
 }
