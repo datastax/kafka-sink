@@ -18,6 +18,8 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.Statement;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -30,6 +32,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 
@@ -146,6 +149,7 @@ class BoundStatementProcessor implements Callable<Void> {
             .map(Map::values)
             .flatMap(Collection::stream)
             .filter(recordAndStatements -> !recordAndStatements.isEmpty())
+            .map(ImmutableList::copyOf)
             .forEach(consumer);
         return;
       }
@@ -159,7 +163,7 @@ class BoundStatementProcessor implements Callable<Void> {
           categorizeStatement(statementGroups, recordAndStatement);
       if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
         // We're ready to send out a batch request!
-        consumer.accept(recordsAndStatements);
+        consumer.accept(ImmutableList.copyOf(recordsAndStatements));
         recordsAndStatements.clear();
       }
     }
