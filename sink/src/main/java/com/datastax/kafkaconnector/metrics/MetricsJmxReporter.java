@@ -18,9 +18,12 @@ import java.util.Iterator;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MetricsJmxReporter {
   private static final String CONNECTOR_DOMAIN = "com.datastax.kafkaconnector";
+  private static final Logger log = LoggerFactory.getLogger(MetricsJmxReporter.class);
 
   public static JmxReporter createJmxReporter(String instanceName, MetricRegistry metricRegistry) {
     return JmxReporter.forRegistry(metricRegistry)
@@ -33,6 +36,11 @@ public class MetricsJmxReporter {
   @VisibleForTesting
   @NotNull
   static ObjectName getObjectName(String instanceName, String jmxDomain, String metricName) {
+    log.debug(
+        "registering JMX objectName - instanceName: {}, jmxDomain: {}, metricName: {}",
+        instanceName,
+        jmxDomain,
+        metricName);
     try {
       StringBuilder sb =
           new StringBuilder(jmxDomain)

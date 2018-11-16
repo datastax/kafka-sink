@@ -37,7 +37,7 @@ class MetricsJmxReporterTest {
   @Test
   void should_create_driver_metrics() {
     // given
-    String driverMetric = MetricNamesCreator.createDriverMetricName("0.latency_p99");
+    String driverMetric = MetricNamesCreator.createDriverMetricName("s0.cql-client-timeouts");
 
     // when
     ObjectName batchSizeDomain =
@@ -45,7 +45,8 @@ class MetricsJmxReporterTest {
 
     // then
     assertThat(batchSizeDomain.getCanonicalName())
-        .isEqualTo("domain:connector=instance-one,driver=driver,name=latency_p99,session=0");
+        .isEqualTo(
+            "domain:connector=instance-one,driver=driver,name=cql-client-timeouts,session=s0");
   }
 
   @Test
