@@ -17,7 +17,6 @@ import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -88,7 +87,7 @@ class BoundStatementProcessorTest {
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
         new BoundStatementProcessor(
-            dseSinkTask, recordAndStatements, new LinkedList<>(), maxNumberOfRecordsInBatch);
+            dseSinkTask, recordAndStatements, new ArrayList<>(), maxNumberOfRecordsInBatch);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -136,7 +135,7 @@ class BoundStatementProcessorTest {
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 3);
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new ArrayList<>(), 3);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -202,7 +201,7 @@ class BoundStatementProcessorTest {
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 3);
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new ArrayList<>(), 3);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -269,7 +268,7 @@ class BoundStatementProcessorTest {
     DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new LinkedList<>(), 2);
+        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new ArrayList<>(), 2);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
