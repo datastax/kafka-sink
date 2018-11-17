@@ -23,6 +23,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
@@ -1330,6 +1331,49 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("listudtcol"))
         .isEqualTo(udt.newValue(42, "the answer", Arrays.asList(1, 2, 3)));
+  }
+
+  /**
+   * Test for KAF-84.
+   */
+  @Test
+  void raw_udt_value_map_case_sensitive() {
+    // given
+    session.execute(
+        SimpleStatement.builder(
+            "CREATE TYPE case_sensitive_udt (\"Field A\" int, \"Field-B\" text, \"Field.C\" list<int>)")
+            .withTimeout(Duration.ofSeconds(10))
+            .build());
+
+    session.execute(
+        SimpleStatement.builder(
+            "CREATE TABLE \"CASE_SENSITIVE_UDT\" (pk bigint PRIMARY KEY, value frozen<case_sensitive_udt>)")
+            .withTimeout(Duration.ofSeconds(10))
+            .build());
+
+    conn.start(makeConnectorProperties("pk=key, value=value", "\"CASE_SENSITIVE_UDT\"", null));
+
+    Map<String, Object> value = new HashMap<>();
+    value.put("Field A", 42);
+    value.put("Field-B", "the answer");
+    value.put("Field.C", Arrays.asList(1, 2, 3));
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+
+    // when
+    runTaskWithRecords(record);
+
+    // then
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT pk, value FROM \"CASE_SENSITIVE_UDT\"").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("pk")).isEqualTo(98761234L);
+    UdtValue udtValue = row.getUdtValue("value");
+    assertThat(udtValue).isNotNull();
+    assertThat(udtValue.getInt("\"Field A\"")).isEqualTo(42);
+    assertThat(udtValue.getString("\"Field-B\"")).isEqualTo("the answer");
+    assertThat(udtValue.getList("\"Field.C\"", Integer.class)).containsExactly(1, 2, 3);
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
