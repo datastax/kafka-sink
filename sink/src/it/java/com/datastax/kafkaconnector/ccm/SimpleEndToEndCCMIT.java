@@ -32,6 +32,7 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.protocol.internal.util.Bytes;
 import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
@@ -76,13 +77,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             return session.getContext().getCodecRegistry();
           }
         };
-  }
-
-  private static byte[] getByteArray(ByteBuffer buffer) {
-    if (buffer == null) {
-      return new byte[0];
-    }
-    return buffer.array();
   }
 
   @BeforeAll
@@ -310,7 +304,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("booleanudtfromlistcol"))
         .isEqualTo(booleanUdt.newValue(true, "false"));
 
-    assertThat(getByteArray(row.getByteBuffer("blobcol"))).isEqualTo(blobValue);
+    ByteBuffer blobcol = row.getByteBuffer("blobcol");
+    assertThat(blobcol).isNotNull();
+    assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
     if (ccm.getClusterType() == DSE) {
       assertThat(row.get("pointcol", GenericType.of(Point.class)))
           .isEqualTo(new DefaultPoint(32.0, 64.0));
@@ -484,7 +480,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
     assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
     assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
-    assertThat(getByteArray(row.getByteBuffer("blobcol"))).isEqualTo(blobValue);
+    ByteBuffer blobcol = row.getByteBuffer("blobcol");
+    assertThat(blobcol).isNotNull();
+    assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
   }
 
   @Test
@@ -592,7 +590,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
-    assertThat(getByteArray(row.getByteBuffer("blobcol"))).isEqualTo(bytes);
+    ByteBuffer blobcol = row.getByteBuffer("blobcol");
+    assertThat(blobcol).isNotNull();
+    assertThat(Bytes.getArray(blobcol)).isEqualTo(bytes);
   }
 
   @Test
