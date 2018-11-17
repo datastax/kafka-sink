@@ -17,7 +17,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
-import java.util.Collections;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import org.assertj.core.api.ThrowableAssert;
@@ -63,7 +63,7 @@ class InstanceStateTest {
     Map<String, TopicState> topicStates = new HashMap<>();
     InstanceState instanceState =
         new InstanceState(
-            new DseSinkConfig(Collections.emptyMap()),
+            new DseSinkConfig(ImmutableMap.of("name", "instance-a")),
             mock(DseSession.class),
             topicStates,
             metricRegistry);
@@ -77,7 +77,7 @@ class InstanceStateTest {
     // when create new instanceState
     InstanceState instanceState2 =
         new InstanceState(
-            new DseSinkConfig(Collections.emptyMap()),
+            new DseSinkConfig(ImmutableMap.of("name", "instance-b")),
             mock(DseSession.class),
             topicStates,
             metricRegistry);

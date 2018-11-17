@@ -18,6 +18,7 @@ import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.metrics.GlobalSinkMetrics;
+import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.kafkaconnector.metrics.MetricsJmxReporter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
@@ -67,7 +68,10 @@ public class InstanceState {
             m ->
                 m.getRegistry()
                     .getMetrics()
-                    .forEach((name, metric) -> metricRegistry.register("driver/" + name, metric)));
+                    .forEach(
+                        (name, metric) ->
+                            metricRegistry.register(
+                                MetricNamesCreator.createDriverMetricName(name), metric)));
 
     topicStates.values().forEach(ts -> ts.initializeMetrics(metricRegistry));
     globalSinkMetrics = new GlobalSinkMetrics(metricRegistry);

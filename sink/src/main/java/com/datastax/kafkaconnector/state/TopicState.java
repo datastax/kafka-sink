@@ -14,6 +14,7 @@ import com.datastax.kafkaconnector.Mapping;
 import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TableConfig;
+import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import java.util.List;
@@ -66,7 +67,8 @@ public class TopicState {
                     TableConfig::getKeyspaceAndTable,
                     t ->
                         metricRegistry.histogram(
-                            String.format("%s/%s/batchSize", name, t.getKeyspaceAndTable()))));
+                            MetricNamesCreator.createBatchSizeMetricName(
+                                name, t.getKeyspace(), t.getTable()))));
   }
 
   @NotNull
