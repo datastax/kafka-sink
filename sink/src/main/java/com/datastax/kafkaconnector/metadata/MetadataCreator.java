@@ -26,11 +26,8 @@ import java.io.IOException;
 import java.util.Map;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MetadataCreator {
-  private static final Logger log = LoggerFactory.getLogger(MetadataCreator.class);
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final JavaType JSON_NODE_MAP_TYPE =
       OBJECT_MAPPER.constructType(new TypeReference<Map<String, JsonNode>>() {}.getType());
