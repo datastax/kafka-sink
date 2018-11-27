@@ -1,6 +1,5 @@
-# Kafka Sink for DataStax Enterprise
+DataStax Apache® Kafka® Connector
 
-DataStax Apache Kafka Connector enables users to ingest topics from Apache Kafka to tables in DSE.
-View the user guide and download the latest version of the connector at
+The DataStax Apache® Kafka® Connector enables users to ingest topics from Apache® Kafka® to tables in DataStax Enterprise. Visit the documentation for all connector information.
 
-https://downloads.datastax.com/kafka
+https://docs.datastax.com/en/kafka/doc
