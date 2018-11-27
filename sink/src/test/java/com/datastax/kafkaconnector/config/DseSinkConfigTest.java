@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
@@ -62,6 +63,26 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
 
     props.put(QUERY_EXECUTION_TIMEOUT_OPT, "-1");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
+  void should_error_invalid_connectionPoolLocalSize() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(CONNECTION_POOL_LOCAL_SIZE, "foo").build());
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Invalid value foo for configuration connectionPoolLocalSize");
+
+    props.put(CONNECTION_POOL_LOCAL_SIZE, "0");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least 1");
+
+    props.put(CONNECTION_POOL_LOCAL_SIZE, "-1");
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
