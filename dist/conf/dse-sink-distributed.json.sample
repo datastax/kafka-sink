@@ -10,7 +10,7 @@
         "maxConcurrentRequests": 500,
         "maxNumberOfRecordsInBatch": 32,
         "queryExecutionTimeout": 30,
-        "connectionPoolLocalSize": 1,
+        "connectionPoolLocalSize": 4,
         "jmx": true,
         "compression": "None",
         "auth.provider": "None",
