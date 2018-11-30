@@ -522,6 +522,9 @@ public class LifeCycleManager {
     configLoaderBuilder.withDuration(
         DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
 
+    configLoaderBuilder.with(
+        DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.getConnectionPoolLocalSize());
+
     if (config.getJmx()) {
       configLoaderBuilder.withStringList(
           METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));

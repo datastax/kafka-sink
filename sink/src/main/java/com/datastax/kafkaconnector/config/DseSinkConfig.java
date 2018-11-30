@@ -35,6 +35,7 @@ public class DseSinkConfig {
   static final String DC_OPT = "loadBalancing.localDc";
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
   static final String QUERY_EXECUTION_TIMEOUT_OPT = "queryExecutionTimeout";
+  static final String CONNECTION_POOL_LOCAL_SIZE = "connectionPoolLocalSize";
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
@@ -91,7 +92,14 @@ public class DseSinkConfig {
               32,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "Maximum number of records that could be send in one batch request to DSE");
+              "Maximum number of records that could be send in one batch request to DSE")
+          .define(
+              CONNECTION_POOL_LOCAL_SIZE,
+              ConfigDef.Type.INT,
+              4,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "Number of connections that driver maintains within a connection pool to each node in local dc");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -181,6 +189,10 @@ public class DseSinkConfig {
     return globalConfig.getInt(QUERY_EXECUTION_TIMEOUT_OPT);
   }
 
+  public int getConnectionPoolLocalSize() {
+    return globalConfig.getInt(CONNECTION_POOL_LOCAL_SIZE);
+  }
+
   public boolean getJmx() {
     return globalConfig.getBoolean(JMX_OPT);
   }
@@ -227,7 +239,8 @@ public class DseSinkConfig {
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "        queryExecutionTimeout: %d%n"
-            + "        maxNumberOfRecordsInBatch: %d%n "
+            + "        maxNumberOfRecordsInBatch: %d%n"
+            + "        connectionPoolLocalSize: %d%n"
             + "        jmx: %b%n"
             + "        compression: %s%n"
             + "SSL configuration:%n%s%n"
@@ -239,6 +252,7 @@ public class DseSinkConfig {
         getMaxConcurrentRequests(),
         getQueryExecutionTimeout(),
         getMaxNumberOfRecordsInBatch(),
+        getConnectionPoolLocalSize(),
         getJmx(),
         getCompressionType(),
         Splitter.on("\n")

@@ -13,6 +13,7 @@
 - [bug] KAF-70: recordCount is not accurate
 - [bug] KAF-76: Connector should fail fast if contactPoints are not valid
 - [bug] KAF-85: Metrics for case-sensitive table names cannot be exposed with JMX
+- [new feature] KAF-95: Expose connectionsPerHost in the connector configuration
 
 ### 1.0.0-alpha3
 - [bug] KAF-39: Partitions don't rebalance in distributed mode across multiple workers
