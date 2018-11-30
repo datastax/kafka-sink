@@ -96,7 +96,7 @@ public class DseSinkConfig {
           .define(
               CONNECTION_POOL_LOCAL_SIZE,
               ConfigDef.Type.INT,
-              1,
+              4,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
               "Number of connections that driver maintains within a connection pool to each node in local dc");
