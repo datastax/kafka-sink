@@ -1,8 +1,8 @@
-Apache Kafka (R) DSE Sink License Terms
+DataStax Apache Kafka (R) Connector License Terms
 
-Last Updated:  August 2, 2018
+Last Updated:  October 22, 2018
 
-PLEASE READ THIS DATASTAX KAFKA DSE SINK TERMS (“AGREEMENT”) CAREFULLY. BY
+PLEASE READ THIS DATASTAX APACHE KAFKA CONNECTOR TERMS (“AGREEMENT”) CAREFULLY. BY
 CLICKING A BOX INDICATING ACCEPTANCE, DOWNLOADING OR USING THE SOFTWARE
 DOWNLOADED (“Licensed Software”), YOU ACKNOWLEDGE THAT YOU HAVE READ THE
 TERMS AND AGREE TO THEM. IF YOU ARE AGREEING TO THESE TERMS ON BEHALF OF A
@@ -16,10 +16,9 @@ SOFTWARE.
 Subject to the terms and conditions of this Agreement, DataStax grants you a
 non-exclusive, non-transferable, non-sublicensable, limited, royalty-free
 license to use the unmodified Licensed Software, without the right to
-re-distribute to any third party.  The Licensed Software may be used for writing 
-data from any distribution of Apache Kafka (R) to any DataStax product for which 
+re-distribute to any third party.  The Licensed Software may be used for writing
+data from any distribution of Apache Kafka (R) to any DataStax product for which
 you have an active, paid subscription.
-
 
 2. Restrictions
 
