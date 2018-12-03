@@ -726,7 +726,7 @@
   <licenses>
     <license>
       <name>DataStax DSE Bulk Utility License</name>
-      <url>https://www.datastax.com/terms/datastax-dse-bulk-utility-license-terms</url>
+      <url>https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms</url>
       <distribution>repo</distribution>
       <comments />
     </license>
