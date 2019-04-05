@@ -84,12 +84,22 @@ class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =
       "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp";
+  private static final String INSERT_STATEMENT_TTL =
+      "INSERT INTO ks1.table1_with_ttl(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp AND TTL :kafka_internal_ttl";
   private static final String DELETE_STATEMENT = "DELETE FROM ks1.table1 WHERE a = :a AND b = :b";
   private static final ImmutableMap<String, String> PARAM_TYPES =
       ImmutableMap.<String, String>builder()
           .put("a", "int")
           .put("b", "varchar")
           .put("kafka_internal_timestamp", "bigint")
+          .build();
+
+  private static final ImmutableMap<String, String> PARAM_TYPES_TTL =
+      ImmutableMap.<String, String>builder()
+          .put("a", "int")
+          .put("b", "varchar")
+          .put("kafka_internal_timestamp", "bigint")
+          .put("kafka_internal_ttl", "bigint")
           .build();
   private static final String INSTANCE_NAME = "myinstance";
   private final BoundCluster simulacron;
@@ -159,6 +169,23 @@ class SimpleEndToEndSimulacronIT {
   private static Query makeQuery(int a, String b, long timestamp) {
     return new Query(
         INSERT_STATEMENT, Collections.emptyList(), makeParams(a, b, timestamp), PARAM_TYPES);
+  }
+
+  private static Query makeTtlQuery(int a, String b, long timestamp, long ttl) {
+    return new Query(
+        INSERT_STATEMENT_TTL,
+        Collections.emptyList(),
+        makeParamsTtl(a, b, timestamp, ttl),
+        PARAM_TYPES_TTL);
+  }
+
+  private static Map<String, Object> makeParamsTtl(int a, String b, long timestamp, long ttl) {
+    return ImmutableMap.<String, Object>builder()
+        .put("a", a)
+        .put("b", b)
+        .put("kafka_internal_timestamp", timestamp)
+        .put("kafka_internal_ttl", ttl)
+        .build();
   }
 
   private static Map<String, Object> makeParams(int a, String b, long timestamp) {
@@ -355,13 +382,13 @@ class SimpleEndToEndSimulacronIT {
   }
 
   @Test
-  void success_offset() {
+  void success_offset_with_ttl() {
     SimulacronUtils.primeTables(simulacron, schema);
 
-    Query good1 = makeQuery(42, "the answer", 153000987000L);
+    Query good1 = makeTtlQuery(22, "success", 153000987000L, 42L);
     simulacron.prime(when(good1).then(noRows()));
 
-    Query good2 = makeQuery(22, "success", 153000987000L);
+    Query good2 = makeTtlQuery(33, "success_2", 153000987000L, 22L);
     simulacron.prime(when(good2).then(noRows()));
 
     conn.start(connectorProperties);
@@ -408,7 +435,7 @@ class SimpleEndToEndSimulacronIT {
   }
 
   @Test
-  void success_offset_with_ttl() {
+  void success_offset() {
     SimulacronUtils.primeTables(simulacron, schema);
 
     Query good1 = makeQuery(42, "the answer", 153000987000L);
