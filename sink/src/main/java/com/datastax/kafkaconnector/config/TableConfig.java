@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
@@ -139,6 +140,10 @@ public class TableConfig extends AbstractConfig {
 
   public int getTtl() {
     return ttl;
+  }
+
+  public boolean hasTtlMappingColumn() {
+    return mapping.get(CqlIdentifier.fromInternal(SinkUtil.TTL_VARNAME)) != null;
   }
 
   public boolean isNullToUnset() {

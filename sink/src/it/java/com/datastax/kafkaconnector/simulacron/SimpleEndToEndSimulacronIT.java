@@ -123,6 +123,8 @@ class SimpleEndToEndSimulacronIT {
         new SimulacronUtils.Keyspace(
             "ks1",
             new Table("table1", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
+            new Table(
+                "table1_with_ttl", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
             new Table("table2", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
             new Table(
                 "mycounter",
@@ -138,6 +140,7 @@ class SimpleEndToEndSimulacronIT {
             .put("port", port)
             .put("loadBalancing.localDc", "dc1")
             .put("topic.mytopic.ks1.table1.mapping", "a=key, b=value")
+            .put("topic.mytopic_with_ttl.ks1.table1_with_ttl.mapping", "a=key, b=value, __ttl=key")
             .put("topic.yourtopic.ks1.table2.mapping", "a=key, b=value")
             .put("topic.yourtopic.ks1.table2.consistencyLevel", "QUORUM")
             .build();
@@ -353,6 +356,59 @@ class SimpleEndToEndSimulacronIT {
 
   @Test
   void success_offset() {
+    SimulacronUtils.primeTables(simulacron, schema);
+
+    Query good1 = makeQuery(42, "the answer", 153000987000L);
+    simulacron.prime(when(good1).then(noRows()));
+
+    Query good2 = makeQuery(22, "success", 153000987000L);
+    simulacron.prime(when(good2).then(noRows()));
+
+    conn.start(connectorProperties);
+
+    SinkRecord record1 =
+        new SinkRecord(
+            "mytopic_with_ttl",
+            0,
+            null,
+            22,
+            null,
+            "success",
+            1235L,
+            153000987L,
+            TimestampType.CREATE_TIME);
+    SinkRecord record2 =
+        new SinkRecord(
+            "mytopic_with_ttl",
+            0,
+            null,
+            33,
+            null,
+            "success_2",
+            1235L,
+            153000987L,
+            TimestampType.CREATE_TIME);
+    runTaskWithRecords(record1, record2);
+
+    Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+    task.preCommit(currentOffsets);
+    assertThat(currentOffsets).isEmpty();
+
+    List<QueryLog> queryList =
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
+            .filter(q -> q.getType().equals("EXECUTE"))
+            .collect(Collectors.toList());
+    assertThat(queryList.size()).isEqualTo(2);
+    assertThat(queryList.get(0).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+    assertThat(queryList.get(1).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+  }
+
+  @Test
+  void success_offset_with_ttl() {
     SimulacronUtils.primeTables(simulacron, schema);
 
     Query good1 = makeQuery(42, "the answer", 153000987000L);

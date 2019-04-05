@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector.util;
 /** Utility class to house useful methods and constants that the rest of the application may use. */
 public class SinkUtil {
   public static final String TIMESTAMP_VARNAME = "kafka_internal_timestamp";
+  public static final String TTL_VARNAME = "kafka_internal_ttl";
   public static final String NAME_OPT = "name";
 
   /** This is a utility class and should never be instantiated. */

@@ -136,7 +136,7 @@ public class RecordMapper {
           GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
           if (fieldType != null) {
             raw = record.getFieldValue(field);
-            log.trace(
+            log.info(
                 "binding field {} with value {} to column {}", field, raw, column.asInternal());
             bindColumn(builder, column, raw, cqlType, fieldType);
           }

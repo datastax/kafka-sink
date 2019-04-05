@@ -148,6 +148,7 @@ public class LifeCycleManager {
             .keySet()
             .stream()
             .filter(col -> !table.getColumn(col).isPresent())
+            .filter(col -> !isTtlMappingColumn(col))
             .map(c -> c.asCql(true))
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentCols)) {
@@ -202,6 +203,9 @@ public class LifeCycleManager {
     StringBuilder valuesBuilder = new StringBuilder();
     boolean isFirst = true;
     for (CqlIdentifier col : mapping.keySet()) {
+      if (isTtlMappingColumn(col)) {
+        continue;
+      }
       if (!isFirst) {
         statementBuilder.append(',');
         valuesBuilder.append(',');
@@ -217,10 +221,22 @@ public class LifeCycleManager {
         .append(") USING TIMESTAMP :")
         .append(SinkUtil.TIMESTAMP_VARNAME);
 
+    appendTtl(config, statementBuilder);
+    return statementBuilder.toString();
+  }
+
+  private static boolean isTtlMappingColumn(CqlIdentifier col) {
+    return col.equals(CqlIdentifier.fromInternal(SinkUtil.TTL_VARNAME));
+  }
+
+  // todo should the global config take precedence?
+  // todo or should we in case of duplicate throw ValidationError?
+  private static void appendTtl(TableConfig config, StringBuilder statementBuilder) {
     if (config.getTtl() != -1) {
       statementBuilder.append(" AND TTL ").append(config.getTtl());
+    } else if (config.hasTtlMappingColumn()) {
+      statementBuilder.append(" AND TTL :").append(SinkUtil.TTL_VARNAME);
     }
-    return statementBuilder.toString();
   }
 
   /**
@@ -233,7 +249,7 @@ public class LifeCycleManager {
   @VisibleForTesting
   @NotNull
   static String makeUpdateCounterStatement(TableConfig config, TableMetadata table) {
-    if (config.getTtl() != -1) {
+    if (config.getTtl() != -1 || config.hasTtlMappingColumn()) {
       throw new ConfigException("Cannot set ttl when updating a counter table");
     }
 
