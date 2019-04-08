@@ -385,10 +385,10 @@ class SimpleEndToEndSimulacronIT {
   void success_offset_with_ttl() {
     SimulacronUtils.primeTables(simulacron, schema);
 
-    Query good1 = makeTtlQuery(22, "success", 153000987000L, 42L);
+    Query good1 = makeTtlQuery(22, "success", 153000987000L, 22L);
     simulacron.prime(when(good1).then(noRows()));
 
-    Query good2 = makeTtlQuery(33, "success_2", 153000987000L, 22L);
+    Query good2 = makeTtlQuery(33, "success_2", 153000987000L, 33L);
     simulacron.prime(when(good2).then(noRows()));
 
     conn.start(connectorProperties);
