@@ -148,7 +148,7 @@ public class LifeCycleManager {
             .keySet()
             .stream()
             .filter(col -> !table.getColumn(col).isPresent())
-            .filter(col -> !isTtlMappingColumn(col))
+            .filter(col -> !SinkUtil.isTtlMappingColumn(col))
             .map(c -> c.asCql(true))
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentCols)) {
@@ -203,7 +203,7 @@ public class LifeCycleManager {
     StringBuilder valuesBuilder = new StringBuilder();
     boolean isFirst = true;
     for (CqlIdentifier col : mapping.keySet()) {
-      if (isTtlMappingColumn(col)) {
+      if (SinkUtil.isTtlMappingColumn(col)) {
         continue;
       }
       if (!isFirst) {
@@ -223,10 +223,6 @@ public class LifeCycleManager {
 
     appendTtl(config, statementBuilder);
     return statementBuilder.toString();
-  }
-
-  private static boolean isTtlMappingColumn(CqlIdentifier col) {
-    return col.equals(CqlIdentifier.fromInternal(SinkUtil.TTL_VARNAME));
   }
 
   private static void appendTtl(TableConfig config, StringBuilder statementBuilder) {

@@ -8,12 +8,20 @@
  */
 package com.datastax.kafkaconnector.util;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+
 /** Utility class to house useful methods and constants that the rest of the application may use. */
 public class SinkUtil {
   public static final String TIMESTAMP_VARNAME = "kafka_internal_timestamp";
   public static final String TTL_VARNAME = "kafka_internal_ttl";
+  public static final CqlIdentifier TTL_VARNAME_CQL_IDENTIFIER =
+      CqlIdentifier.fromInternal(TTL_VARNAME);
   public static final String NAME_OPT = "name";
 
   /** This is a utility class and should never be instantiated. */
   private SinkUtil() {}
+
+  public static boolean isTtlMappingColumn(CqlIdentifier col) {
+    return col.equals(SinkUtil.TTL_VARNAME_CQL_IDENTIFIER);
+  }
 }
