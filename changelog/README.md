@@ -1,6 +1,9 @@
 ## Changelog
 
-### 1.0.0 (in progress)
+### 1.1.0 (in progress)
+- [new feature] KAF-107: Allow ttl to be set from a Kafka field
+
+### 1.0.0
 - [new feature] KAF-49: Add queryExecutionTimeout global setting
 - [improvement] KAF-52: Refactor kafka-sink repo into a few Maven modules
 - [improvement] KAF-54: Change default-properties to be more intuitive

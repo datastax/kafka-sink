@@ -15,7 +15,7 @@
   <groupId>com.datastax.dse</groupId>
   <artifactId>kafka-connect-dse-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 
   <name>DataStax Apache Kafka Connector</name>
   <description>
