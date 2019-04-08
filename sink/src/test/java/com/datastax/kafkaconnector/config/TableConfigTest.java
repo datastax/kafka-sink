@@ -11,13 +11,19 @@ package com.datastax.kafkaconnector.config;
 import static com.datastax.kafkaconnector.config.TableConfig.CL_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.TTL_TIME_UNIT_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class TableConfigTest {
   private TableConfigBuilder configBuilder;
@@ -134,5 +140,30 @@ class TableConfigTest {
         .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("key.b"))
         .containsEntry(
             CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("value.good"));
+    assertThat(config.getTtlTimeUnit())
+        .isEqualTo(TimeUnit.SECONDS); // default timeUnit for ttl for backward compatibility
+  }
+
+  @ParameterizedTest(name = "[{index}] ttlStringParameter={0}, expectedTimeUnit={1}")
+  @MethodSource("ttlTimeUnits")
+  void should_create_ttl_mapping(String ttlStringParameter, TimeUnit expectedTimeUnit) {
+    TableConfig config =
+        configBuilder
+            .addSimpleSetting(MAPPING_OPT, "a=key.b")
+            .addSimpleSetting(TTL_TIME_UNIT_OPT, ttlStringParameter)
+            .build();
+
+    assertThat(config.getTtlTimeUnit()).isEqualTo(expectedTimeUnit);
+  }
+
+  private static Stream<? extends Arguments> ttlTimeUnits() {
+    return Stream.of(
+        Arguments.of("MILLISECONDS", TimeUnit.MILLISECONDS),
+        Arguments.of("MINUTES", TimeUnit.MINUTES),
+        Arguments.of("SECONDS", TimeUnit.SECONDS),
+        Arguments.of("DAYS", TimeUnit.DAYS),
+        Arguments.of("HOURS", TimeUnit.HOURS),
+        Arguments.of("MICROSECONDS", TimeUnit.MICROSECONDS),
+        Arguments.of("NANOSECONDS", TimeUnit.NANOSECONDS));
   }
 }

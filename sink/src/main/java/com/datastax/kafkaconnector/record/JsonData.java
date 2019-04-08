@@ -20,9 +20,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** The key or value of a {@link SinkRecord} when it is a JSON string. */
 public class JsonData implements KeyOrValue {
+  private static final Logger log = LoggerFactory.getLogger(JsonData.class);
   private final Map<String, JsonNode> data;
   private final String json;
   private final Set<String> fields;
@@ -55,6 +58,7 @@ public class JsonData implements KeyOrValue {
 
   @Override
   public Object getFieldValue(String field) {
+    log.info("get for json field: {}, json: {}", field, json);
     if (field.equals(RawData.FIELD_NAME)) {
       return json;
     }

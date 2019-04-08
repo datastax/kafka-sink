@@ -17,9 +17,12 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** The key or value of a {@link SinkRecord} when it is a {@link Struct}. */
 public class StructData implements KeyOrValue {
+  private static final Logger log = LoggerFactory.getLogger(StructData.class);
 
   private final Struct struct;
   private final Set<String> fields;
@@ -42,6 +45,7 @@ public class StructData implements KeyOrValue {
 
   @Override
   public Object getFieldValue(String field) {
+    log.info("get for struct data: {} struct: {}", field, struct.schema());
     if (field.equals(RawData.FIELD_NAME)) {
       return struct;
     }

@@ -15,9 +15,12 @@ import java.util.HashSet;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** The key or value of a {@link SinkRecord} when it is a primitive type. */
 public class RawData implements KeyOrValue, RecordMetadata {
+  private static final Logger log = LoggerFactory.getLogger(RawData.class);
   public static final String FIELD_NAME = "__self";
   private static final Set<String> FIELDS = new HashSet<>();
 
@@ -52,6 +55,7 @@ public class RawData implements KeyOrValue, RecordMetadata {
 
   @Override
   public Object getFieldValue(String field) {
+    log.info("get for raw data: {}", field);
     return value;
   }
 }

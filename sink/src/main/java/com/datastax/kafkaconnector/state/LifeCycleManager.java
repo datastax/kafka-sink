@@ -229,7 +229,7 @@ public class LifeCycleManager {
     if (config.hasTtlMappingColumn()) {
       statementBuilder.append(" AND TTL :").append(SinkUtil.TTL_VARNAME);
     } else if (config.getTtl() != -1) {
-      statementBuilder.append(" AND TTL ").append(config.getTtl());
+      statementBuilder.append(" AND TTL ").append(config.convertTtlToSeconds(config.getTtl()));
     }
 
     if (config.hasTtlMappingColumn() && config.getTtl() != -1) {
