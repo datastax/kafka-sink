@@ -229,13 +229,20 @@ public class LifeCycleManager {
     return col.equals(CqlIdentifier.fromInternal(SinkUtil.TTL_VARNAME));
   }
 
-  // todo should the global config take precedence?
-  // todo or should we in case of duplicate throw ValidationError?
   private static void appendTtl(TableConfig config, StringBuilder statementBuilder) {
-    if (config.getTtl() != -1) {
-      statementBuilder.append(" AND TTL ").append(config.getTtl());
-    } else if (config.hasTtlMappingColumn()) {
+    if (config.hasTtlMappingColumn()) {
       statementBuilder.append(" AND TTL :").append(SinkUtil.TTL_VARNAME);
+    } else if (config.getTtl() != -1) {
+      statementBuilder.append(" AND TTL ").append(config.getTtl());
+    }
+
+    if (config.hasTtlMappingColumn() && config.getTtl() != -1) {
+      log.warn(
+          "You provided ttl configuration both for '.mapping' and '.ttl' settings for topic: {} keyspace: {} table: {}. "
+              + "The ttl config from .mapping will be used.",
+          config.getTopicName(),
+          config.getKeyspace(),
+          config.getTable());
     }
   }
 

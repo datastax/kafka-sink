@@ -251,6 +251,22 @@ class LifeCycleManagerTest {
   }
 
   @Test
+  void should_make_correct_insert_cql_with_ttl_from_mapping_over_global() {
+    TableConfig config =
+        makeTableConfig(
+            "myks",
+            "mytable",
+            String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3, __ttl=key.f3", C1, C2, C3),
+            1000);
+    assertThat(LifeCycleManager.makeInsertStatement(config))
+        .isEqualTo(
+            String.format(
+                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
+                    + "USING TIMESTAMP :%s AND TTL :%s",
+                C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME, SinkUtil.TTL_VARNAME));
+  }
+
+  @Test
   void should_make_correct_update_counter_cql_simple_key() {
     when(col2.getType()).thenReturn(COUNTER);
     when(col3.getType()).thenReturn(COUNTER);
