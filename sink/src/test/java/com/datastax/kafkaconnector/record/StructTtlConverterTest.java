@@ -30,7 +30,7 @@ class StructTtlConverterTest {
 
   private static Stream<? extends Arguments> expectedToSeconds() {
     return Stream.of(
-        Arguments.of(1000D, 1.0F),
+        Arguments.of(1000F, 1.0F),
         Arguments.of(1000D, 1D),
         Arguments.of(1000L, 1L),
         Arguments.of(1000, 1));
