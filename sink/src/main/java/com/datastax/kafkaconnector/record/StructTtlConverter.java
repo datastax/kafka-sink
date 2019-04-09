@@ -29,10 +29,23 @@ public class StructTtlConverter {
         return 0F;
       }
       return (float) resultInSeconds;
+    } else if (fieldValue instanceof Short) {
+      if (resultInSeconds <= -1) {
+        return (short) 0;
+      }
+      return (short) resultInSeconds;
+    } else if (fieldValue instanceof Byte) {
+      if (resultInSeconds <= -1) {
+        return (byte) 0;
+      }
+      return (byte) resultInSeconds;
+    } else if (fieldValue instanceof Long) {
+      if (resultInSeconds <= -1) {
+        return 0L;
+      }
+      return resultInSeconds;
     }
-    if (resultInSeconds <= -1) {
-      return 0L;
-    }
+
     return resultInSeconds;
   }
 }

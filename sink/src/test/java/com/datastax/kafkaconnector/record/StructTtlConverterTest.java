@@ -18,11 +18,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class StructTtlConverterTest {
 
-  @ParameterizedTest(name = "[{index}] jsonNode={0}, expectedSeconds={1}")
+  @ParameterizedTest(name = "[{index}] fieldValue={0}, expectedSeconds={1}")
   @MethodSource("expectedToSeconds")
   void should_convert_java_number_types_that_are_supported_in_struct(
-      Number jsonNode, Number expectedSeconds) {
-    Object result = StructTtlConverter.transformField(TimeUnit.MILLISECONDS, jsonNode);
+      Number fieldValue, Number expectedSeconds) {
+    Object result = StructTtlConverter.transformField(TimeUnit.MILLISECONDS, fieldValue);
 
     // then
     assertThat(result).isEqualTo(expectedSeconds);
@@ -37,6 +37,12 @@ class StructTtlConverterTest {
         Arguments.of(1000L, 1L),
         Arguments.of(-1000L, 0L),
         Arguments.of(1000, 1),
-        Arguments.of(-1000, 0));
+        Arguments.of(-1000, 0),
+        Arguments.of((short) 1000, (short) 1),
+        Arguments.of((short) -1000, (short) 0),
+        Arguments.of(
+            Long.valueOf(1000).byteValue(),
+            Long.valueOf(0).byteValue()), // 1000L overflows byte making it < 1000L
+        Arguments.of(Long.valueOf(-1000).byteValue(), Long.valueOf(0).byteValue()));
   }
 }

@@ -1565,6 +1565,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         Arguments.of(
             schemaBuilder.get().field("ttlcol", Schema.INT16_SCHEMA).build(), (short) 1000, 1),
         Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT32_SCHEMA).build(), 1000F, 1),
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT64_SCHEMA).build(), 1000D, 1),
         Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT64_SCHEMA).build(), -1000L, 0));
   }
 
