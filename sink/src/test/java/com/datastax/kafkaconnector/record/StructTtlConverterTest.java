@@ -10,6 +10,8 @@ package com.datastax.kafkaconnector.record;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,6 +45,10 @@ class StructTtlConverterTest {
         Arguments.of(
             Long.valueOf(1000).byteValue(),
             Long.valueOf(0).byteValue()), // 1000L overflows byte making it < 1000L
-        Arguments.of(Long.valueOf(-1000).byteValue(), Long.valueOf(0).byteValue()));
+        Arguments.of(Long.valueOf(-1000).byteValue(), Long.valueOf(0).byteValue()),
+        Arguments.of(BigDecimal.valueOf(1000), BigDecimal.valueOf(1)),
+        Arguments.of(BigDecimal.valueOf(-1000), BigDecimal.ZERO),
+        Arguments.of(BigInteger.valueOf(1000), BigInteger.valueOf(1)),
+        Arguments.of(BigInteger.valueOf(-1000), BigInteger.ZERO));
   }
 }

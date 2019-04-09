@@ -9,6 +9,8 @@
 package com.datastax.kafkaconnector.record;
 
 import com.datastax.kafkaconnector.util.TimeUnitConverter;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
 public class StructTtlConverter {
@@ -44,6 +46,16 @@ public class StructTtlConverter {
         return 0L;
       }
       return resultInSeconds;
+    } else if (fieldValue instanceof BigDecimal) {
+      if (resultInSeconds <= -1) {
+        return BigDecimal.ZERO;
+      }
+      return BigDecimal.valueOf(resultInSeconds);
+    } else if (fieldValue instanceof BigInteger) {
+      if (resultInSeconds <= -1) {
+        return BigInteger.ZERO;
+      }
+      return BigInteger.valueOf(resultInSeconds);
     }
 
     return resultInSeconds;
