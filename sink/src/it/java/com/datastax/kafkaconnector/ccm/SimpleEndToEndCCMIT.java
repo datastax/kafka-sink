@@ -48,6 +48,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -57,6 +59,9 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   private AttachmentPoint attachmentPoint;
@@ -1467,8 +1472,10 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   /** Test for KAF-107. */
-  @Test
-  void should_insert_record_with_ttl_provided_via_mapping_using_time_unit_converter() {
+  @ParameterizedTest(name = "[{index}] jsonNode={0}, ttlValue={1}, expectedSeconds={2}")
+  @MethodSource("ttlColProvider")
+  void should_insert_record_with_ttl_provided_via_mapping_using_time_unit_converter(
+      Schema schema, Number ttlValue, Integer expectedTtlValue) {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
@@ -1476,15 +1483,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
                 "MILLISECONDS")));
 
-    Schema schema =
-        SchemaBuilder.struct()
-            .name("Kafka")
-            .field("bigint", Schema.INT64_SCHEMA)
-            .field("double", Schema.FLOAT64_SCHEMA)
-            .field("ttlcol", Schema.INT64_SCHEMA)
-            .build();
     Struct value =
-        new Struct(schema).put("bigint", 1234567L).put("double", 42.0).put("ttlcol", 1000L);
+        new Struct(schema).put("bigint", 1234567L).put("double", 42.0).put("ttlcol", ttlValue);
 
     SinkRecord record =
         new SinkRecord(
@@ -1498,7 +1498,74 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getInt(2)).isEqualTo(1L);
+    assertThat(row.getInt(2)).isEqualTo(expectedTtlValue);
+  }
+
+  @Test
+  void should_extract_ttl_from_json_and_use_as_ttl_column() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
+
+    // when
+    String json = "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getInt(2)).isEqualTo(1);
+  }
+
+  @Test
+  void should_extract_ttl_from_json_and_use_existing_column_as_ttl() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __ttl = value.double",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
+
+    // when
+    String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
+    assertThat(row.getInt(2)).isEqualTo(1);
+  }
+
+  private static Stream<? extends Arguments> ttlColProvider() {
+    Supplier<SchemaBuilder> schemaBuilder =
+        () ->
+            SchemaBuilder.struct()
+                .name("Kafka")
+                .field("bigint", Schema.INT64_SCHEMA)
+                .field("double", Schema.FLOAT64_SCHEMA);
+
+    return Stream.of(
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT64_SCHEMA).build(), 1000L, 1),
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT32_SCHEMA).build(), 1000, 1),
+        Arguments.of(
+            schemaBuilder.get().field("ttlcol", Schema.INT16_SCHEMA).build(), (short) 1000, 1),
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT32_SCHEMA).build(), 1000F, 1),
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT64_SCHEMA).build(), -1000L, 0));
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
