@@ -144,7 +144,7 @@ public class RecordMapper {
           GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
           if (fieldType != null) {
             raw = getFieldValueAndMaybeTransform(record, field, column, ttlTimeUnit);
-            log.info(
+            log.trace(
                 "binding field {} with value {} to column {}", field, raw, column.asInternal());
             bindColumn(builder, column, raw, cqlType, fieldType);
           }
