@@ -1501,6 +1501,44 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInt(2)).isEqualTo(expectedTtlValue);
   }
 
+  /** Test for KAF-107. */
+  @Test
+  void should_fallback_to_zero_ttl_if_the_provided_value_is_negative() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("double", Schema.FLOAT64_SCHEMA)
+            .field("ttlcol", Schema.INT64_SCHEMA)
+            .build();
+
+    Struct value =
+        new Struct(schema).put("bigint", 1234567L).put("double", 42.0).put("ttlcol", -1000L);
+
+    // when
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getInt(2)).isEqualTo(0);
+  }
+
   @Test
   void should_extract_ttl_from_json_and_use_as_ttl_column() {
     // given
@@ -1565,8 +1603,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         Arguments.of(
             schemaBuilder.get().field("ttlcol", Schema.INT16_SCHEMA).build(), (short) 1000, 1),
         Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT32_SCHEMA).build(), 1000F, 1),
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT64_SCHEMA).build(), 1000D, 1),
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT64_SCHEMA).build(), -1000L, 0));
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT64_SCHEMA).build(), 1000D, 1));
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
