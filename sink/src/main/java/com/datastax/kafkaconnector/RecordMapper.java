@@ -171,11 +171,6 @@ public class RecordMapper {
     Object fieldValue = record.getFieldValue(field);
 
     if (SinkUtil.isTtlMappingColumn(column)) {
-      // fast path since we don't need conversion
-      if (ttlTimeUnit.equals(TimeUnit.SECONDS)) {
-        return fieldValue;
-      }
-
       if (fieldValue instanceof NumericNode) { // case that ttl is from Json node
         raw = JsonNodeTtlConverter.transformField(ttlTimeUnit, fieldValue);
       } else if (fieldValue instanceof Number) { // case that ttl is from Struct

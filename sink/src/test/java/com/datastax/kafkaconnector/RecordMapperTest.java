@@ -755,6 +755,22 @@ class RecordMapperTest {
     assertThat(result).isEqualTo(expected);
   }
 
+  @Test
+  void should_return_zero_for_default_time_unit() {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(-1);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, DEFAULT_TTL_TIME_UNIT);
+
+    // then
+    assertThat(result).isEqualTo(0);
+  }
+
   private static Stream<? extends Arguments> ttlValuesProvider() {
     return Stream.of(
         Arguments.of(1000, 1),
