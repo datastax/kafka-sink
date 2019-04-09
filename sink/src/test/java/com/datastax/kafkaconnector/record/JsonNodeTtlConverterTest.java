@@ -43,11 +43,21 @@ class JsonNodeTtlConverterTest {
             new BigIntegerNode(BigInteger.valueOf(1000)),
             new BigIntegerNode(BigInteger.valueOf(1))),
         Arguments.of(
+            new BigIntegerNode(BigInteger.valueOf(-1000)),
+            new BigIntegerNode(BigInteger.valueOf(0))),
+        Arguments.of(
             new DecimalNode(BigDecimal.valueOf(1000)), new DecimalNode(BigDecimal.valueOf(1))),
+        Arguments.of(
+            new DecimalNode(BigDecimal.valueOf(-1000)), new DecimalNode(BigDecimal.valueOf(0))),
         Arguments.of(new IntNode(1000), new IntNode(1)),
+        Arguments.of(new IntNode(-1000), new IntNode(0)),
         Arguments.of(new FloatNode(1000), new FloatNode(1)),
+        Arguments.of(new FloatNode(-1000), new FloatNode(0)),
         Arguments.of(new DoubleNode(1000), new DoubleNode(1)),
+        Arguments.of(new DoubleNode(-1000), new DoubleNode(0)),
         Arguments.of(new LongNode(1000), new LongNode(1)),
-        Arguments.of(new ShortNode((short) 1000), new ShortNode((short) 1)));
+        Arguments.of(new LongNode(-1000), new LongNode(0)),
+        Arguments.of(new ShortNode((short) 1000), new ShortNode((short) 1)),
+        Arguments.of(new ShortNode((short) -1000), new ShortNode((short) 0)));
   }
 }

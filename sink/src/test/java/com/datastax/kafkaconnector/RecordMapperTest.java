@@ -49,6 +49,7 @@ import com.datastax.oss.driver.api.core.type.codec.CodecNotFoundException;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.google.common.collect.ImmutableMap;
 import io.netty.util.concurrent.FastThreadLocal;
 import java.nio.ByteBuffer;
@@ -60,10 +61,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.assertj.core.util.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("unchecked")
@@ -681,22 +686,6 @@ class RecordMapperTest {
   }
 
   @Test
-  void should_transform_ttl_value_using_provided_time_unit() {
-    // given
-    Record record = mock(Record.class);
-    String kafkaTtlFieldValue = "ttl_field";
-    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(1000);
-
-    // when
-    Object result =
-        RecordMapper.getFieldValueAndMaybeTransform(
-            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS);
-
-    // then
-    assertThat(result).isEqualTo(1);
-  }
-
-  @Test
   void should_throw_when_transform_ttl_value_that_is_not_number() {
     // given
     Record record = mock(Record.class);
@@ -747,6 +736,31 @@ class RecordMapperTest {
 
     // then
     assertThat(result).isEqualTo(1000);
+  }
+
+  @ParameterizedTest(name = "[{index}] recordValue={0}, expected={1}")
+  @MethodSource("ttlValuesProvider")
+  void should_handle_number_and_json_number_nodes(Object recordValue, Object expected) {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(recordValue);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS);
+
+    // then
+    assertThat(result).isEqualTo(expected);
+  }
+
+  private static Stream<? extends Arguments> ttlValuesProvider() {
+    return Stream.of(
+        Arguments.of(1000, 1),
+        Arguments.of(-1000, 0),
+        Arguments.of(new IntNode(1000), new IntNode(1)),
+        Arguments.of(new IntNode(-1000), new IntNode(0)));
   }
 
   private void assertParameter(

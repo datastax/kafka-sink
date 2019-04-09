@@ -21,38 +21,60 @@ import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
 public class JsonNodeTtlConverter {
+
+  private static final BigIntegerNode BIG_INTEGER_NODE_ZERO = new BigIntegerNode(BigInteger.ZERO);
+  private static final DecimalNode DECIMAL_NODE_ZERO = new DecimalNode(BigDecimal.ZERO);
+  private static final IntNode INT_NODE_ZERO = new IntNode(0);
+  private static final FloatNode FLOAT_NODE_ZERO = new FloatNode(0);
+  private static final DoubleNode DOUBLE_NODE_ZERO = new DoubleNode(0);
+  private static final LongNode LONG_NODE_ZERO = new LongNode(0);
+  private static final ShortNode SHORT_NODE_ZERO = new ShortNode((short) 0);
+
   public static Object transformField(TimeUnit ttlTimeUnit, Object fieldValue) {
     if (fieldValue instanceof BigIntegerNode) {
+      long ttl = ((BigIntegerNode) fieldValue).longValue();
+      if (ttl <= -1) {
+        return BIG_INTEGER_NODE_ZERO;
+      }
       return new BigIntegerNode(
-          BigInteger.valueOf(
-              TimeUnitConverter.convertTtlToSeconds(
-                  ttlTimeUnit, ((BigIntegerNode) fieldValue).longValue())));
+          BigInteger.valueOf(TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl)));
     } else if (fieldValue instanceof DecimalNode) {
+      long ttl = ((DecimalNode) fieldValue).longValue();
+      if (ttl <= -1) {
+        return DECIMAL_NODE_ZERO;
+      }
       return new DecimalNode(
-          BigDecimal.valueOf(
-              TimeUnitConverter.convertTtlToSeconds(
-                  ttlTimeUnit, ((DecimalNode) fieldValue).longValue())));
+          BigDecimal.valueOf(TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl)));
     } else if (fieldValue instanceof IntNode) {
-      return new IntNode(
-          (int)
-              TimeUnitConverter.convertTtlToSeconds(
-                  ttlTimeUnit, ((IntNode) fieldValue).intValue()));
+      int ttl = ((IntNode) fieldValue).intValue();
+      if (ttl <= -1) {
+        return INT_NODE_ZERO;
+      }
+      return new IntNode((int) TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl));
     } else if (fieldValue instanceof FloatNode) {
-      return new FloatNode(
-          TimeUnitConverter.convertTtlToSeconds(
-              ttlTimeUnit, ((FloatNode) fieldValue).floatValue()));
+      float ttl = ((FloatNode) fieldValue).floatValue();
+      if (ttl <= -1) {
+        return FLOAT_NODE_ZERO;
+      }
+      return new FloatNode(TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl));
     } else if (fieldValue instanceof DoubleNode) {
-      return new DoubleNode(
-          TimeUnitConverter.convertTtlToSeconds(
-              ttlTimeUnit, ((DoubleNode) fieldValue).doubleValue()));
+      double ttl = ((DoubleNode) fieldValue).doubleValue();
+      if (ttl <= -1) {
+        return DOUBLE_NODE_ZERO;
+      }
+      return new DoubleNode(TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl));
     } else if (fieldValue instanceof LongNode) {
-      return new LongNode(
-          TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ((LongNode) fieldValue).longValue()));
+      long ttl = ((LongNode) fieldValue).longValue();
+      if (ttl <= -1) {
+        return LONG_NODE_ZERO;
+      }
+      return new LongNode(TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl));
     } else if (fieldValue instanceof ShortNode) {
-      return new ShortNode(
-          (short)
-              TimeUnitConverter.convertTtlToSeconds(
-                  ttlTimeUnit, ((ShortNode) fieldValue).shortValue()));
+      short ttl = ((ShortNode) fieldValue).shortValue();
+      if (ttl <= -1) {
+        return SHORT_NODE_ZERO;
+      }
+      return new ShortNode((short) TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl));
     }
     return fieldValue;
   }

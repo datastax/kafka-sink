@@ -15,11 +15,23 @@ public class StructTtlConverter {
   public static Number transformField(TimeUnit ttlTimeUnit, Number fieldValue) {
     long resultInSeconds = TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, fieldValue);
     if (fieldValue instanceof Integer) {
+      if (resultInSeconds <= -1) {
+        return 0;
+      }
       return (int) resultInSeconds;
     } else if (fieldValue instanceof Double) {
+      if (resultInSeconds <= -1) {
+        return 0D;
+      }
       return (double) resultInSeconds;
     } else if (fieldValue instanceof Float) {
+      if (resultInSeconds <= -1) {
+        return 0F;
+      }
       return (float) resultInSeconds;
+    }
+    if (resultInSeconds <= -1) {
+      return 0L;
     }
     return resultInSeconds;
   }
