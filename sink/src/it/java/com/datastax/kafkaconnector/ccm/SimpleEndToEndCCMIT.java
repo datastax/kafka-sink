@@ -1472,7 +1472,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   /** Test for KAF-107. */
-  @ParameterizedTest(name = "[{index}] jsonNode={0}, ttlValue={1}, expectedSeconds={2}")
+  @ParameterizedTest(name = "[{index}] schema={0}, ttlValue={1}, expectedTtlValue={2}")
   @MethodSource("ttlColProvider")
   void should_insert_record_with_ttl_provided_via_mapping_using_time_unit_converter(
       Schema schema, Number ttlValue, Integer expectedTtlValue) {

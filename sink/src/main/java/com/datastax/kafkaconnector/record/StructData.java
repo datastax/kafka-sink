@@ -20,6 +20,7 @@ import org.jetbrains.annotations.Nullable;
 
 /** The key or value of a {@link SinkRecord} when it is a {@link Struct}. */
 public class StructData implements KeyOrValue {
+
   private final Struct struct;
   private final Set<String> fields;
 
