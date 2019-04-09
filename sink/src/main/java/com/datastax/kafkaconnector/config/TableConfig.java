@@ -33,7 +33,7 @@ import org.jetbrains.annotations.NotNull;
 public class TableConfig extends AbstractConfig {
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
-  static final String TTL_TIME_UNIT_OPT = "ttlTimeUnit";
+  public static final String TTL_TIME_UNIT_OPT = "ttlTimeUnit";
   static final String CL_OPT = "consistencyLevel";
 
   private static final String DELETES_ENABLED_OPT = "deletesEnabled";
