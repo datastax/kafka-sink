@@ -181,9 +181,7 @@ public class RecordMapper {
                 + fieldValue
                 + " for field: "
                 + field
-                + " used as a TTL column: "
-                + column
-                + " is not a Number but should be.");
+                + " used as a TTL is not a Number but should be.");
       }
     } else {
       raw = fieldValue;

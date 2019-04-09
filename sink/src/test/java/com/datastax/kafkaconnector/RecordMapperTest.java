@@ -699,7 +699,7 @@ class RecordMapperTest {
                     record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS))
         .isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage(
-            "The value: some_not_number_field for field: ttl_field used as a TTL column: kafka_internal_ttl is not a Number but should be.");
+            "The value: some_not_number_field for field: ttl_field used as a TTL is not a Number but should be.");
   }
 
   @Test
@@ -716,7 +716,7 @@ class RecordMapperTest {
                     record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS))
         .isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
-            "The value: null for field: ttl_field used as a TTL column: kafka_internal_ttl is not a Number but should be.");
+            "The value: null for field: ttl_field used as a TTL is not a Number but should be.");
   }
 
   @Test
