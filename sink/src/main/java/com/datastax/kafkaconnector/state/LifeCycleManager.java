@@ -231,15 +231,6 @@ public class LifeCycleManager {
     } else if (config.getTtl() != -1) {
       statementBuilder.append(" AND TTL ").append(config.convertTtlToSeconds(config.getTtl()));
     }
-
-    if (config.hasTtlMappingColumn() && config.getTtl() != -1) {
-      log.warn(
-          "You provided ttl configuration both for '.mapping' and '.ttl' settings for topic: {} keyspace: {} table: {}. "
-              + "The ttl config from .mapping will be used.",
-          config.getTopicName(),
-          config.getKeyspace(),
-          config.getTable());
-    }
   }
 
   /**
@@ -662,6 +653,7 @@ public class LifeCycleManager {
       TableMetadata table,
       List<CqlIdentifier> primaryKey) {
     boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
+    validateTtlConfig(tableConfig);
     String insertUpdateStatement =
         isCounterTable(table)
             ? makeUpdateCounterStatement(tableConfig, table)
@@ -694,6 +686,17 @@ public class LifeCycleManager {
               throw new RuntimeException(
                   String.format("Prepare failed for statement: %s", statements), e.getCause());
             });
+  }
+
+  private static void validateTtlConfig(TableConfig config) {
+    if (config.hasTtlMappingColumn() && config.getTtl() != -1) {
+      log.warn(
+          "You provided ttl configuration both for '.mapping' and '.ttl' settings for topic: {} keyspace: {} table: {}. "
+              + "The ttl config from .mapping will be used.",
+          config.getTopicName(),
+          config.getKeyspace(),
+          config.getTable());
+    }
   }
 
   @VisibleForTesting
