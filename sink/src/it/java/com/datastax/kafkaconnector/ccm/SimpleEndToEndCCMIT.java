@@ -1030,7 +1030,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("c4")).isEqualTo(8);
   }
 
-  @Test
+  @Test // todo check how does it behave for 1.x
   void timezone_and_locale() {
     conn.start(
         makeConnectorProperties(
@@ -1071,12 +1071,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  // todo fix
   void multiple_records_multiple_topics() {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double",
             ImmutableMap.of(
-                "topic.yourtopic.keyspace",
+                "topic.yourtopic.keyspace", // todo probably faulty config
                 keyspaceName,
                 String.format("topic.yourtopic.%s.types.mapping", keyspaceName),
                 "bigintcol=key, intcol=value")));

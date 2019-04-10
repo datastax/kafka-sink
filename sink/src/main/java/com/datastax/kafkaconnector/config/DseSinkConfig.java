@@ -32,6 +32,10 @@ public class DseSinkConfig {
   private static final Pattern TOPIC_PAT =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit)$");
+  private static final Pattern TOPIC_CODEC_PAT =
+      Pattern.compile(
+          "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
+
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
@@ -120,10 +124,7 @@ public class DseSinkConfig {
     for (Map.Entry<String, String> entry : settings.entrySet()) {
       String name = entry.getKey();
       if (name.startsWith("topic.")) {
-        Matcher m = TOPIC_PAT.matcher(name);
-        //noinspection ResultOfMethodCallIgnored
-        m.lookingAt();
-        String topicName = m.group(1); // todo problem with topic.t.codec...
+        String topicName = tryMatchTopicName(name);
         Map<String, String> topicMap =
             topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
         topicMap.put(name, entry.getValue());
@@ -172,6 +173,23 @@ public class DseSinkConfig {
           CONTACT_POINTS_OPT,
           contactPoints,
           String.format("When contact points is provided, %s must also be specified", DC_OPT));
+    }
+  }
+
+  private String tryMatchTopicName(String name) {
+    System.out.println("find match for name:" + name);
+    Matcher m = TOPIC_PAT.matcher(name);
+    //noinspection ResultOfMethodCallIgnored
+    m.lookingAt();
+    try {
+      return m.group(1);
+    } catch (IllegalStateException ex) {
+      Matcher m2 = TOPIC_CODEC_PAT.matcher(name);
+      //noinspection ResultOfMethodCallIgnored
+      m2.lookingAt();
+      String res = m2.group(1);
+      System.out.println(res); // todo remove sout
+      return res;
     }
   }
 
