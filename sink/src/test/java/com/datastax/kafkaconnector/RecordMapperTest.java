@@ -36,6 +36,7 @@ import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.ZonedTemporalFormat;
 import com.datastax.kafkaconnector.record.Record;
 import com.datastax.kafkaconnector.record.RecordMetadata;
+import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatementBuilder;
@@ -48,6 +49,7 @@ import com.datastax.oss.driver.api.core.type.codec.CodecNotFoundException;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.google.common.collect.ImmutableMap;
 import io.netty.util.concurrent.FastThreadLocal;
 import java.nio.ByteBuffer;
@@ -58,10 +60,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.assertj.core.util.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("unchecked")
@@ -101,6 +108,8 @@ class RecordMapperTest {
   private RecordMetadata recordMetadata;
   private final FastThreadLocal<NumberFormat> formatter =
       CodecUtils.getNumberFormatThreadLocal("#,###.##", US, HALF_EVEN, true);
+
+  private final TimeUnit DEFAULT_TTL_TIME_UNIT = TimeUnit.SECONDS;
 
   @BeforeEach
   void setUp() {
@@ -208,7 +217,15 @@ class RecordMapperTest {
   void should_map_regular_fields() {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
@@ -223,7 +240,14 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     RecordMapper mapper =
         new RecordMapper(
-            insertUpdateStatement, deleteStatement, primaryKeys, mapping, true, true, false);
+            insertUpdateStatement,
+            deleteStatement,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
@@ -238,7 +262,15 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F2)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -253,7 +285,14 @@ class RecordMapperTest {
     when(record.getFieldValue(F2)).thenReturn(null);
     RecordMapper mapper =
         new RecordMapper(
-            insertUpdateStatement, deleteStatement, primaryKeys, mapping, true, true, false);
+            insertUpdateStatement,
+            deleteStatement,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
 
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(deleteBoundStatement);
@@ -285,7 +324,15 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            true,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -315,7 +362,15 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            true,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-1L, V4));
@@ -342,7 +397,15 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            true,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -373,7 +436,15 @@ class RecordMapperTest {
                 nullStrings));
     when(mapping.codec(C1, DataTypes.BIGINT, GenericType.STRING)).thenReturn(codec);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, true);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            true,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -387,7 +458,15 @@ class RecordMapperTest {
     when(record.getFieldValue(F2)).thenReturn(null);
     when(insertUpdateStatement.getPartitionKeyIndices()).thenReturn(Arrays.asList(0, 2));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, true, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            true,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -402,7 +481,15 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1));
     when(record.getFieldValue(F1)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, true);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            true,
+            DEFAULT_TTL_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -416,7 +503,15 @@ class RecordMapperTest {
     when(mapping.codec(C3, DataTypes.TEXT, GenericType.STRING))
         .thenThrow(CodecNotFoundException.class);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(CodecNotFoundException.class);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -430,7 +525,15 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(record.getFieldValue(F1)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Primary key column col1 cannot be mapped to null");
@@ -441,7 +544,15 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(insertUpdateBoundStatement.isSet(C3)).thenReturn(false);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
 
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
@@ -454,7 +565,15 @@ class RecordMapperTest {
     when(record.fields()).thenReturn(set(F1, F2, F3));
     when(mapping.fieldToColumns(F3_IDENT)).thenReturn(null);
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, false, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            false,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -466,7 +585,15 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_extra_field_key() {
     when(record.fields()).thenReturn(set(F1, F2, F3, "key.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, false, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            false,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -478,7 +605,15 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_extra_field_value() {
     when(record.fields()).thenReturn(set(F1, F2, F3, "value.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, false, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            false,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -490,7 +625,15 @@ class RecordMapperTest {
   void should_return_unmappable_statement_when_missing_field() {
     when(record.fields()).thenReturn(set(F1, F2));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -504,7 +647,15 @@ class RecordMapperTest {
         .thenReturn(Collections.singleton(C1));
     when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("key.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -518,12 +669,114 @@ class RecordMapperTest {
         .thenReturn(Collections.singleton(C1));
     when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("value.__self"));
     RecordMapper mapper =
-        new RecordMapper(insertUpdateStatement, null, primaryKeys, mapping, false, true, false);
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Required field 'value' (mapped to column col1) was missing from record. "
                 + "Please remove it from the mapping.");
+  }
+
+  @Test
+  void should_throw_when_transform_ttl_value_that_is_not_number() {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "ttl_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn("some_not_number_field");
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                RecordMapper.getFieldValueAndMaybeTransform(
+                    record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS))
+        .isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The value: some_not_number_field for field: ttl_field used as a TTL is not a Number but should be.");
+  }
+
+  @Test
+  void should_throw_when_transform_ttl_value_is_null() {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "ttl_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(null);
+
+    // when, then
+    assertThatThrownBy(
+            () ->
+                RecordMapper.getFieldValueAndMaybeTransform(
+                    record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS))
+        .isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "The value: null for field: ttl_field used as a TTL is not a Number but should be.");
+  }
+
+  @Test
+  void should_not_transform_not_ttl_value() {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(1000);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record,
+            kafkaTtlFieldValue,
+            CqlIdentifier.fromInternal("some_field_in_statement"),
+            DEFAULT_TTL_TIME_UNIT);
+
+    // then
+    assertThat(result).isEqualTo(1000);
+  }
+
+  @ParameterizedTest(name = "[{index}] recordValue={0}, expected={1}")
+  @MethodSource("ttlValuesProvider")
+  void should_handle_number_and_json_number_nodes(Object recordValue, Object expected) {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(recordValue);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS);
+
+    // then
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @Test
+  void should_return_zero_for_default_time_unit() {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(-1);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, DEFAULT_TTL_TIME_UNIT);
+
+    // then
+    assertThat(result).isEqualTo(0);
+  }
+
+  private static Stream<? extends Arguments> ttlValuesProvider() {
+    return Stream.of(
+        Arguments.of(1000, 1),
+        Arguments.of(-1000, 0),
+        Arguments.of(new IntNode(1000), new IntNode(1)),
+        Arguments.of(new IntNode(-1000), new IntNode(0)));
   }
 
   private void assertParameter(

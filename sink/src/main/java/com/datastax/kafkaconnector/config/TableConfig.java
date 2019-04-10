@@ -10,6 +10,8 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
+import com.datastax.kafkaconnector.util.SinkUtil;
+import com.datastax.kafkaconnector.util.TimeUnitConverter;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
@@ -19,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -30,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 public class TableConfig extends AbstractConfig {
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
+  public static final String TTL_TIME_UNIT_OPT = "ttlTimeUnit";
   static final String CL_OPT = "consistencyLevel";
 
   private static final String DELETES_ENABLED_OPT = "deletesEnabled";
@@ -43,6 +47,7 @@ public class TableConfig extends AbstractConfig {
   private final Map<CqlIdentifier, CqlIdentifier> mapping;
   private final ConsistencyLevel consistencyLevel;
   private final int ttl;
+  private final TimeUnit ttlTimeUnit;
   private final boolean nullToUnset;
   private final boolean deletesEnabled;
 
@@ -74,6 +79,10 @@ public class TableConfig extends AbstractConfig {
                   .collect(Collectors.joining(", "))));
     }
     ttl = getInt(getTableSettingPath(topicName, keyspace, table, TTL_OPT));
+    ttlTimeUnit =
+        TimeUnit.valueOf(
+            getString(getTableSettingPath(topicName, keyspace, table, TTL_TIME_UNIT_OPT)));
+
     nullToUnset = getBoolean(getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT));
     deletesEnabled =
         getBoolean(getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT));
@@ -141,6 +150,10 @@ public class TableConfig extends AbstractConfig {
     return ttl;
   }
 
+  public boolean hasTtlMappingColumn() {
+    return mapping.get(CqlIdentifier.fromInternal(SinkUtil.TTL_VARNAME)) != null;
+  }
+
   public boolean isNullToUnset() {
     return nullToUnset;
   }
@@ -163,6 +176,10 @@ public class TableConfig extends AbstractConfig {
     return topicName.equals(other.topicName)
         && keyspace.equals(other.keyspace)
         && table.equals(other.table);
+  }
+
+  public TimeUnit getTtlTimeUnit() {
+    return ttlTimeUnit;
   }
 
   @Override
@@ -232,7 +249,13 @@ public class TableConfig extends AbstractConfig {
             ConfigDef.Type.BOOLEAN,
             true,
             ConfigDef.Importance.HIGH,
-            "Whether nulls in Kafka should be treated as UNSET in DSE");
+            "Whether nulls in Kafka should be treated as UNSET in DSE")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, TTL_TIME_UNIT_OPT),
+            ConfigDef.Type.STRING,
+            "SECONDS",
+            ConfigDef.Importance.HIGH,
+            "TimeUnit of provided ttl mapping field.");
   }
 
   @NotNull
@@ -263,6 +286,10 @@ public class TableConfig extends AbstractConfig {
     }
 
     return inspector.getMapping();
+  }
+
+  public long convertTtlToSeconds(Number ttl) {
+    return TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl);
   }
 
   public static class Builder {

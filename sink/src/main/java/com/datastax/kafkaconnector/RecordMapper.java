@@ -11,9 +11,11 @@ package com.datastax.kafkaconnector;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
+import com.datastax.kafkaconnector.record.JsonNodeTtlConverter;
 import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.Record;
 import com.datastax.kafkaconnector.record.RecordMetadata;
+import com.datastax.kafkaconnector.record.StructTtlConverter;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -24,11 +26,14 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
 import org.jetbrains.annotations.NotNull;
@@ -48,6 +53,7 @@ public class RecordMapper {
   private final Mapping mapping;
   private final boolean allowExtraFields;
   private final boolean allowMissingFields;
+  private TimeUnit ttlTimeUnit;
 
   /** Whether to map null input to "unset" */
   private final boolean nullToUnset;
@@ -59,7 +65,8 @@ public class RecordMapper {
       Mapping mapping,
       boolean nullToUnset,
       boolean allowExtraFields,
-      boolean allowMissingFields) {
+      boolean allowMissingFields,
+      TimeUnit ttlTimeUnit) {
     this.insertUpdateStatement = insertUpdateStatement;
     this.deleteStatement = deleteStatement;
     this.primaryKey = new LinkedHashSet<>(primaryKey);
@@ -67,6 +74,7 @@ public class RecordMapper {
     this.nullToUnset = nullToUnset;
     this.allowExtraFields = allowExtraFields;
     this.allowMissingFields = allowMissingFields;
+    this.ttlTimeUnit = ttlTimeUnit;
   }
 
   @NotNull
@@ -135,7 +143,7 @@ public class RecordMapper {
           cqlType = variableDefinitions.get(column).getType();
           GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
           if (fieldType != null) {
-            raw = record.getFieldValue(field);
+            raw = getFieldValueAndMaybeTransform(record, field, column, ttlTimeUnit);
             log.trace(
                 "binding field {} with value {} to column {}", field, raw, column.asInternal());
             bindColumn(builder, column, raw, cqlType, fieldType);
@@ -154,6 +162,31 @@ public class RecordMapper {
     BoundStatement bs = builder.build();
     ensurePrimaryKeySet(bs);
     return bs;
+  }
+
+  @VisibleForTesting
+  static Object getFieldValueAndMaybeTransform(
+      Record record, String field, CqlIdentifier column, TimeUnit ttlTimeUnit) {
+    Object raw;
+    Object fieldValue = record.getFieldValue(field);
+
+    if (SinkUtil.isTtlMappingColumn(column)) {
+      if (fieldValue instanceof NumericNode) { // case that ttl is from Json node
+        raw = JsonNodeTtlConverter.transformField(ttlTimeUnit, fieldValue);
+      } else if (fieldValue instanceof Number) { // case that ttl is from Struct
+        raw = StructTtlConverter.transformField(ttlTimeUnit, (Number) fieldValue);
+      } else {
+        throw new IllegalArgumentException(
+            "The value: "
+                + fieldValue
+                + " for field: "
+                + field
+                + " used as a TTL is not a Number but should be.");
+      }
+    } else {
+      raw = fieldValue;
+    }
+    return raw;
   }
 
   private <T> void bindColumn(

@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.state;
 
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.TTL_TIME_UNIT_OPT;
 import static com.datastax.oss.driver.api.core.type.DataTypes.COUNTER;
 import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -220,6 +221,23 @@ class LifeCycleManagerTest {
   }
 
   @Test
+  void should_make_correct_insert_cql_with_ttl_using_time_unit_converter() {
+    TableConfig config =
+        makeTableConfig(
+            "myks",
+            "mytable",
+            String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3", C1, C2, C3),
+            1000,
+            "MILLISECONDS");
+    assertThat(LifeCycleManager.makeInsertStatement(config))
+        .isEqualTo(
+            String.format(
+                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
+                    + "USING TIMESTAMP :%s AND TTL 1",
+                C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME));
+  }
+
+  @Test
   void should_make_correct_insert_cql_with_ttl() {
     TableConfig config =
         makeTableConfig(
@@ -233,6 +251,37 @@ class LifeCycleManagerTest {
                 "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
                     + "USING TIMESTAMP :%s AND TTL 1234",
                 C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME));
+  }
+
+  @Test
+  void should_make_correct_insert_cql_with_ttl_from_mapping() {
+    TableConfig config =
+        makeTableConfig(
+            "myks",
+            "mytable",
+            String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3, __ttl=key.f3", C1, C2, C3));
+    assertThat(LifeCycleManager.makeInsertStatement(config))
+        .isEqualTo(
+            String.format(
+                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
+                    + "USING TIMESTAMP :%s AND TTL :%s",
+                C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME, SinkUtil.TTL_VARNAME));
+  }
+
+  @Test
+  void should_make_correct_insert_cql_with_ttl_from_mapping_over_global() {
+    TableConfig config =
+        makeTableConfig(
+            "myks",
+            "mytable",
+            String.format("%s=key.f1, \"%s\"=key.f2, %s=key.f3, __ttl=key.f3", C1, C2, C3),
+            1000);
+    assertThat(LifeCycleManager.makeInsertStatement(config))
+        .isEqualTo(
+            String.format(
+                "INSERT INTO myks.mytable(%s,\"%s\",%s) VALUES (:%s,:\"%s\",:%s) "
+                    + "USING TIMESTAMP :%s AND TTL :%s",
+                C1, C2, C3, C1, C2, C3, SinkUtil.TIMESTAMP_VARNAME, SinkUtil.TTL_VARNAME));
   }
 
   @Test
@@ -299,9 +348,20 @@ class LifeCycleManagerTest {
 
   private static TableConfig makeTableConfig(
       String keyspaceName, String tableName, String mapping, int ttl) {
+    return constructBaseProperties(keyspaceName, tableName, mapping, ttl).build();
+  }
+
+  private static TableConfigBuilder constructBaseProperties(
+      String keyspaceName, String tableName, String mapping, int ttl) {
     return new TableConfigBuilder("mytopic", keyspaceName, tableName)
         .addSimpleSetting(MAPPING_OPT, mapping)
-        .addSimpleSetting(TTL_OPT, String.valueOf(ttl))
+        .addSimpleSetting(TTL_OPT, String.valueOf(ttl));
+  }
+
+  private static TableConfig makeTableConfig(
+      String keyspaceName, String tableName, String mapping, int ttl, String timeUnit) {
+    return constructBaseProperties(keyspaceName, tableName, mapping, ttl)
+        .addSimpleSetting(TTL_TIME_UNIT_OPT, timeUnit)
         .build();
   }
 }

@@ -53,7 +53,8 @@ public class TopicState {
             new Mapping(tableConfig.getMapping(), codecRegistry),
             tableConfig.isNullToUnset(),
             true,
-            false));
+            false,
+            tableConfig.getTtlTimeUnit()));
   }
 
   void initializeMetrics(MetricRegistry metricRegistry) {

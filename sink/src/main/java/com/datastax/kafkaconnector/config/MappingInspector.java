@@ -36,8 +36,6 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
   // NB: This logic isn't currently used in the Kafka connector, but it might be
   // some day...
 
-  private static final String INTERNAL_TTL_VARNAME = "kafka_internal_ttl";
-
   private static final String EXTERNAL_TTL_VARNAME = "__ttl";
   private static final String EXTERNAL_TIMESTAMP_VARNAME = "__timestamp";
 
@@ -140,7 +138,7 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
       // Rename the user-specified __ttl and __timestamp vars to the (legal) bound variable
       // names.
       if (column.equals(EXTERNAL_TTL_VARNAME)) {
-        column = INTERNAL_TTL_VARNAME;
+        column = SinkUtil.TTL_VARNAME;
       } else if (column.equals(EXTERNAL_TIMESTAMP_VARNAME)) {
         column = SinkUtil.TIMESTAMP_VARNAME;
       }

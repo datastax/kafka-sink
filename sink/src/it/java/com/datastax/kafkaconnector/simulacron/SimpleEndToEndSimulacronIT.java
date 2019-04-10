@@ -84,12 +84,22 @@ class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =
       "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp";
+  private static final String INSERT_STATEMENT_TTL =
+      "INSERT INTO ks1.table1_with_ttl(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp AND TTL :kafka_internal_ttl";
   private static final String DELETE_STATEMENT = "DELETE FROM ks1.table1 WHERE a = :a AND b = :b";
   private static final ImmutableMap<String, String> PARAM_TYPES =
       ImmutableMap.<String, String>builder()
           .put("a", "int")
           .put("b", "varchar")
           .put("kafka_internal_timestamp", "bigint")
+          .build();
+
+  private static final ImmutableMap<String, String> PARAM_TYPES_TTL =
+      ImmutableMap.<String, String>builder()
+          .put("a", "int")
+          .put("b", "varchar")
+          .put("kafka_internal_timestamp", "bigint")
+          .put("kafka_internal_ttl", "bigint")
           .build();
   private static final String INSTANCE_NAME = "myinstance";
   private final BoundCluster simulacron;
@@ -123,6 +133,8 @@ class SimpleEndToEndSimulacronIT {
         new SimulacronUtils.Keyspace(
             "ks1",
             new Table("table1", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
+            new Table(
+                "table1_with_ttl", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
             new Table("table2", new Column("a", DataTypes.INT), new Column("b", DataTypes.TEXT)),
             new Table(
                 "mycounter",
@@ -138,6 +150,7 @@ class SimpleEndToEndSimulacronIT {
             .put("port", port)
             .put("loadBalancing.localDc", "dc1")
             .put("topic.mytopic.ks1.table1.mapping", "a=key, b=value")
+            .put("topic.mytopic_with_ttl.ks1.table1_with_ttl.mapping", "a=key, b=value, __ttl=key")
             .put("topic.yourtopic.ks1.table2.mapping", "a=key, b=value")
             .put("topic.yourtopic.ks1.table2.consistencyLevel", "QUORUM")
             .build();
@@ -156,6 +169,23 @@ class SimpleEndToEndSimulacronIT {
   private static Query makeQuery(int a, String b, long timestamp) {
     return new Query(
         INSERT_STATEMENT, Collections.emptyList(), makeParams(a, b, timestamp), PARAM_TYPES);
+  }
+
+  private static Query makeTtlQuery(int a, String b, long timestamp, long ttl) {
+    return new Query(
+        INSERT_STATEMENT_TTL,
+        Collections.emptyList(),
+        makeParamsTtl(a, b, timestamp, ttl),
+        PARAM_TYPES_TTL);
+  }
+
+  private static Map<String, Object> makeParamsTtl(int a, String b, long timestamp, long ttl) {
+    return ImmutableMap.<String, Object>builder()
+        .put("a", a)
+        .put("b", b)
+        .put("kafka_internal_timestamp", timestamp)
+        .put("kafka_internal_ttl", ttl)
+        .build();
   }
 
   private static Map<String, Object> makeParams(int a, String b, long timestamp) {
@@ -349,6 +379,59 @@ class SimpleEndToEndSimulacronIT {
     assertThat(instanceState.getGlobalSinkMetrics().getFailedRecordCounter().getCount())
         .isEqualTo(3);
     assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(5);
+  }
+
+  @Test
+  void success_offset_with_ttl() {
+    SimulacronUtils.primeTables(simulacron, schema);
+
+    Query good1 = makeTtlQuery(22, "success", 153000987000L, 22L);
+    simulacron.prime(when(good1).then(noRows()));
+
+    Query good2 = makeTtlQuery(33, "success_2", 153000987000L, 33L);
+    simulacron.prime(when(good2).then(noRows()));
+
+    conn.start(connectorProperties);
+
+    SinkRecord record1 =
+        new SinkRecord(
+            "mytopic_with_ttl",
+            0,
+            null,
+            22,
+            null,
+            "success",
+            1235L,
+            153000987L,
+            TimestampType.CREATE_TIME);
+    SinkRecord record2 =
+        new SinkRecord(
+            "mytopic_with_ttl",
+            0,
+            null,
+            33,
+            null,
+            "success_2",
+            1235L,
+            153000987L,
+            TimestampType.CREATE_TIME);
+    runTaskWithRecords(record1, record2);
+
+    Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+    task.preCommit(currentOffsets);
+    assertThat(currentOffsets).isEmpty();
+
+    List<QueryLog> queryList =
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
+            .filter(q -> q.getType().equals("EXECUTE"))
+            .collect(Collectors.toList());
+    assertThat(queryList.size()).isEqualTo(2);
+    assertThat(queryList.get(0).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+    assertThat(queryList.get(1).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
   }
 
   @Test

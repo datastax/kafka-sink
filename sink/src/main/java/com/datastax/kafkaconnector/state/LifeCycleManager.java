@@ -148,6 +148,7 @@ public class LifeCycleManager {
             .keySet()
             .stream()
             .filter(col -> !table.getColumn(col).isPresent())
+            .filter(col -> !SinkUtil.isTtlMappingColumn(col))
             .map(c -> c.asCql(true))
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentCols)) {
@@ -202,6 +203,9 @@ public class LifeCycleManager {
     StringBuilder valuesBuilder = new StringBuilder();
     boolean isFirst = true;
     for (CqlIdentifier col : mapping.keySet()) {
+      if (SinkUtil.isTtlMappingColumn(col)) {
+        continue;
+      }
       if (!isFirst) {
         statementBuilder.append(',');
         valuesBuilder.append(',');
@@ -217,10 +221,16 @@ public class LifeCycleManager {
         .append(") USING TIMESTAMP :")
         .append(SinkUtil.TIMESTAMP_VARNAME);
 
-    if (config.getTtl() != -1) {
-      statementBuilder.append(" AND TTL ").append(config.getTtl());
-    }
+    appendTtl(config, statementBuilder);
     return statementBuilder.toString();
+  }
+
+  private static void appendTtl(TableConfig config, StringBuilder statementBuilder) {
+    if (config.hasTtlMappingColumn()) {
+      statementBuilder.append(" AND TTL :").append(SinkUtil.TTL_VARNAME);
+    } else if (config.getTtl() != -1) {
+      statementBuilder.append(" AND TTL ").append(config.convertTtlToSeconds(config.getTtl()));
+    }
   }
 
   /**
@@ -233,7 +243,7 @@ public class LifeCycleManager {
   @VisibleForTesting
   @NotNull
   static String makeUpdateCounterStatement(TableConfig config, TableMetadata table) {
-    if (config.getTtl() != -1) {
+    if (config.getTtl() != -1 || config.hasTtlMappingColumn()) {
       throw new ConfigException("Cannot set ttl when updating a counter table");
     }
 
@@ -643,6 +653,7 @@ public class LifeCycleManager {
       TableMetadata table,
       List<CqlIdentifier> primaryKey) {
     boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
+    validateTtlConfig(tableConfig);
     String insertUpdateStatement =
         isCounterTable(table)
             ? makeUpdateCounterStatement(tableConfig, table)
@@ -675,6 +686,17 @@ public class LifeCycleManager {
               throw new RuntimeException(
                   String.format("Prepare failed for statement: %s", statements), e.getCause());
             });
+  }
+
+  private static void validateTtlConfig(TableConfig config) {
+    if (config.hasTtlMappingColumn() && config.getTtl() != -1) {
+      log.warn(
+          "You provided ttl configuration both for '.mapping' and '.ttl' settings for topic: {} keyspace: {} table: {}. "
+              + "The ttl config from .mapping will be used.",
+          config.getTopicName(),
+          config.getKeyspace(),
+          config.getTable());
+    }
   }
 
   @VisibleForTesting
