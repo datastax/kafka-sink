@@ -1070,15 +1070,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInstant("secondscol")).isEqualTo(Instant.parse("2018-03-09T16:12:32Z"));
   }
 
+  // todo this test had probably wrong config
   @Test
-  // todo fix
   void multiple_records_multiple_topics() {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double",
             ImmutableMap.of(
-                "topic.yourtopic.keyspace", // todo probably faulty config
-                keyspaceName,
                 String.format("topic.yourtopic.%s.types.mapping", keyspaceName),
                 "bigintcol=key, intcol=value")));
 

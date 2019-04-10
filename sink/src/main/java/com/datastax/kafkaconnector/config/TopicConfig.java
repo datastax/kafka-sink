@@ -52,11 +52,16 @@ public class TopicConfig extends AbstractConfig {
     // are effectively handled by our AbstractConfig super-class.
     settings.forEach(
         (name, value) -> {
-          Matcher m = TABLE_PAT.matcher(name);
-          if (m.lookingAt()) {
+          Matcher topicSettingMatcher = DseSinkConfig.TOPIC_SETTING_PAT.matcher(name);
+          Matcher tableSettingMatcher = TABLE_PAT.matcher(name);
+
+          if (topicSettingMatcher.lookingAt() && tableSettingMatcher.lookingAt()) {
             TableConfig.Builder builder =
                 tableConfigBuilders.computeIfAbsent(
-                    m.group(), t -> new TableConfig.Builder(topicName, m.group(1), m.group(2)));
+                    tableSettingMatcher.group(),
+                    t ->
+                        new TableConfig.Builder(
+                            topicName, topicSettingMatcher.group(2), topicSettingMatcher.group(3)));
             builder.addSetting(name, value);
           }
         });

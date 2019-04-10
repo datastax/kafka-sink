@@ -314,12 +314,15 @@ class DseSinkConfigTest {
   }
 
   @Test
-  // todo maybe problem with ordering?
   void should_parse_codec_setting_per_topic() {
     Map<String, String> props =
         Maps.newHashMap(
             ImmutableMap.<String, String>builder()
-                .put("topics", "org.datastax.init.event.history, t1")
+                .put(
+                    getTableSettingPath(
+                        "org.datastax.init.event.history", "MyKs2", "MyTable2", MAPPING_OPT),
+                    "c1=value.f1")
+                .put(getTableSettingPath("t1", "MyKs2", "MyTable2", MAPPING_OPT), "c1=value.f1")
                 .put("topic.org.datastax.init.event.history.codec.timeZone", "Europe/Warsaw")
                 .put("topic.t1.codec.timeZone", "Europe/Warsaw")
                 .build());
