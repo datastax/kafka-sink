@@ -102,6 +102,12 @@ topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
 # The transformation also applies for static ttl field config.
 topic.my_topic.my_ks.my_table.ttlTimeUnit=SECONDS
 
+# When you specify timestamp value to be used while inserting (by mapping __timestamp)
+# you may want to specify timeUnit of the provided timestamp. Default is SECONDS.
+# So if your field used as a ttl is in different format (for example HOURS) set it to HOURS.
+# The connector will automatically transform it to proper DSE ttl format (to MICROSECONDS)
+topic.my_topic.my_ks.my_table.timestampTimeUnit=SECONDS
+
 # Query consistency level; defaults to LOCAL_ONE.
 #topic.my_topic.my_ks.my_table.consistencyLevel=LOCAL_ONE
 
