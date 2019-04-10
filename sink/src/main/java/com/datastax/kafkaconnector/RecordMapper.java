@@ -151,10 +151,11 @@ public class RecordMapper {
         }
       }
     }
-    if (record.getTimestamp() != null && isInsertUpdate) {
+    // set timestamp from record only if it was not set from mapping
+    if (record.getTimestamp() != null && isInsertUpdate && timestampIsNotSet(builder)) {
       bindColumn(
           builder,
-          CqlIdentifier.fromInternal(SinkUtil.TIMESTAMP_VARNAME),
+          SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER,
           record.getTimestamp() * 1000,
           DataTypes.BIGINT,
           GenericType.LONG);
@@ -162,6 +163,10 @@ public class RecordMapper {
     BoundStatement bs = builder.build();
     ensurePrimaryKeySet(bs);
     return bs;
+  }
+
+  private boolean timestampIsNotSet(BoundStatementBuilder builder) {
+    return !builder.isSet(SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER);
   }
 
   @VisibleForTesting

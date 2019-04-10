@@ -1551,6 +1551,61 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInt(2)).isEqualTo(1);
   }
 
+  /** Test for KAF-46. */
+  @Test
+  void should_insert_record_with_timestamp_provided_via_mapping() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.timestamp"));
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("double", Schema.FLOAT64_SCHEMA)
+            .field("timestamp", Schema.INT64_SCHEMA)
+            .build();
+    Struct value =
+        new Struct(schema).put("bigint", 1234567L).put("double", 42.0).put("timestamp", 12314L);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getLong(2)).isEqualTo(12314L);
+  }
+
+  /** Test for KAF-46. */
+  @Test
+  void should_extract_write_timestamp_from_json_and_use_as_write_time_column() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.timestampcol"));
+
+    // when
+    String json = "{\"bigint\": 1234567, \"double\": 42.0, \"timestampcol\": 1000}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getLong(2)).isEqualTo(1000);
+  }
+
   private static Stream<? extends Arguments> ttlColProvider() {
     Supplier<SchemaBuilder> schemaBuilder =
         () ->

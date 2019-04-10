@@ -16,12 +16,19 @@ public class SinkUtil {
   public static final String TTL_VARNAME = "kafka_internal_ttl";
   public static final CqlIdentifier TTL_VARNAME_CQL_IDENTIFIER =
       CqlIdentifier.fromInternal(TTL_VARNAME);
+  public static final CqlIdentifier TIMESTAMP_VARNAME_CQL_IDENTIFIER =
+      CqlIdentifier.fromInternal(TIMESTAMP_VARNAME);
+
   public static final String NAME_OPT = "name";
 
   /** This is a utility class and should never be instantiated. */
   private SinkUtil() {}
 
   public static boolean isTtlMappingColumn(CqlIdentifier col) {
-    return col.equals(SinkUtil.TTL_VARNAME_CQL_IDENTIFIER);
+    return col.equals(TTL_VARNAME_CQL_IDENTIFIER);
+  }
+
+  public static boolean isTimestampMappingColumn(CqlIdentifier col) {
+    return col.equals(TIMESTAMP_VARNAME_CQL_IDENTIFIER);
   }
 }
