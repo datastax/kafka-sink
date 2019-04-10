@@ -33,7 +33,8 @@ public class TopicConfig extends AbstractConfig {
   static final String TIME_UNIT_OPT = "codec.unit";
 
   // Table settings are of the form "topic.mytopic.ks1.table1.setting"
-  private static final Pattern TABLE_PAT = Pattern.compile("^topic\\.[^.]+\\.([^.]+)\\.([^.]+)\\.");
+  private static final Pattern TABLE_PAT =
+      Pattern.compile("^topic\\.[a-zA-Z0-9._-]+\\.([^.]+)\\.([^.]+)\\.");
 
   private final String topicName;
   private final Collection<TableConfig> tableConfigs;

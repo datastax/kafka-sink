@@ -25,8 +25,12 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class DseSinkConfigTest {
   @Test
@@ -199,6 +203,66 @@ class DseSinkConfigTest {
         topicConfigs.get("yourtopic"));
   }
 
+  @ParameterizedTest(name = "[{index}] topicName={0}")
+  @MethodSource("correctTopicNames")
+  void should_parse_correct_kafka_topic_names(String topicName) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(
+                    String.format("topic.%s.%s.%s.%s", topicName, "ks", "tb", "mapping"),
+                    "c1=value.f1")
+                .build());
+    // when
+    DseSinkConfig d = new DseSinkConfig(props);
+    Map<String, TopicConfig> topicConfigs = d.getTopicConfigs();
+
+    // then
+    assertThat(topicConfigs.size()).isEqualTo(1);
+    assertTopic(
+        "ks",
+        "tb",
+        ImmutableMap.<CqlIdentifier, CqlIdentifier>builder()
+            .put(CqlIdentifier.fromInternal("c1"), CqlIdentifier.fromInternal("value.f1"))
+            .build(),
+        topicConfigs.get(topicName));
+  }
+
+  @ParameterizedTest(name = "[{index}] topicName={0}")
+  @MethodSource("incorrectTopicNames")
+  void should_not_parse_incorrect_kafka_topic_names(String topicName) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(
+                    String.format("topic.%s.%s.%s.%s", topicName, "ks", "tb", "mapping"),
+                    "c1=value.f1")
+                .build());
+    // when then
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isExactlyInstanceOf(IllegalStateException.class)
+        .hasMessage("No match found");
+  }
+
+  private static Stream<? extends Arguments> correctTopicNames() {
+    return Stream.of(
+        Arguments.of("org.datastax.init.event.history"),
+        Arguments.of("org_datastax_init_event_history"),
+        Arguments.of("org-datastax-init-event-history"),
+        Arguments.of("org.datastax-init_event.history"),
+        Arguments.of("1.2_3.A_z"));
+  }
+
+  private static Stream<? extends Arguments> incorrectTopicNames() {
+    return Stream.of(
+        Arguments.of("org,datastax"),
+        Arguments.of("org&topic"),
+        Arguments.of("()"),
+        Arguments.of("%"));
+  }
+
   @Test
   void should_error_when_missing_topic_settings() {
     Map<String, String> props =
@@ -223,6 +287,42 @@ class DseSinkConfigTest {
                 .put(
                     getTableSettingPath("mytopic2", "MyKs2", "MyTable2", MAPPING_OPT),
                     "c1=value.f1")
+                .build());
+
+    DseSinkConfig config = new DseSinkConfig(props);
+    assertThat(config.getTopicConfigs().size()).isEqualTo(2);
+  }
+
+  @Test
+  void should_handle_topics_list_with_dots() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put("topics", "org.datastax.init.event.history, org.datastax.init.event.history2")
+                .put(
+                    getTableSettingPath(
+                        "org.datastax.init.event.history", "MyKs", "MyTable", MAPPING_OPT),
+                    "c1=value.f1")
+                .put(
+                    getTableSettingPath(
+                        "org.datastax.init.event.history2", "MyKs2", "MyTable2", MAPPING_OPT),
+                    "c1=value.f1")
+                .build());
+
+    DseSinkConfig config = new DseSinkConfig(props);
+    assertThat(config.getTopicConfigs().size()).isEqualTo(2);
+  }
+
+  @Test
+  void should_parse_codec_setting_per_topic() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(
+                    "topics",
+                    "org.datastax.init.event.history, org.datastax.init.event.history2, t1")
+                .put("topic.org.datastax.init.event.history.codec.timeZone", "Europe/Warsaw")
+                .put("topic.t1.codec.timeZone", "Europe/Warsaw")
                 .build());
 
     DseSinkConfig config = new DseSinkConfig(props);

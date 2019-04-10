@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("WeakerAccess")
 public class DseSinkConfig {
   private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
-  private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
+  private static final Pattern TOPIC_PAT =
+      Pattern.compile(
+          "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit)$");
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
@@ -121,7 +123,7 @@ public class DseSinkConfig {
         Matcher m = TOPIC_PAT.matcher(name);
         //noinspection ResultOfMethodCallIgnored
         m.lookingAt();
-        String topicName = m.group(1);
+        String topicName = m.group(1); // todo problem with topic.t.codec...
         Map<String, String> topicMap =
             topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
         topicMap.put(name, entry.getValue());
