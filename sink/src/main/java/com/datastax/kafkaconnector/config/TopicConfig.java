@@ -33,7 +33,7 @@ public class TopicConfig extends AbstractConfig {
   static final String TIME_UNIT_OPT = "codec.unit";
 
   // Table settings are of the form "topic.mytopic.ks1.table1.setting"
-  private static final Pattern TABLE_PAT =
+  private static final Pattern TABLE_KS_PATTERN =
       Pattern.compile("^topic\\.[a-zA-Z0-9._-]+\\.([^.]+)\\.([^.]+)\\.");
 
   private final String topicName;
@@ -52,17 +52,20 @@ public class TopicConfig extends AbstractConfig {
     // are effectively handled by our AbstractConfig super-class.
     settings.forEach(
         (name, value) -> {
-          Matcher topicSettingMatcher = DseSinkConfig.TOPIC_SETTING_PAT.matcher(name);
-          Matcher tableSettingMatcher = TABLE_PAT.matcher(name);
+          Matcher topicKsTableSettingMatcher =
+              DseSinkConfig.TOPIC_KS_TABLE_SETTING_PATTERN.matcher(name);
+          Matcher tableKSSettingMatcher = TABLE_KS_PATTERN.matcher(name);
 
-          // topicSettingMatcher to prevent including of global topic level settings (.codec)
-          if (topicSettingMatcher.lookingAt() && tableSettingMatcher.lookingAt()) {
+          // topicKsTableSettingMatcher to prevent including of global topic level settings (.codec)
+          if (topicKsTableSettingMatcher.lookingAt() && tableKSSettingMatcher.lookingAt()) {
             TableConfig.Builder builder =
                 tableConfigBuilders.computeIfAbsent(
-                    tableSettingMatcher.group(),
+                    tableKSSettingMatcher.group(),
                     t ->
                         new TableConfig.Builder(
-                            topicName, tableSettingMatcher.group(1), tableSettingMatcher.group(2)));
+                            topicName,
+                            tableKSSettingMatcher.group(1),
+                            tableKSSettingMatcher.group(2)));
             builder.addSetting(name, value);
           }
         });

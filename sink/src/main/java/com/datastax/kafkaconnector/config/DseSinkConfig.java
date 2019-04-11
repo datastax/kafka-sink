@@ -29,10 +29,10 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("WeakerAccess")
 public class DseSinkConfig {
   private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
-  public static final Pattern TOPIC_SETTING_PAT =
+  public static final Pattern TOPIC_KS_TABLE_SETTING_PATTERN =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit)$");
-  private static final Pattern TOPIC_CODEC_PAT =
+  private static final Pattern TOPIC_CODEC_PATTERN =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
 
@@ -178,11 +178,13 @@ public class DseSinkConfig {
 
   private String tryMatchTopicName(String name) {
     System.out.println("find match for name:" + name);
-    Matcher m = TOPIC_SETTING_PAT.matcher(name);
+    Matcher m = TOPIC_KS_TABLE_SETTING_PATTERN.matcher(name);
+    // match for topic.ks.table level setting
     if (m.lookingAt()) {
       return m.group(1);
     } else {
-      Matcher m2 = TOPIC_CODEC_PAT.matcher(name);
+      // otherwise it can be topic (codec) level setting
+      Matcher m2 = TOPIC_CODEC_PATTERN.matcher(name);
       //noinspection ResultOfMethodCallIgnored
       m2.lookingAt();
       return m2.group(1);
