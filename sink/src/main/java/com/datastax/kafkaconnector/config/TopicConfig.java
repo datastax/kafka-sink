@@ -55,8 +55,8 @@ public class TopicConfig extends AbstractConfig {
           Matcher codecSettingPattern = DseSinkConfig.TOPIC_CODEC_PATTERN.matcher(name);
           Matcher tableKsSettingMatcher = TABLE_KS_PATTERN.matcher(name);
 
-          // using codecSettingPattern to prevent including of global topic level settings (under
-          // .codec prefix)
+          // using codecSettingPattern to prevent including of
+          // global topic level settings (under .codec prefix)
           if (!codecSettingPattern.lookingAt() && tableKsSettingMatcher.lookingAt()) {
             TableConfig.Builder builder =
                 tableConfigBuilders.computeIfAbsent(
