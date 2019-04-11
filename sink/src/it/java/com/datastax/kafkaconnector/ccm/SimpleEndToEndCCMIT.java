@@ -1070,7 +1070,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInstant("secondscol")).isEqualTo(Instant.parse("2018-03-09T16:12:32Z"));
   }
 
-  // todo this test had probably wrong config
   @Test
   void multiple_records_multiple_topics() {
     conn.start(
