@@ -252,6 +252,7 @@ class DseSinkConfigTest {
         Arguments.of("org_datastax_init_event_history"),
         Arguments.of("org-datastax-init-event-history"),
         Arguments.of("org.datastax-init_event.history"),
+        Arguments.of("t.codec.ttl"),
         Arguments.of("1.2_3.A_z"));
   }
 

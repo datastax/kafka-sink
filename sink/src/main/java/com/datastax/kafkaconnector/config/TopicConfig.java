@@ -52,20 +52,20 @@ public class TopicConfig extends AbstractConfig {
     // are effectively handled by our AbstractConfig super-class.
     settings.forEach(
         (name, value) -> {
-          Matcher topicKsTableSettingMatcher =
-              DseSinkConfig.TOPIC_KS_TABLE_SETTING_PATTERN.matcher(name);
-          Matcher tableKSSettingMatcher = TABLE_KS_PATTERN.matcher(name);
+          Matcher codecSettingPattern = DseSinkConfig.TOPIC_CODEC_PATTERN.matcher(name);
+          Matcher tableKsSettingMatcher = TABLE_KS_PATTERN.matcher(name);
 
-          // topicKsTableSettingMatcher to prevent including of global topic level settings (.codec)
-          if (topicKsTableSettingMatcher.lookingAt() && tableKSSettingMatcher.lookingAt()) {
+          // using codecSettingPattern to prevent including of global topic level settings (under
+          // .codec prefix)
+          if (!codecSettingPattern.lookingAt() && tableKsSettingMatcher.lookingAt()) {
             TableConfig.Builder builder =
                 tableConfigBuilders.computeIfAbsent(
-                    tableKSSettingMatcher.group(),
+                    tableKsSettingMatcher.group(),
                     t ->
                         new TableConfig.Builder(
                             topicName,
-                            tableKSSettingMatcher.group(1),
-                            tableKSSettingMatcher.group(2)));
+                            tableKsSettingMatcher.group(1),
+                            tableKsSettingMatcher.group(2)));
             builder.addSetting(name, value);
           }
         });

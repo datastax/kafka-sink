@@ -29,10 +29,10 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("WeakerAccess")
 public class DseSinkConfig {
   private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
-  public static final Pattern TOPIC_KS_TABLE_SETTING_PATTERN =
+  private static final Pattern TOPIC_KS_TABLE_SETTING_PATTERN =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit)$");
-  private static final Pattern TOPIC_CODEC_PATTERN =
+  public static final Pattern TOPIC_CODEC_PATTERN =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
 
