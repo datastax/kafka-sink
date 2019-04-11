@@ -179,13 +179,13 @@ public class DseSinkConfig {
   private String tryMatchTopicName(String name) {
     Matcher m = TOPIC_KS_TABLE_SETTING_PATTERN.matcher(name);
     // match for topic.ks.table level setting
-    if (m.lookingAt()) {
+    if (m.matches()) {
       return m.group(1);
     } else {
       // otherwise it can be topic (codec) level setting
       Matcher m2 = TOPIC_CODEC_PATTERN.matcher(name);
       //noinspection ResultOfMethodCallIgnored
-      m2.lookingAt();
+      m2.matches();
       return m2.group(1);
     }
   }

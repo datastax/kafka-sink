@@ -332,6 +332,22 @@ class DseSinkConfigTest {
     assertThat(config.getTopicConfigs().size()).isEqualTo(2);
   }
 
+  @Test
+  void should_not_match_setting_with_extra_suffix() {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(
+                    String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "mapping.extra"),
+                    "c1=value.f1")
+                .build());
+    // when then
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isExactlyInstanceOf(IllegalStateException.class)
+        .hasMessage("No match found");
+  }
+
   private void assertTopic(
       String keyspace,
       String table,
