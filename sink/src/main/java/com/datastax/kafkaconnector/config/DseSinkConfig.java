@@ -179,17 +179,13 @@ public class DseSinkConfig {
   private String tryMatchTopicName(String name) {
     System.out.println("find match for name:" + name);
     Matcher m = TOPIC_SETTING_PAT.matcher(name);
-    //noinspection ResultOfMethodCallIgnored
-    m.lookingAt();
-    try {
+    if (m.lookingAt()) {
       return m.group(1);
-    } catch (IllegalStateException ex) {
+    } else {
       Matcher m2 = TOPIC_CODEC_PAT.matcher(name);
       //noinspection ResultOfMethodCallIgnored
       m2.lookingAt();
-      String res = m2.group(1);
-      System.out.println(res); // todo remove sout
-      return res;
+      return m2.group(1);
     }
   }
 

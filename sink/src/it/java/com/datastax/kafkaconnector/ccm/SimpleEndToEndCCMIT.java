@@ -1030,7 +1030,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("c4")).isEqualTo(8);
   }
 
-  @Test // todo check how does it behave for 1.x
+  @Test
   void timezone_and_locale() {
     conn.start(
         makeConnectorProperties(

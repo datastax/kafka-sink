@@ -55,13 +55,14 @@ public class TopicConfig extends AbstractConfig {
           Matcher topicSettingMatcher = DseSinkConfig.TOPIC_SETTING_PAT.matcher(name);
           Matcher tableSettingMatcher = TABLE_PAT.matcher(name);
 
+          // topicSettingMatcher to prevent including of global topic level settings (.codec)
           if (topicSettingMatcher.lookingAt() && tableSettingMatcher.lookingAt()) {
             TableConfig.Builder builder =
                 tableConfigBuilders.computeIfAbsent(
                     tableSettingMatcher.group(),
                     t ->
                         new TableConfig.Builder(
-                            topicName, topicSettingMatcher.group(2), topicSettingMatcher.group(3)));
+                            topicName, tableSettingMatcher.group(1), tableSettingMatcher.group(2)));
             builder.addSetting(name, value);
           }
         });
