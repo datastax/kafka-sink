@@ -177,7 +177,6 @@ public class DseSinkConfig {
   }
 
   private String tryMatchTopicName(String name) {
-    System.out.println("find match for name:" + name);
     Matcher m = TOPIC_KS_TABLE_SETTING_PATTERN.matcher(name);
     // match for topic.ks.table level setting
     if (m.lookingAt()) {
