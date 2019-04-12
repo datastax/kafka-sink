@@ -1541,6 +1541,37 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol, __timestamp = value.timestampcol",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS",
+                String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
+                "MICROSECONDS")));
+
+    // when
+    String json =
+        "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000, \"timestampcol\": 1000}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session
+            .execute("SELECT bigintcol, doublecol, ttl(doublecol), writetime(doublecol) FROM types")
+            .all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getInt(2)).isEqualTo(1);
+    assertThat(row.getLong(3)).isEqualTo(1000L);
+  }
+
+  @Test
   void should_extract_ttl_from_json_and_use_existing_column_as_ttl() {
     // given
     conn.start(
@@ -1563,6 +1594,32 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
     assertThat(row.getInt(2)).isEqualTo(1);
+  }
+
+  /** Test for KAF-46. */
+  @Test
+  void should_extract_timestamp_from_json_and_use_existing_column_as_timestamp() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.double",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
+
+    // when
+    String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
+    assertThat(row.getLong(2)).isEqualTo(1_000_000_000L);
   }
 
   /** Test for KAF-46. */
@@ -1594,7 +1651,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getLong(2)).isEqualTo(12314L);
+    assertThat(row.getLong(2)).isEqualTo(12_314_000_000L);
   }
 
   /** Test for KAF-46. */
@@ -1617,7 +1674,40 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getLong(2)).isEqualTo(1000);
+    assertThat(row.getLong(2)).isEqualTo(1_000_000_000);
+  }
+
+  /** Test for KAF-46. */
+  @ParameterizedTest(name = "[{index}] schema={0}, timestampValue={1}, expectedTimestampValue={2}")
+  @MethodSource("timestampColProvider")
+  void should_insert_record_with_timestamp_provided_via_mapping_and_validate_timestamp_of_table(
+      Schema schema, Number timestampValue, Number expectedTimestampValue) {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.timestampcol",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
+
+    Struct value =
+        new Struct(schema)
+            .put("bigint", 1234567L)
+            .put("double", 42.0)
+            .put("timestampcol", timestampValue);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getLong(2)).isEqualTo(expectedTimestampValue.longValue());
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {
@@ -1636,6 +1726,41 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT32_SCHEMA).build(), 1000F, 1),
         Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT64_SCHEMA).build(), 1000D, 1),
         Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT32_SCHEMA).build(), -1000, 0));
+  }
+
+  private static Stream<? extends Arguments> timestampColProvider() {
+    Supplier<SchemaBuilder> schemaBuilder =
+        () ->
+            SchemaBuilder.struct()
+                .name("Kafka")
+                .field("bigint", Schema.INT64_SCHEMA)
+                .field("double", Schema.FLOAT64_SCHEMA);
+
+    return Stream.of(
+        Arguments.of(
+            schemaBuilder.get().field("timestampcol", Schema.INT64_SCHEMA).build(),
+            1000L,
+            1_000_000L),
+        Arguments.of(
+            schemaBuilder.get().field("timestampcol", Schema.INT32_SCHEMA).build(),
+            1000,
+            1_000_000L),
+        Arguments.of(
+            schemaBuilder.get().field("timestampcol", Schema.INT16_SCHEMA).build(),
+            (short) 1000,
+            (short) 1_000_000L),
+        Arguments.of(
+            schemaBuilder.get().field("timestampcol", Schema.FLOAT32_SCHEMA).build(),
+            1000F,
+            1_000_000L),
+        Arguments.of(
+            schemaBuilder.get().field("timestampcol", Schema.FLOAT64_SCHEMA).build(),
+            1000D,
+            1_000_000L),
+        Arguments.of(
+            schemaBuilder.get().field("timestampcol", Schema.INT32_SCHEMA).build(),
+            -1000,
+            -1_000_000L));
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {

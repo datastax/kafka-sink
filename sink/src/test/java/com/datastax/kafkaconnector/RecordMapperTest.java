@@ -110,6 +110,7 @@ class RecordMapperTest {
       CodecUtils.getNumberFormatThreadLocal("#,###.##", US, HALF_EVEN, true);
 
   private final TimeUnit DEFAULT_TTL_TIME_UNIT = TimeUnit.SECONDS;
+  private final TimeUnit DEFAULT_TIMESTAMP_TIME_UNIT = TimeUnit.SECONDS;
 
   @BeforeEach
   void setUp() {
@@ -225,7 +226,8 @@ class RecordMapperTest {
             true,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
@@ -247,7 +249,8 @@ class RecordMapperTest {
             true,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
@@ -270,7 +273,8 @@ class RecordMapperTest {
             true,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -292,7 +296,8 @@ class RecordMapperTest {
             true,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
 
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(deleteBoundStatement);
@@ -332,7 +337,8 @@ class RecordMapperTest {
             true,
             true,
             true,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -370,7 +376,8 @@ class RecordMapperTest {
             true,
             true,
             true,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-1L, V4));
@@ -405,7 +412,8 @@ class RecordMapperTest {
             true,
             true,
             true,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -444,7 +452,8 @@ class RecordMapperTest {
             true,
             true,
             true,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -466,7 +475,8 @@ class RecordMapperTest {
             true,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -489,7 +499,8 @@ class RecordMapperTest {
             false,
             true,
             true,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -511,7 +522,8 @@ class RecordMapperTest {
             false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(CodecNotFoundException.class);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -533,7 +545,8 @@ class RecordMapperTest {
             false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Primary key column col1 cannot be mapped to null");
@@ -552,7 +565,8 @@ class RecordMapperTest {
             false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
 
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
@@ -573,7 +587,8 @@ class RecordMapperTest {
             false,
             false,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -593,7 +608,8 @@ class RecordMapperTest {
             false,
             false,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -613,7 +629,8 @@ class RecordMapperTest {
             false,
             false,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -633,7 +650,8 @@ class RecordMapperTest {
             false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -655,7 +673,8 @@ class RecordMapperTest {
             false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -677,7 +696,8 @@ class RecordMapperTest {
             false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -685,8 +705,10 @@ class RecordMapperTest {
                 + "Please remove it from the mapping.");
   }
 
-  @Test
-  void should_throw_when_transform_ttl_value_that_is_not_number() {
+  @ParameterizedTest(name = "[{index}] fieldToTransform={0}, exceptionFieldName={1}")
+  @MethodSource("fieldNameProvider")
+  void should_throw_when_transform_value_that_is_not_number(
+      CqlIdentifier fieldToTransform, String exceptionFieldName) {
     // given
     Record record = mock(Record.class);
     String kafkaTtlFieldValue = "ttl_field";
@@ -696,14 +718,18 @@ class RecordMapperTest {
     assertThatThrownBy(
             () ->
                 RecordMapper.getFieldValueAndMaybeTransform(
-                    record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS))
+                    record, kafkaTtlFieldValue, fieldToTransform, MILLISECONDS, MILLISECONDS))
         .isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage(
-            "The value: some_not_number_field for field: ttl_field used as a TTL is not a Number but should be.");
+            "The value: some_not_number_field for field: ttl_field used as a "
+                + exceptionFieldName
+                + " is not a Number but should be.");
   }
 
-  @Test
-  void should_throw_when_transform_ttl_value_is_null() {
+  @ParameterizedTest(name = "[{index}] fieldToTransform={0}, exceptionFieldName={1}")
+  @MethodSource("fieldNameProvider")
+  void should_throw_when_transform_field_value_is_null(
+      CqlIdentifier fieldToTransform, String exceptionFieldName) {
     // given
     Record record = mock(Record.class);
     String kafkaTtlFieldValue = "ttl_field";
@@ -713,10 +739,12 @@ class RecordMapperTest {
     assertThatThrownBy(
             () ->
                 RecordMapper.getFieldValueAndMaybeTransform(
-                    record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS))
+                    record, kafkaTtlFieldValue, fieldToTransform, MILLISECONDS, MILLISECONDS))
         .isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining(
-            "The value: null for field: ttl_field used as a TTL is not a Number but should be.");
+            "The value: null for field: ttl_field used as a "
+                + exceptionFieldName
+                + " is not a Number but should be.");
   }
 
   @Test
@@ -732,7 +760,8 @@ class RecordMapperTest {
             record,
             kafkaTtlFieldValue,
             CqlIdentifier.fromInternal("some_field_in_statement"),
-            DEFAULT_TTL_TIME_UNIT);
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
 
     // then
     assertThat(result).isEqualTo(1000);
@@ -740,7 +769,7 @@ class RecordMapperTest {
 
   @ParameterizedTest(name = "[{index}] recordValue={0}, expected={1}")
   @MethodSource("ttlValuesProvider")
-  void should_handle_number_and_json_number_nodes(Object recordValue, Object expected) {
+  void should_handle_number_and_json_number_nodes_for_ttl(Object recordValue, Object expected) {
     // given
     Record record = mock(Record.class);
     String kafkaTtlFieldValue = "some_field";
@@ -749,14 +778,40 @@ class RecordMapperTest {
     // when
     Object result =
         RecordMapper.getFieldValueAndMaybeTransform(
-            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, MILLISECONDS);
+            record,
+            kafkaTtlFieldValue,
+            SinkUtil.TTL_VARNAME_CQL_IDENTIFIER,
+            MILLISECONDS,
+            MILLISECONDS);
+
+    // then
+    assertThat(result).isEqualTo(expected);
+  }
+
+  @ParameterizedTest(name = "[{index}] recordValue={0}, expected={1}")
+  @MethodSource("timestampValuesProvider")
+  void should_handle_number_and_json_number_nodes_for_timestamp(
+      Object recordValue, Object expected) {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTimestampFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTimestampFieldValue)).thenReturn(recordValue);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record,
+            kafkaTimestampFieldValue,
+            SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER,
+            MILLISECONDS,
+            MILLISECONDS);
 
     // then
     assertThat(result).isEqualTo(expected);
   }
 
   @Test
-  void should_return_zero_for_default_time_unit() {
+  void should_return_zero_for_default_time_unit_for_ttl() {
     // given
     Record record = mock(Record.class);
     String kafkaTtlFieldValue = "some_field";
@@ -765,10 +820,34 @@ class RecordMapperTest {
     // when
     Object result =
         RecordMapper.getFieldValueAndMaybeTransform(
-            record, kafkaTtlFieldValue, SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, DEFAULT_TTL_TIME_UNIT);
+            record,
+            kafkaTtlFieldValue,
+            SinkUtil.TTL_VARNAME_CQL_IDENTIFIER,
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
 
     // then
     assertThat(result).isEqualTo(0);
+  }
+
+  @Test
+  void should_return_negative_for_default_time_unit_for_timestamp() {
+    // given
+    Record record = mock(Record.class);
+    String kafkaTtlFieldValue = "some_field";
+    when(record.getFieldValue(kafkaTtlFieldValue)).thenReturn(-1);
+
+    // when
+    Object result =
+        RecordMapper.getFieldValueAndMaybeTransform(
+            record,
+            kafkaTtlFieldValue,
+            SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER,
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
+
+    // then
+    assertThat(result).isEqualTo(-1);
   }
 
   private static Stream<? extends Arguments> ttlValuesProvider() {
@@ -777,6 +856,20 @@ class RecordMapperTest {
         Arguments.of(-1000, 0),
         Arguments.of(new IntNode(1000), new IntNode(1)),
         Arguments.of(new IntNode(-1000), new IntNode(0)));
+  }
+
+  private static Stream<? extends Arguments> timestampValuesProvider() {
+    return Stream.of(
+        Arguments.of(1000, 1),
+        Arguments.of(-1000, -1),
+        Arguments.of(new IntNode(1000), new IntNode(1)),
+        Arguments.of(new IntNode(-1000), new IntNode(-1)));
+  }
+
+  private static Stream<? extends Arguments> fieldNameProvider() {
+    return Stream.of(
+        Arguments.of(SinkUtil.TTL_VARNAME_CQL_IDENTIFIER, "TTL"),
+        Arguments.of(SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER, "Timestamp"));
   }
 
   private void assertParameter(

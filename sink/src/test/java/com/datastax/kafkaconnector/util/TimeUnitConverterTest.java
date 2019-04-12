@@ -28,6 +28,16 @@ class TimeUnitConverterTest {
     assertThat(result).isEqualTo(expectedSeconds);
   }
 
+  @ParameterizedTest(name = "[{index}] timeUnit={0}, timestamp={1}, expectedMicroseconds={2}")
+  @MethodSource("expectedToMicroseconds")
+  void should_convert_to_microseconds(
+      TimeUnit timeUnit, Number timestamp, Long expectedMicroseconds) {
+    long result = TimeUnitConverter.convertTtlToMicroseconds(timeUnit, timestamp);
+
+    // then
+    assertThat(result).isEqualTo(expectedMicroseconds);
+  }
+
   private static Stream<? extends Arguments> expectedToSeconds() {
     return Stream.of(
         Arguments.of(TimeUnit.SECONDS, 1, 1L),
@@ -35,5 +45,14 @@ class TimeUnitConverterTest {
         Arguments.of(TimeUnit.MICROSECONDS, 1000000D, 1L),
         Arguments.of(TimeUnit.DAYS, 1F, 86400L),
         Arguments.of(TimeUnit.HOURS, BigInteger.valueOf(1L), 3600L));
+  }
+
+  private static Stream<? extends Arguments> expectedToMicroseconds() {
+    return Stream.of(
+        Arguments.of(TimeUnit.SECONDS, 1, 1_000_000L),
+        Arguments.of(TimeUnit.MILLISECONDS, 1L, 1000L),
+        Arguments.of(TimeUnit.MICROSECONDS, 1000000D, 1_000_000L),
+        Arguments.of(TimeUnit.DAYS, 1F, 86_400_000_000L),
+        Arguments.of(TimeUnit.HOURS, BigInteger.valueOf(1L), 3_600_000_000L));
   }
 }

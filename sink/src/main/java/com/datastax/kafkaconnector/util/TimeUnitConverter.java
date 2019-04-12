@@ -15,4 +15,8 @@ public class TimeUnitConverter {
   public static long convertTtlToSeconds(TimeUnit timeUnit, Number ttl) {
     return timeUnit.toSeconds(ttl.longValue());
   }
+
+  public static long convertTtlToMicroseconds(TimeUnit timestampTimeUnit, Number timestamp) {
+    return timestampTimeUnit.toMicros(timestamp.longValue());
+  }
 }
