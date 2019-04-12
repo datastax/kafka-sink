@@ -197,10 +197,10 @@ public class RecordMapper {
                 + field
                 + " used as a TTL is not a Number but should be.");
       }
-    } else if (SinkUtil.isTimestampMappingColumn(column)) { // todo refactor to be generic
-      if (fieldValue instanceof NumericNode) { // case that ttl is from Json node
+    } else if (SinkUtil.isTimestampMappingColumn(column)) {
+      if (fieldValue instanceof NumericNode) { // case that timestamp is from Json node
         raw = JsonNodeTimeUnitConverter.transformTimestampField(timestampTimeUnit, fieldValue);
-      } else if (fieldValue instanceof Number) { // case that ttl is from Struct
+      } else if (fieldValue instanceof Number) { // case that timestamp is from Struct
         raw =
             StructTimeUnitConverter.transformTimestampField(timestampTimeUnit, (Number) fieldValue);
       } else {
