@@ -243,7 +243,7 @@ class DseSinkConfigTest {
         .hasMessage(
             "The setting: "
                 + settingName
-                + " does not match topic.namespace.table nor topic.codec regular expression pattern");
+                + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
   }
 
   private static Stream<? extends Arguments> correctTopicNames() {
@@ -345,7 +345,7 @@ class DseSinkConfigTest {
         .hasMessage(
             "The setting: "
                 + settingName
-                + " does not match topic.namespace.table nor topic.codec regular expression pattern");
+                + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
   }
 
   private void assertTopic(

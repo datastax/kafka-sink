@@ -57,7 +57,7 @@ public class TopicConfig extends AbstractConfig {
 
           // using codecSettingPattern to prevent including of
           // global topic level settings (under .codec prefix)
-          if (!codecSettingPattern.lookingAt() && tableKsSettingMatcher.lookingAt()) {
+          if (!codecSettingPattern.matches() && tableKsSettingMatcher.lookingAt()) {
             TableConfig.Builder builder =
                 tableConfigBuilders.computeIfAbsent(
                     tableKsSettingMatcher.group(),

@@ -190,7 +190,7 @@ public class DseSinkConfig {
       throw new IllegalArgumentException(
           "The setting: "
               + name
-              + " does not match topic.namespace.table nor topic.codec regular expression pattern");
+              + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
     }
   }
 
