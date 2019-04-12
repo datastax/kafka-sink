@@ -268,7 +268,7 @@ public class TableConfig extends AbstractConfig {
         .define(
             getTableSettingPath(topicName, keyspace, table, TIMESTAMP_TIME_UNIT_OPT),
             ConfigDef.Type.STRING,
-            "SECONDS",
+            "MICROSECONDS",
             ConfigDef.Importance.HIGH,
             "TimeUnit of provided timestamp mapping field.");
   }
@@ -305,10 +305,6 @@ public class TableConfig extends AbstractConfig {
 
   public long convertTtlToSeconds(Number ttl) {
     return TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl);
-  }
-
-  public long convertTimestampToMicroseconds(Number timestamp) {
-    return TimeUnitConverter.convertTtlToMicroseconds(timestampTimeUnit, timestamp);
   }
 
   public static class Builder {

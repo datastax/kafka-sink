@@ -1605,7 +1605,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.double",
             ImmutableMap.of(
                 String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
-                "MILLISECONDS")));
+                "MILLISECONDS",
+            String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
+            "MILLISECONDS")));
 
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
@@ -1619,7 +1621,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
-    assertThat(row.getLong(2)).isEqualTo(1_000_000_000L);
+    assertThat(row.getLong(2)).isEqualTo(1_000_000L);
   }
 
   /** Test for KAF-46. */
@@ -1651,7 +1653,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getLong(2)).isEqualTo(12_314_000_000L);
+    assertThat(row.getLong(2)).isEqualTo(12314L);
   }
 
   /** Test for KAF-46. */
@@ -1674,7 +1676,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getLong(2)).isEqualTo(1_000_000_000);
+    assertThat(row.getLong(2)).isEqualTo(1000L);
   }
 
   /** Test for KAF-46. */

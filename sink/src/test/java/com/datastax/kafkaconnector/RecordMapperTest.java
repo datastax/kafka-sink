@@ -110,7 +110,7 @@ class RecordMapperTest {
       CodecUtils.getNumberFormatThreadLocal("#,###.##", US, HALF_EVEN, true);
 
   private final TimeUnit DEFAULT_TTL_TIME_UNIT = TimeUnit.SECONDS;
-  private final TimeUnit DEFAULT_TIMESTAMP_TIME_UNIT = TimeUnit.SECONDS;
+  private final TimeUnit DEFAULT_TIMESTAMP_TIME_UNIT = TimeUnit.MICROSECONDS;
 
   @BeforeEach
   void setUp() {
@@ -860,10 +860,10 @@ class RecordMapperTest {
 
   private static Stream<? extends Arguments> timestampValuesProvider() {
     return Stream.of(
-        Arguments.of(1000, 1),
-        Arguments.of(-1000, -1),
-        Arguments.of(new IntNode(1000), new IntNode(1)),
-        Arguments.of(new IntNode(-1000), new IntNode(-1)));
+        Arguments.of(1000, 1_000_000),
+        Arguments.of(-1000, -1_000_000),
+        Arguments.of(new IntNode(1000), new IntNode(1_000_000)),
+        Arguments.of(new IntNode(-1000), new IntNode(-1_000_000)));
   }
 
   private static Stream<? extends Arguments> fieldNameProvider() {
