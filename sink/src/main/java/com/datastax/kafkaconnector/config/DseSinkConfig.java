@@ -29,7 +29,13 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("WeakerAccess")
 public class DseSinkConfig {
   private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
-  private static final Pattern TOPIC_PAT = Pattern.compile("topic\\.([^.]+)");
+  private static final Pattern TOPIC_KS_TABLE_SETTING_PATTERN =
+      Pattern.compile(
+          "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit)$");
+  public static final Pattern TOPIC_CODEC_PATTERN =
+      Pattern.compile(
+          "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
+
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
@@ -118,10 +124,7 @@ public class DseSinkConfig {
     for (Map.Entry<String, String> entry : settings.entrySet()) {
       String name = entry.getKey();
       if (name.startsWith("topic.")) {
-        Matcher m = TOPIC_PAT.matcher(name);
-        //noinspection ResultOfMethodCallIgnored
-        m.lookingAt();
-        String topicName = m.group(1);
+        String topicName = tryMatchTopicName(name);
         Map<String, String> topicMap =
             topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
         topicMap.put(name, entry.getValue());
@@ -170,6 +173,24 @@ public class DseSinkConfig {
           CONTACT_POINTS_OPT,
           contactPoints,
           String.format("When contact points is provided, %s must also be specified", DC_OPT));
+    }
+  }
+
+  private String tryMatchTopicName(String name) {
+    Matcher m = TOPIC_KS_TABLE_SETTING_PATTERN.matcher(name);
+    // match for topic.ks.table level setting
+    if (m.matches()) {
+      return m.group(1);
+    } else {
+      // otherwise it can be topic (codec) level setting
+      Matcher m2 = TOPIC_CODEC_PATTERN.matcher(name);
+      if (m2.matches()) {
+        return m2.group(1);
+      }
+      throw new IllegalArgumentException(
+          "The setting: "
+              + name
+              + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
     }
   }
 
