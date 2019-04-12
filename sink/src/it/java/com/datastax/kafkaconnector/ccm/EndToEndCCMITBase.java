@@ -137,6 +137,11 @@ abstract class EndToEndCCMITBase {
 
   Map<String, String> makeConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras) {
+    return makeConnectorProperties(mappingString, tableName, extras, "mytopic");
+  }
+
+  Map<String, String> makeConnectorProperties(
+      String mappingString, String tableName, Map<String, String> extras, String topicName) {
     Map<String, String> props = new HashMap<>();
 
     props.put("name", "myinstance");
@@ -148,7 +153,9 @@ abstract class EndToEndCCMITBase {
             .collect(Collectors.joining(",")));
     props.put("port", String.format("%d", ccm.getBinaryPort()));
     props.put("loadBalancing.localDc", ccm.getDC(1));
-    props.put(String.format("topic.mytopic.%s.%s.mapping", keyspaceName, tableName), mappingString);
+    props.put("topics", topicName);
+    props.put(
+        String.format("topic.%s.%s.%s.mapping", topicName, keyspaceName, tableName), mappingString);
 
     if (extras != null) {
       props.putAll(extras);

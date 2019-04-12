@@ -529,6 +529,22 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void should_insert_from_topic_with_complex_name() {
+    conn.start(
+        makeConnectorProperties("bigintcol=value", "types", null, "this.is.complex_topic-name"));
+
+    SinkRecord record =
+        new SinkRecord("this.is.complex_topic-name", 0, null, null, null, 5725368L, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(5725368L);
+  }
+
+  @Test
   void raw_bigint_value_snappy() {
     // Technically, this doesn't test compression because it's possible that the connector
     // ignores the setting entirely and just issues requests as usual. A more strict test
@@ -1060,8 +1076,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double",
             ImmutableMap.of(
-                "topic.yourtopic.keyspace",
-                keyspaceName,
                 String.format("topic.yourtopic.%s.types.mapping", keyspaceName),
                 "bigintcol=key, intcol=value")));
 
