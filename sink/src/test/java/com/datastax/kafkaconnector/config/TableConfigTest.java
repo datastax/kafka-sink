@@ -144,7 +144,7 @@ class TableConfigTest {
     assertThat(config.getTtlTimeUnit())
         .isEqualTo(TimeUnit.SECONDS); // default timeUnit for ttl for backward compatibility
     assertThat(config.getTimestampTimeUnit())
-        .isEqualTo(TimeUnit.SECONDS); // default timeUnit for ttl for backward compatibility
+        .isEqualTo(TimeUnit.MICROSECONDS); // default timeUnit for ttl for backward compatibility
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")

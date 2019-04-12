@@ -1606,8 +1606,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             ImmutableMap.of(
                 String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
                 "MILLISECONDS",
-            String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
-            "MILLISECONDS")));
+                String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
 
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
