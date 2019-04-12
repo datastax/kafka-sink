@@ -233,17 +233,17 @@ class DseSinkConfigTest {
   @MethodSource("incorrectTopicNames")
   void should_not_parse_incorrect_kafka_topic_names(String topicName) {
     // given
+    String settingName = String.format("topic.%s.%s.%s.%s", topicName, "ks", "tb", "mapping");
     Map<String, String> props =
         Maps.newHashMap(
-            ImmutableMap.<String, String>builder()
-                .put(
-                    String.format("topic.%s.%s.%s.%s", topicName, "ks", "tb", "mapping"),
-                    "c1=value.f1")
-                .build());
+            ImmutableMap.<String, String>builder().put(settingName, "c1=value.f1").build());
     // when then
     assertThatThrownBy(() -> new DseSinkConfig(props))
-        .isExactlyInstanceOf(IllegalStateException.class)
-        .hasMessage("No match found");
+        .isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The setting: "
+                + settingName
+                + " does not match topic.namespace.table nor topic.codec regular expression pattern");
   }
 
   private static Stream<? extends Arguments> correctTopicNames() {
@@ -335,17 +335,17 @@ class DseSinkConfigTest {
   @Test
   void should_not_match_setting_with_extra_suffix() {
     // given
+    String settingName = String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "mapping.extra");
     Map<String, String> props =
         Maps.newHashMap(
-            ImmutableMap.<String, String>builder()
-                .put(
-                    String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "mapping.extra"),
-                    "c1=value.f1")
-                .build());
+            ImmutableMap.<String, String>builder().put(settingName, "c1=value.f1").build());
     // when then
     assertThatThrownBy(() -> new DseSinkConfig(props))
-        .isExactlyInstanceOf(IllegalStateException.class)
-        .hasMessage("No match found");
+        .isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage(
+            "The setting: "
+                + settingName
+                + " does not match topic.namespace.table nor topic.codec regular expression pattern");
   }
 
   private void assertTopic(

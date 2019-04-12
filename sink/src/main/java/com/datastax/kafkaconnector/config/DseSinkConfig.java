@@ -184,9 +184,13 @@ public class DseSinkConfig {
     } else {
       // otherwise it can be topic (codec) level setting
       Matcher m2 = TOPIC_CODEC_PATTERN.matcher(name);
-      //noinspection ResultOfMethodCallIgnored
-      m2.matches();
-      return m2.group(1);
+      if (m2.matches()) {
+        return m2.group(1);
+      }
+      throw new IllegalArgumentException(
+          "The setting: "
+              + name
+              + " does not match topic.namespace.table nor topic.codec regular expression pattern");
     }
   }
 
