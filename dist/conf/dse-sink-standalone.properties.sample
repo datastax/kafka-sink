@@ -104,7 +104,7 @@ topic.my_topic.my_ks.my_table.ttlTimeUnit=SECONDS
 
 # When you specify timestamp value to be used while inserting (by mapping __timestamp)
 # you may want to specify timeUnit of the provided timestamp. Default is MICROSECONDS.
-# So if your field used as a ttl is in different format (for example HOURS) set it to HOURS.
+# So if your field used as a timestamp is in different format (for example HOURS) set it to HOURS.
 # The connector will automatically transform it to proper DSE ttl format (to MICROSECONDS)
 topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 
