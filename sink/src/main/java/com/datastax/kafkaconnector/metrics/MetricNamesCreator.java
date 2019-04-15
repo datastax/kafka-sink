@@ -17,6 +17,18 @@ public class MetricNamesCreator {
     return String.format("%s/%s/%s/batchSize", taskName, keyspace.asInternal(), table.asInternal());
   }
 
+  public static String createRecordCountMetricName(
+      String taskName, CqlIdentifier keyspace, CqlIdentifier table) {
+    return String.format(
+        "%s/%s/%s/recordCount", taskName, keyspace.asInternal(), table.asInternal());
+  }
+
+  public static String createFailedRecordCountMetricName(
+      String taskName, CqlIdentifier keyspace, CqlIdentifier table) {
+    return String.format(
+        "%s/%s/%s/failedRecordCount", taskName, keyspace.asInternal(), table.asInternal());
+  }
+
   public static String createDriverMetricName(String name) {
     return "driver/" + name;
   }

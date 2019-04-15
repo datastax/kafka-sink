@@ -8,7 +8,9 @@
  */
 package com.datastax.kafkaconnector.state;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
 import com.datastax.dse.driver.api.core.DseSession;
@@ -156,13 +158,25 @@ public class InstanceState {
     return getTopicState(tableConfig.getTopicName()).getRecordMapper(tableConfig);
   }
 
-  @NotNull
-  public void incrementRecordCount(int incrementBy) {
-    globalSinkMetrics.incrementRecordCounter(incrementBy);
+  public void incrementRecordCounter(String topicName, String keyspaceAndTable, int incrementBy) {
+    getTopicState(topicName).incrementRecordCount(keyspaceAndTable, incrementBy);
   }
 
-  @NotNull
-  public void incrementFailedCount() {
+  public void incrementFailedCounter(String topicName, String keyspaceAndTable) {
+    getTopicState(topicName).incrementFailedCounter(keyspaceAndTable);
+  }
+
+  @VisibleForTesting
+  public Meter getRecordCounter(String topicName, String keyspaceAndTable) {
+    return getTopicState(topicName).getRecordCountMeter(keyspaceAndTable);
+  }
+
+  @VisibleForTesting
+  public Counter getFailedRecordCounter(String topicName, String keyspaceAndTable) {
+    return getTopicState(topicName).getFailedRecordCounter(keyspaceAndTable);
+  }
+
+  public void incrementGlobalFailedCounter() {
     globalSinkMetrics.incrementFailedCounter();
   }
 

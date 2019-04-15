@@ -376,9 +376,9 @@ class SimpleEndToEndSimulacronIT {
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
     InstanceState instanceState =
         (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
-    assertThat(instanceState.getGlobalSinkMetrics().getFailedRecordCounter().getCount())
+    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
         .isEqualTo(3);
-    assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(5);
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(5);
   }
 
   @Test

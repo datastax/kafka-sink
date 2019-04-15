@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.state;
 
+import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -17,6 +18,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
+import com.datastax.kafkaconnector.config.TableConfigBuilder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +63,15 @@ class InstanceStateTest {
   void should_not_reset_counter_when_create_new_instance_state() {
     // given
     MetricRegistry metricRegistry = new MetricRegistry();
-    Map<String, TopicState> topicStates = new HashMap<>();
+    TopicState topicState = new TopicState("t1", null);
+    topicState.initializeMetrics(metricRegistry);
+    topicState.createRecordMapper(
+        new TableConfigBuilder("t1", "ks", "tb").addSimpleSetting(MAPPING_OPT, "v=key.v").build(),
+        ImmutableList.of(),
+        null,
+        null);
+
+    Map<String, TopicState> topicStates = ImmutableMap.of("t1", topicState);
     InstanceState instanceState =
         new InstanceState(
             new DseSinkConfig(ImmutableMap.of("name", "instance-a")),
@@ -69,10 +80,10 @@ class InstanceStateTest {
             metricRegistry);
 
     // when
-    instanceState.incrementRecordCount(1);
+    instanceState.incrementRecordCounter("t1", "ks.tb", 1);
 
     // then
-    assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(1);
+    assertThat(instanceState.getRecordCounter("t1", "ks.tb").getCount()).isEqualTo(1);
 
     // when create new instanceState
     InstanceState instanceState2 =
@@ -83,6 +94,6 @@ class InstanceStateTest {
             metricRegistry);
 
     // then metrics should not reset
-    assertThat(instanceState2.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(1);
+    assertThat(instanceState2.getRecordCounter("t1", "ks.tb").getCount()).isEqualTo(1);
   }
 }

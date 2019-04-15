@@ -11,27 +11,37 @@ package com.datastax.kafkaconnector.metrics;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import java.util.stream.Stream;
 import javax.management.ObjectName;
+import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class MetricsJmxReporterTest {
 
-  @Test
-  void should_create_batch_size_metric_name() {
+  @ParameterizedTest(name = "[{index}] metricNameProvider={0}, expectedMetricName={1}")
+  @MethodSource("perTopicKsTableMetricNames")
+  void should_create_batch_size_metric_name(
+      TriFunction<String, CqlIdentifier, CqlIdentifier, String> metricNameProvider,
+      String expectedMetricName) {
     // given
     CqlIdentifier keyspace = CqlIdentifier.fromCql("ks_1");
     CqlIdentifier table = CqlIdentifier.fromCql("table_1");
-    String batchSizeMetricName =
-        MetricNamesCreator.createBatchSizeMetricName("task_1", keyspace, table);
+
+    String metricName = metricNameProvider.apply("task_1", keyspace, table);
 
     // when
-    ObjectName batchSizeDomain =
-        MetricsJmxReporter.getObjectName("instance-one", "domain", batchSizeMetricName);
+    ObjectName metricDomain =
+        MetricsJmxReporter.getObjectName("instance-one", "domain", metricName);
 
     // then
-    assertThat(batchSizeDomain.getCanonicalName())
+    assertThat(metricDomain.getCanonicalName())
         .isEqualTo(
-            "domain:connector=instance-one,keyspace=ks_1,name=batchSize,table=table_1,topic=task_1");
+            "domain:connector=instance-one,keyspace=ks_1,name="
+                + expectedMetricName
+                + ",table=table_1,topic=task_1");
   }
 
   @Test
@@ -50,15 +60,16 @@ class MetricsJmxReporterTest {
   }
 
   @Test
-  void should_register_record_count_metric() {
+  void should_register_global_failed_record_count_metric() {
     // given
-    String recordCountMetric = "recordCount";
+    String recordCountMetric = "globalFailedRecordCount";
 
     // when
     ObjectName name = MetricsJmxReporter.getObjectName("instance-one", "domain", recordCountMetric);
 
     // then
-    assertThat(name.getCanonicalName()).isEqualTo("domain:connector=instance-one,name=recordCount");
+    assertThat(name.getCanonicalName())
+        .isEqualTo("domain:connector=instance-one,name=globalFailedRecordCount");
   }
 
   @Test
@@ -85,5 +96,29 @@ class MetricsJmxReporterTest {
     // then
     assertThat(name.getCanonicalName())
         .isEqualTo("domain:connector=instance-one,name=\"value\\\"\\*\\\\\\?\\n\"");
+  }
+
+  private static Stream<? extends Arguments> perTopicKsTableMetricNames() {
+
+    return Stream.of(
+        Arguments.of(
+            (TriFunction<String, CqlIdentifier, CqlIdentifier, String>)
+                MetricNamesCreator::createBatchSizeMetricName,
+            "batchSize"),
+        Arguments.of(
+            (TriFunction<String, CqlIdentifier, CqlIdentifier, String>)
+                MetricNamesCreator::createFailedRecordCountMetricName,
+            "failedRecordCount"),
+        Arguments.of(
+            (TriFunction<String, CqlIdentifier, CqlIdentifier, String>)
+                MetricNamesCreator::createRecordCountMetricName,
+            "recordCount"));
+  }
+
+  // needed only for testing. java.util.function does not provide function that takes 3 parameters
+  // (only BiFunction)
+  @FunctionalInterface
+  private interface TriFunction<T, U, V, R> {
+    R apply(T t, U u, V v);
   }
 }
