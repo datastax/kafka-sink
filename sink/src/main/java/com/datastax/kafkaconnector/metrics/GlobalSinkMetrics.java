@@ -8,9 +8,7 @@
  */
 package com.datastax.kafkaconnector.metrics;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.annotations.VisibleForTesting;
 
 public class GlobalSinkMetrics {
   private static final String FAILED_RECORD_COUNT = "globalFailedRecordCount";
@@ -22,10 +20,5 @@ public class GlobalSinkMetrics {
 
   public void incrementFailedCounter() {
     metricRegistry.counter(FAILED_RECORD_COUNT).inc();
-  }
-
-  @VisibleForTesting
-  public Counter getFailedRecordCounter() {
-    return metricRegistry.counter(FAILED_RECORD_COUNT);
   }
 }

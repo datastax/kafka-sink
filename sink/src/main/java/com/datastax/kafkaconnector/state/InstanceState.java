@@ -180,11 +180,6 @@ public class InstanceState {
     globalSinkMetrics.incrementFailedCounter();
   }
 
-  @VisibleForTesting
-  public GlobalSinkMetrics getGlobalSinkMetrics() {
-    return globalSinkMetrics;
-  }
-
   @NotNull
   private TopicState getTopicState(String topicName) {
     TopicState topicState = topicStates.get(topicName);

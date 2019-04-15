@@ -114,11 +114,4 @@ class MetricsJmxReporterTest {
                 MetricNamesCreator::createRecordCountMetricName,
             "recordCount"));
   }
-
-  // needed only for testing. java.util.function does not provide function that takes 3 parameters
-  // (only BiFunction)
-  @FunctionalInterface
-  private interface TriFunction<T, U, V, R> {
-    R apply(T t, U u, V v);
-  }
 }

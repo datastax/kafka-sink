@@ -23,7 +23,9 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -65,40 +67,38 @@ public class TopicState {
   void initializeMetrics(MetricRegistry metricRegistry) {
     // Add histograms for all topic-tables.
     batchSizeHistograms =
-        recordMappers
-            .keySet()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    TableConfig::getKeyspaceAndTable,
-                    t ->
-                        metricRegistry.histogram(
-                            MetricNamesCreator.createBatchSizeMetricName(
-                                name, t.getKeyspace(), t.getTable()))));
+        constructMetrics(
+            recordMappers,
+            MetricNamesCreator::createBatchSizeMetricName,
+            metricRegistry::histogram);
 
+    // Add recordCounters for all topic-tables.
     recordCounters =
-        recordMappers
-            .keySet()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    TableConfig::getKeyspaceAndTable,
-                    t ->
-                        metricRegistry.meter(
-                            MetricNamesCreator.createRecordCountMetricName(
-                                name, t.getKeyspace(), t.getTable()))));
+        constructMetrics(
+            recordMappers, MetricNamesCreator::createRecordCountMetricName, metricRegistry::meter);
 
+    // Add failedRecordCounters for all topic-tables.
     failedRecordCounters =
-        recordMappers
-            .keySet()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    TableConfig::getKeyspaceAndTable,
-                    t ->
-                        metricRegistry.counter(
-                            MetricNamesCreator.createFailedRecordCountMetricName(
-                                name, t.getKeyspace(), t.getTable()))));
+        constructMetrics(
+            recordMappers,
+            MetricNamesCreator::createFailedRecordCountMetricName,
+            metricRegistry::counter);
+  }
+
+  private <T> Map<String, T> constructMetrics(
+      Map<TableConfig, RecordMapper> recordMappers,
+      TriFunction<String, CqlIdentifier, CqlIdentifier, String> metricNameCreator,
+      Function<String, T> metricCreator) {
+
+    return recordMappers
+        .keySet()
+        .stream()
+        .collect(
+            Collectors.toMap(
+                TableConfig::getKeyspaceAndTable,
+                t ->
+                    metricCreator.apply(
+                        metricNameCreator.apply(name, t.getKeyspace(), t.getTable()))));
   }
 
   @NotNull
