@@ -34,6 +34,7 @@ public class TableConfig extends AbstractConfig {
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
   public static final String TTL_TIME_UNIT_OPT = "ttlTimeUnit";
+  static final String TIMESTAMP_TIME_UNIT_OPT = "timestampTimeUnit";
   static final String CL_OPT = "consistencyLevel";
 
   private static final String DELETES_ENABLED_OPT = "deletesEnabled";
@@ -48,6 +49,7 @@ public class TableConfig extends AbstractConfig {
   private final ConsistencyLevel consistencyLevel;
   private final int ttl;
   private final TimeUnit ttlTimeUnit;
+  private final TimeUnit timestampTimeUnit;
   private final boolean nullToUnset;
   private final boolean deletesEnabled;
 
@@ -82,6 +84,9 @@ public class TableConfig extends AbstractConfig {
     ttlTimeUnit =
         TimeUnit.valueOf(
             getString(getTableSettingPath(topicName, keyspace, table, TTL_TIME_UNIT_OPT)));
+    timestampTimeUnit =
+        TimeUnit.valueOf(
+            getString(getTableSettingPath(topicName, keyspace, table, TIMESTAMP_TIME_UNIT_OPT)));
 
     nullToUnset = getBoolean(getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT));
     deletesEnabled =
@@ -182,6 +187,10 @@ public class TableConfig extends AbstractConfig {
     return ttlTimeUnit;
   }
 
+  public TimeUnit getTimestampTimeUnit() {
+    return timestampTimeUnit;
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(topicName, keyspace, table);
@@ -255,7 +264,13 @@ public class TableConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             "SECONDS",
             ConfigDef.Importance.HIGH,
-            "TimeUnit of provided ttl mapping field.");
+            "TimeUnit of provided ttl mapping field.")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, TIMESTAMP_TIME_UNIT_OPT),
+            ConfigDef.Type.STRING,
+            "MICROSECONDS",
+            ConfigDef.Importance.HIGH,
+            "TimeUnit of provided timestamp mapping field.");
   }
 
   @NotNull
@@ -289,7 +304,7 @@ public class TableConfig extends AbstractConfig {
   }
 
   public long convertTtlToSeconds(Number ttl) {
-    return TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, ttl);
+    return TimeUnitConverter.convertToSeconds(ttlTimeUnit, ttl);
   }
 
   public static class Builder {

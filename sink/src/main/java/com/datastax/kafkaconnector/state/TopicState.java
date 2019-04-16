@@ -54,7 +54,8 @@ public class TopicState {
             tableConfig.isNullToUnset(),
             true,
             false,
-            tableConfig.getTtlTimeUnit()));
+            tableConfig.getTtlTimeUnit(),
+            tableConfig.getTimestampTimeUnit()));
   }
 
   void initializeMetrics(MetricRegistry metricRegistry) {
