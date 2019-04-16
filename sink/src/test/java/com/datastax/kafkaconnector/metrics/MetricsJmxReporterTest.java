@@ -10,10 +10,10 @@ package com.datastax.kafkaconnector.metrics;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import com.datastax.kafkaconnector.util.TriFunction;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import java.util.stream.Stream;
 import javax.management.ObjectName;
-import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

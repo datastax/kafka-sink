@@ -17,6 +17,7 @@ import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
+import com.datastax.kafkaconnector.util.TriFunction;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.annotations.VisibleForTesting;
@@ -25,7 +26,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.tinkerpop.gremlin.util.function.TriFunction;
 import org.jetbrains.annotations.NotNull;
 
 /**

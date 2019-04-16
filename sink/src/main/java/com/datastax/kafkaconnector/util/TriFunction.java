@@ -11,7 +11,7 @@ package com.datastax.kafkaconnector.util;
  * @param <R> the type of the result of the function
  */
 @FunctionalInterface
-interface TriFunction<T, U, V, R> {
+public interface TriFunction<T, U, V, R> {
 
   /**
    * Applies this function to the given arguments.
