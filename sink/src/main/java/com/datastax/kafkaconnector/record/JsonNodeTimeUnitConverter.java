@@ -48,56 +48,56 @@ public class JsonNodeTimeUnitConverter {
         timestampTimeUnit,
         fieldValue,
         ALWAYS_FALSE_PREDICATE,
-        TimeUnitConverter::convertTtlToMicroseconds);
+        TimeUnitConverter::convertTimestampToMicroseconds);
   }
 
   private static Object transformField(
-      TimeUnit ttlTimeUnit,
+      TimeUnit timeUnit,
       Object fieldValue,
       Predicate<Number> shouldMapToZero,
       BiFunction<TimeUnit, Number, Long> converter) {
     if (fieldValue instanceof BigIntegerNode) {
-      long ttl = ((BigIntegerNode) fieldValue).longValue();
-      if (shouldMapToZero.test(ttl)) {
+      long value = ((BigIntegerNode) fieldValue).longValue();
+      if (shouldMapToZero.test(value)) {
         return BIG_INTEGER_NODE_ZERO;
       }
-      return new BigIntegerNode(BigInteger.valueOf(converter.apply(ttlTimeUnit, ttl)));
+      return new BigIntegerNode(BigInteger.valueOf(converter.apply(timeUnit, value)));
     } else if (fieldValue instanceof DecimalNode) {
-      long ttl = ((DecimalNode) fieldValue).longValue();
-      if (shouldMapToZero.test(ttl)) {
+      long value = ((DecimalNode) fieldValue).longValue();
+      if (shouldMapToZero.test(value)) {
         return DECIMAL_NODE_ZERO;
       }
-      return new DecimalNode(BigDecimal.valueOf(converter.apply(ttlTimeUnit, ttl)));
+      return new DecimalNode(BigDecimal.valueOf(converter.apply(timeUnit, value)));
     } else if (fieldValue instanceof IntNode) {
-      int ttl = ((IntNode) fieldValue).intValue();
-      if (shouldMapToZero.test(ttl)) {
+      int value = ((IntNode) fieldValue).intValue();
+      if (shouldMapToZero.test(value)) {
         return INT_NODE_ZERO;
       }
-      return new IntNode((int) converter.apply(ttlTimeUnit, ttl).longValue());
+      return new IntNode((int) converter.apply(timeUnit, value).longValue());
     } else if (fieldValue instanceof FloatNode) {
-      float ttl = ((FloatNode) fieldValue).floatValue();
-      if (shouldMapToZero.test(ttl)) {
+      float value = ((FloatNode) fieldValue).floatValue();
+      if (shouldMapToZero.test(value)) {
         return FLOAT_NODE_ZERO;
       }
-      return new FloatNode(converter.apply(ttlTimeUnit, ttl));
+      return new FloatNode(converter.apply(timeUnit, value));
     } else if (fieldValue instanceof DoubleNode) {
-      double ttl = ((DoubleNode) fieldValue).doubleValue();
-      if (shouldMapToZero.test(ttl)) {
+      double value = ((DoubleNode) fieldValue).doubleValue();
+      if (shouldMapToZero.test(value)) {
         return DOUBLE_NODE_ZERO;
       }
-      return new DoubleNode(converter.apply(ttlTimeUnit, ttl));
+      return new DoubleNode(converter.apply(timeUnit, value));
     } else if (fieldValue instanceof LongNode) {
-      long ttl = ((LongNode) fieldValue).longValue();
-      if (shouldMapToZero.test(ttl)) {
+      long value = ((LongNode) fieldValue).longValue();
+      if (shouldMapToZero.test(value)) {
         return LONG_NODE_ZERO;
       }
-      return new LongNode(converter.apply(ttlTimeUnit, ttl));
+      return new LongNode(converter.apply(timeUnit, value));
     } else if (fieldValue instanceof ShortNode) {
-      short ttl = ((ShortNode) fieldValue).shortValue();
-      if (shouldMapToZero.test(ttl)) {
+      short value = ((ShortNode) fieldValue).shortValue();
+      if (shouldMapToZero.test(value)) {
         return SHORT_NODE_ZERO;
       }
-      return new ShortNode((short) converter.apply(ttlTimeUnit, ttl).longValue());
+      return new ShortNode((short) converter.apply(timeUnit, value).longValue());
     }
     return fieldValue;
   }

@@ -16,7 +16,7 @@ public class TimeUnitConverter {
     return timeUnit.toSeconds(ttl.longValue());
   }
 
-  public static long convertTtlToMicroseconds(TimeUnit timestampTimeUnit, Number timestamp) {
+  public static long convertTimestampToMicroseconds(TimeUnit timestampTimeUnit, Number timestamp) {
     return timestampTimeUnit.toMicros(timestamp.longValue());
   }
 }

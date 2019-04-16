@@ -32,7 +32,7 @@ class TimeUnitConverterTest {
   @MethodSource("expectedToMicroseconds")
   void should_convert_to_microseconds(
       TimeUnit timeUnit, Number timestamp, Long expectedMicroseconds) {
-    long result = TimeUnitConverter.convertTtlToMicroseconds(timeUnit, timestamp);
+    long result = TimeUnitConverter.convertTimestampToMicroseconds(timeUnit, timestamp);
 
     // then
     assertThat(result).isEqualTo(expectedMicroseconds);

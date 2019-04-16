@@ -26,7 +26,7 @@ public class StructTimeUnitConverter {
 
   public static Object transformTimestampField(TimeUnit timestampTimeUnit, Number fieldValue) {
     long resultInMicroseconds =
-        TimeUnitConverter.convertTtlToMicroseconds(timestampTimeUnit, fieldValue);
+        TimeUnitConverter.convertTimestampToMicroseconds(timestampTimeUnit, fieldValue);
     return transformField(resultInMicroseconds, fieldValue, ALWAYS_FALSE_PREDICATE);
   }
 
