@@ -37,10 +37,7 @@ public class JsonNodeTimeUnitConverter {
 
   public static Object transformTtlField(TimeUnit ttlTimeUnit, Object fieldValue) {
     return transformField(
-        ttlTimeUnit,
-        fieldValue,
-        SHOULD_MAP_TO_ZERO_PREDICATE,
-        TimeUnitConverter::convertTtlToSeconds);
+        ttlTimeUnit, fieldValue, SHOULD_MAP_TO_ZERO_PREDICATE, TimeUnitConverter::convertToSeconds);
   }
 
   public static Object transformTimestampField(TimeUnit timestampTimeUnit, Object fieldValue) {
@@ -48,7 +45,7 @@ public class JsonNodeTimeUnitConverter {
         timestampTimeUnit,
         fieldValue,
         ALWAYS_FALSE_PREDICATE,
-        TimeUnitConverter::convertTimestampToMicroseconds);
+        TimeUnitConverter::convertToMicroseconds);
   }
 
   private static Object transformField(

@@ -22,7 +22,7 @@ class TimeUnitConverterTest {
   @ParameterizedTest(name = "[{index}] timeUnit={0}, ttl={1}, expectedSeconds={2}")
   @MethodSource("expectedToSeconds")
   void should_convert_to_seconds(TimeUnit timeUnit, Number ttl, Long expectedSeconds) {
-    long result = TimeUnitConverter.convertTtlToSeconds(timeUnit, ttl);
+    long result = TimeUnitConverter.convertToSeconds(timeUnit, ttl);
 
     // then
     assertThat(result).isEqualTo(expectedSeconds);
@@ -32,7 +32,7 @@ class TimeUnitConverterTest {
   @MethodSource("expectedToMicroseconds")
   void should_convert_to_microseconds(
       TimeUnit timeUnit, Number timestamp, Long expectedMicroseconds) {
-    long result = TimeUnitConverter.convertTimestampToMicroseconds(timeUnit, timestamp);
+    long result = TimeUnitConverter.convertToMicroseconds(timeUnit, timestamp);
 
     // then
     assertThat(result).isEqualTo(expectedMicroseconds);

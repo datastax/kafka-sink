@@ -20,13 +20,13 @@ public class StructTimeUnitConverter {
   private static final Predicate<Number> ALWAYS_FALSE_PREDICATE = value -> false;
 
   public static Object transformTtlField(TimeUnit ttlTimeUnit, Number fieldValue) {
-    long resultInSeconds = TimeUnitConverter.convertTtlToSeconds(ttlTimeUnit, fieldValue);
+    long resultInSeconds = TimeUnitConverter.convertToSeconds(ttlTimeUnit, fieldValue);
     return transformField(resultInSeconds, fieldValue, SHOULD_MAP_TO_ZERO_PREDICATE);
   }
 
   public static Object transformTimestampField(TimeUnit timestampTimeUnit, Number fieldValue) {
     long resultInMicroseconds =
-        TimeUnitConverter.convertTimestampToMicroseconds(timestampTimeUnit, fieldValue);
+        TimeUnitConverter.convertToMicroseconds(timestampTimeUnit, fieldValue);
     return transformField(resultInMicroseconds, fieldValue, ALWAYS_FALSE_PREDICATE);
   }
 
