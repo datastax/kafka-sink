@@ -51,7 +51,8 @@ public class MetricsJmxReporter {
       if (metricName.contains("batchSize")
           || metricName.contains("failedRecordCount")
           || metricName.contains("recordCount")) {
-        // special-case batchSize metrics and expose them per topic, ks and table
+        // special-case batchSize, failedRecordCount, recordCount metrics
+        // and expose them per topic, ks and table
         sb.append("topic=")
             .append(quoteJMXIfNecessary(tokens.next()))
             .append(",keyspace=")
