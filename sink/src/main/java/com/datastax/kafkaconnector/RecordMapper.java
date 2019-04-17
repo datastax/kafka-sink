@@ -238,7 +238,8 @@ public class RecordMapper {
         return;
       }
     }
-    builder.setBytesUnsafe(variable, bb);
+    // todo fix problem of @CheckedReturnValue warning here
+    builder = builder.setBytesUnsafe(variable, bb);
   }
 
   private boolean isNull(ByteBuffer bb, DataType cqlType) {

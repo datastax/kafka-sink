@@ -70,7 +70,7 @@ public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
           codecRegistry.convertingCodecFor(
               udtFieldType, structMetadata.getFieldType(udtFieldName.asInternal(), udtFieldType));
       Object o = fieldCodec.externalToInternal(external.get(udtFieldName.asInternal()));
-      value.set(udtFieldName, o, fieldCodec.getInternalJavaType());
+      value = value.set(udtFieldName, o, fieldCodec.getInternalJavaType());
     }
     return value;
   }
