@@ -11,14 +11,14 @@ package com.datastax.kafkaconnector.metrics;
 import com.codahale.metrics.MetricRegistry;
 
 public class GlobalSinkMetrics {
-  private static final String FAILED_RECORD_COUNT = "globalFailedRecordCount";
+  private static final String FAILED_RECORDS_WITH_UNKNOWN_TOPIC = "failedRecordsWithUnknownTopic";
   private MetricRegistry metricRegistry;
 
   public GlobalSinkMetrics(MetricRegistry metricRegistry) {
     this.metricRegistry = metricRegistry;
   }
 
-  public void incrementFailedCounter() {
-    metricRegistry.counter(FAILED_RECORD_COUNT).inc();
+  public void incrementFailedWithUnknownTopicCounter() {
+    metricRegistry.counter(FAILED_RECORDS_WITH_UNKNOWN_TOPIC).inc();
   }
 }

@@ -176,8 +176,8 @@ public class InstanceState {
     return getTopicState(topicName).getFailedRecordCounter(keyspaceAndTable);
   }
 
-  public void incrementGlobalFailedCounter() {
-    globalSinkMetrics.incrementFailedCounter();
+  public void incrementFailedWithUnknownTopicCounter() {
+    globalSinkMetrics.incrementFailedWithUnknownTopicCounter();
   }
 
   @NotNull

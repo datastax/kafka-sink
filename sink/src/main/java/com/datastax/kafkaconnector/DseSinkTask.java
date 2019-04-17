@@ -234,7 +234,7 @@ public class DseSinkTask extends SinkTask {
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
 
-      handleFailure(record, e, null, instanceState::incrementGlobalFailedCounter);
+      handleFailure(record, e, null, instanceState::incrementFailedWithUnknownTopicCounter);
     }
   }
 
