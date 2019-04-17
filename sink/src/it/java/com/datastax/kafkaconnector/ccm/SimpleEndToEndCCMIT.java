@@ -93,7 +93,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + "booleanCol boolean, "
                     + "intCol int"
                     + ")")
-            .withTimeout(Duration.ofSeconds(10))
+            .setTimeout(Duration.ofSeconds(10))
             .build());
 
     session.execute(
@@ -104,7 +104,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + "intCol int,"
                     + "PRIMARY KEY (bigintcol, booleancol)"
                     + ")")
-            .withTimeout(Duration.ofSeconds(10))
+            .setTimeout(Duration.ofSeconds(10))
             .build());
   }
 
@@ -1364,7 +1364,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + "\"TEXT.COL\" text,"
                     + "PRIMARY KEY (\"bigint col\", \"boolean-col\")"
                     + ")")
-            .withTimeout(Duration.ofSeconds(10))
+            .setTimeout(Duration.ofSeconds(10))
             .build());
     conn.start(
         makeConnectorProperties(
@@ -1419,13 +1419,13 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     session.execute(
         SimpleStatement.builder(
                 "CREATE TYPE case_sensitive_udt (\"Field A\" int, \"Field-B\" text, \"Field.C\" list<int>)")
-            .withTimeout(Duration.ofSeconds(10))
+            .setTimeout(Duration.ofSeconds(10))
             .build());
 
     session.execute(
         SimpleStatement.builder(
                 "CREATE TABLE \"CASE_SENSITIVE_UDT\" (pk bigint PRIMARY KEY, value frozen<case_sensitive_udt>)")
-            .withTimeout(Duration.ofSeconds(10))
+            .setTimeout(Duration.ofSeconds(10))
             .build());
 
     conn.start(makeConnectorProperties("pk=key, value=value", "\"CASE_SENSITIVE_UDT\"", null));
