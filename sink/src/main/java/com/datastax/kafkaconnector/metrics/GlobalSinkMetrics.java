@@ -8,17 +8,19 @@
  */
 package com.datastax.kafkaconnector.metrics;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
 
 public class GlobalSinkMetrics {
   private static final String FAILED_RECORDS_WITH_UNKNOWN_TOPIC = "failedRecordsWithUnknownTopic";
-  private MetricRegistry metricRegistry;
+  private final Counter failedRecordsWithUnknownTopicCounter;
 
   public GlobalSinkMetrics(MetricRegistry metricRegistry) {
-    this.metricRegistry = metricRegistry;
+    failedRecordsWithUnknownTopicCounter =
+        metricRegistry.counter(FAILED_RECORDS_WITH_UNKNOWN_TOPIC);
   }
 
   public void incrementFailedWithUnknownTopicCounter() {
-    metricRegistry.counter(FAILED_RECORDS_WITH_UNKNOWN_TOPIC).inc();
+    failedRecordsWithUnknownTopicCounter.inc();
   }
 }
