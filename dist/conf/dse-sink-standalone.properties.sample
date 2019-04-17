@@ -93,7 +93,7 @@ topics=my_topic
 #### Settings for table my_ks.my_table in topic my_topic ####
 
 # Kafka record field to DSE table column mapping spec, in the form 'col1=value.f1, col2=key.f1'.
-topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
+topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3
 
 # When you specify ttl value to be used while inserting (by mapping __ttl or .ttl static config)
 # you may want to specify timeUnit of the provided ttl. Default is SECONDS.
@@ -101,6 +101,12 @@ topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
 # The connector will automatically transform it to proper DSE ttl format (to SECONDS)
 # The transformation also applies for static ttl field config.
 topic.my_topic.my_ks.my_table.ttlTimeUnit=SECONDS
+
+# When you specify timestamp value to be used while inserting (by mapping __timestamp)
+# you may want to specify timeUnit of the provided timestamp. Default is MICROSECONDS.
+# So if your field used as a timestamp is in different format (for example HOURS) set it to HOURS.
+# The connector will automatically transform it to proper DSE ttl format (to MICROSECONDS)
+topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 
 # Query consistency level; defaults to LOCAL_ONE.
 #topic.my_topic.my_ks.my_table.consistencyLevel=LOCAL_ONE

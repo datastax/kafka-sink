@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.config.TableConfig.CL_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.TIMESTAMP_TIME_UNIT_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_TIME_UNIT_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -142,21 +143,26 @@ class TableConfigTest {
             CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("value.good"));
     assertThat(config.getTtlTimeUnit())
         .isEqualTo(TimeUnit.SECONDS); // default timeUnit for ttl for backward compatibility
+    assertThat(config.getTimestampTimeUnit())
+        .isEqualTo(TimeUnit.MICROSECONDS); // default timeUnit for ttl for backward compatibility
   }
 
-  @ParameterizedTest(name = "[{index}] ttlStringParameter={0}, expectedTimeUnit={1}")
-  @MethodSource("ttlTimeUnits")
-  void should_create_ttl_mapping(String ttlStringParameter, TimeUnit expectedTimeUnit) {
+  @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")
+  @MethodSource("ttlTimestampTimeUnits")
+  void should_create_ttl_and_timestamp_time_units(
+      String ttlTimestampStringParameter, TimeUnit expectedTimeUnit) {
     TableConfig config =
         configBuilder
             .addSimpleSetting(MAPPING_OPT, "a=key.b")
-            .addSimpleSetting(TTL_TIME_UNIT_OPT, ttlStringParameter)
+            .addSimpleSetting(TTL_TIME_UNIT_OPT, ttlTimestampStringParameter)
+            .addSimpleSetting(TIMESTAMP_TIME_UNIT_OPT, ttlTimestampStringParameter)
             .build();
 
     assertThat(config.getTtlTimeUnit()).isEqualTo(expectedTimeUnit);
+    assertThat(config.getTimestampTimeUnit()).isEqualTo(expectedTimeUnit);
   }
 
-  private static Stream<? extends Arguments> ttlTimeUnits() {
+  private static Stream<? extends Arguments> ttlTimestampTimeUnits() {
     return Stream.of(
         Arguments.of("MILLISECONDS", TimeUnit.MILLISECONDS),
         Arguments.of("MINUTES", TimeUnit.MINUTES),

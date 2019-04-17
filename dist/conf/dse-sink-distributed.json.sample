@@ -28,10 +28,11 @@
         "ssl.truststore.password": "",
         "ssl.truststore.path": "",
         "ssl.cipherSuites": "",
-        "topic.my_topic.my_ks.my_table.mapping": "col1=key.f1, col2=value.f1, __ttl=value.f2",
+        "topic.my_topic.my_ks.my_table.mapping": "col1=key.f1, col2=value.f1, __ttl=value.f2 __timestamp=value.f3",
         "topic.my_topic.my_ks.my_table.consistencyLevel": "LOCAL_ONE",
         "topic.my_topic.my_ks.my_table.ttl": -1,
         "topic.my_topic.my_ks.my_table.ttlTimeUnit" : "SECONDS"
+        "topic.my_topic.my_ks.my_table.timestampTimeUnit" : "MICROSECONDS"
         "topic.my_topic.my_ks.my_table.nullToUnset": "true",
         "topic.my_topic.my_ks.my_table.deletesEnabled": "true",
         "topic.my_topic.codec.locale": "en_US",

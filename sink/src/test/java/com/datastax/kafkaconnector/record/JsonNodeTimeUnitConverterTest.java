@@ -26,18 +26,29 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class JsonNodeTtlConverterTest {
+class JsonNodeTimeUnitConverterTest {
 
   @ParameterizedTest(name = "[{index}] jsonNode={0}, expectedSeconds={1}")
-  @MethodSource("expectedToSeconds")
-  void should_convert_json_number_node(NumericNode jsonNode, NumericNode expectedSeconds) {
-    Object result = JsonNodeTtlConverter.transformField(TimeUnit.MILLISECONDS, jsonNode);
+  @MethodSource("expectedTtlToSeconds")
+  void should_convert_json_number_node_for_ttl(NumericNode jsonNode, NumericNode expectedSeconds) {
+    Object result = JsonNodeTimeUnitConverter.transformTtlField(TimeUnit.MILLISECONDS, jsonNode);
 
     // then
     assertThat(result).isEqualTo(expectedSeconds);
   }
 
-  private static Stream<? extends Arguments> expectedToSeconds() {
+  @ParameterizedTest(name = "[{index}] jsonNode={0}, expectedSeconds={1}")
+  @MethodSource("expectedTimestampToSeconds")
+  void should_convert_json_number_node_for_timestamp(
+      NumericNode jsonNode, NumericNode expectedSeconds) {
+    Object result =
+        JsonNodeTimeUnitConverter.transformTimestampField(TimeUnit.MILLISECONDS, jsonNode);
+
+    // then
+    assertThat(result).isEqualTo(expectedSeconds);
+  }
+
+  private static Stream<? extends Arguments> expectedTtlToSeconds() {
     return Stream.of(
         Arguments.of(
             new BigIntegerNode(BigInteger.valueOf(1000)),
@@ -59,5 +70,31 @@ class JsonNodeTtlConverterTest {
         Arguments.of(new LongNode(-1000), new LongNode(0)),
         Arguments.of(new ShortNode((short) 1000), new ShortNode((short) 1)),
         Arguments.of(new ShortNode((short) -1000), new ShortNode((short) 0)));
+  }
+
+  private static Stream<? extends Arguments> expectedTimestampToSeconds() {
+    return Stream.of(
+        Arguments.of(
+            new BigIntegerNode(BigInteger.valueOf(1000)),
+            new BigIntegerNode(BigInteger.valueOf(1_000_000))),
+        Arguments.of(
+            new BigIntegerNode(BigInteger.valueOf(-1000)),
+            new BigIntegerNode(BigInteger.valueOf(-1_000_000))),
+        Arguments.of(
+            new DecimalNode(BigDecimal.valueOf(1000)),
+            new DecimalNode(BigDecimal.valueOf(1_000_000))),
+        Arguments.of(
+            new DecimalNode(BigDecimal.valueOf(-1000)),
+            new DecimalNode(BigDecimal.valueOf(-1_000_000))),
+        Arguments.of(new IntNode(1000), new IntNode(1_000_000)),
+        Arguments.of(new IntNode(-1000), new IntNode(-1_000_000)),
+        Arguments.of(new FloatNode(1000), new FloatNode(1_000_000)),
+        Arguments.of(new FloatNode(-1000), new FloatNode(-1_000_000)),
+        Arguments.of(new DoubleNode(1000), new DoubleNode(1_000_000)),
+        Arguments.of(new DoubleNode(-1000), new DoubleNode(-1_000_000)),
+        Arguments.of(new LongNode(1000), new LongNode(1_000_000)),
+        Arguments.of(new LongNode(-1000), new LongNode(-1_000_000)),
+        Arguments.of(new ShortNode((short) 1000), new ShortNode((short) 1_000_000)),
+        Arguments.of(new ShortNode((short) -1000), new ShortNode((short) -1_000_000)));
   }
 }

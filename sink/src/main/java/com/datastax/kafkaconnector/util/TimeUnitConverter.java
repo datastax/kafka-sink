@@ -12,7 +12,11 @@ import java.util.concurrent.TimeUnit;
 
 public class TimeUnitConverter {
 
-  public static long convertTtlToSeconds(TimeUnit timeUnit, Number ttl) {
-    return timeUnit.toSeconds(ttl.longValue());
+  public static long convertToSeconds(TimeUnit timeUnit, Number value) {
+    return timeUnit.toSeconds(value.longValue());
+  }
+
+  public static long convertToMicroseconds(TimeUnit timestampTimeUnit, Number value) {
+    return timestampTimeUnit.toMicros(value.longValue());
   }
 }
