@@ -454,7 +454,7 @@ public class LifeCycleManager {
                   codecSettings.init();
                   KafkaCodecRegistry codecRegistry =
                       codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
-                  TopicState topicState = new TopicState(topicConfig.getTopicName(), codecRegistry);
+                  TopicState topicState = new TopicState(codecRegistry);
                   topicStates.put(topicConfig.getTopicName(), topicState);
 
                   return topicConfig

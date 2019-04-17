@@ -63,7 +63,7 @@ class InstanceStateTest {
   void should_not_reset_counter_when_create_new_instance_state() {
     // given
     MetricRegistry metricRegistry = new MetricRegistry();
-    TopicState topicState = new TopicState("t1", null);
+    TopicState topicState = new TopicState(null);
     topicState.initializeMetrics(metricRegistry);
     topicState.createRecordMapper(
         new TableConfigBuilder("t1", "ks", "tb").addSimpleSetting(MAPPING_OPT, "v=key.v").build(),

@@ -17,7 +17,6 @@ import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
-import com.datastax.kafkaconnector.util.TriFunction;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.google.common.annotations.VisibleForTesting;
@@ -32,16 +31,14 @@ import org.jetbrains.annotations.NotNull;
  * Container for a topic-scoped entities that the sink tasks need (codec-registry, prepared
  * statement, etc.)
  */
-public class TopicState {
-  private final String name;
+class TopicState {
   private final KafkaCodecRegistry codecRegistry;
   private final Map<TableConfig, RecordMapper> recordMappers;
   private Map<String, Histogram> batchSizeHistograms;
   private Map<String, Meter> recordCounters;
   private Map<String, Counter> failedRecordCounters;
 
-  public TopicState(String name, KafkaCodecRegistry codecRegistry) {
-    this.name = name;
+  TopicState(KafkaCodecRegistry codecRegistry) {
     this.codecRegistry = codecRegistry;
     recordMappers = new ConcurrentHashMap<>();
   }
@@ -87,7 +84,7 @@ public class TopicState {
 
   private <T> Map<String, T> constructMetrics(
       Map<TableConfig, RecordMapper> recordMappers,
-      TriFunction<String, CqlIdentifier, CqlIdentifier, String> metricNameCreator,
+      Function<TableConfig, String> metricNameCreator,
       Function<String, T> metricCreator) {
 
     return recordMappers
@@ -96,9 +93,7 @@ public class TopicState {
         .collect(
             Collectors.toMap(
                 TableConfig::getKeyspaceAndTable,
-                t ->
-                    metricCreator.apply(
-                        metricNameCreator.apply(name, t.getKeyspace(), t.getTable()))));
+                t -> metricCreator.apply(metricNameCreator.apply(t))));
   }
 
   @NotNull
@@ -106,21 +101,21 @@ public class TopicState {
     return batchSizeHistograms.get(keyspaceAndTable);
   }
 
-  public void incrementRecordCount(String keyspaceAndTable, int incrementBy) {
+  void incrementRecordCount(String keyspaceAndTable, int incrementBy) {
     recordCounters.get(keyspaceAndTable).mark(incrementBy);
   }
 
-  public void incrementFailedCounter(String keyspaceAndTable) {
+  void incrementFailedCounter(String keyspaceAndTable) {
     failedRecordCounters.get(keyspaceAndTable).inc();
   }
 
   @VisibleForTesting
-  public Meter getRecordCountMeter(String keyspaceAndTable) {
+  Meter getRecordCountMeter(String keyspaceAndTable) {
     return recordCounters.get(keyspaceAndTable);
   }
 
   @VisibleForTesting
-  public Counter getFailedRecordCounter(String keyspaceAndTable) {
+  Counter getFailedRecordCounter(String keyspaceAndTable) {
     return failedRecordCounters.get(keyspaceAndTable);
   }
 

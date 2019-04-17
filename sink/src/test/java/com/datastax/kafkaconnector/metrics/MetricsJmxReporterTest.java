@@ -10,8 +10,9 @@ package com.datastax.kafkaconnector.metrics;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import com.datastax.kafkaconnector.util.TriFunction;
-import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.kafkaconnector.config.TableConfig;
+import com.datastax.kafkaconnector.config.TableConfigBuilder;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import javax.management.ObjectName;
 import org.junit.jupiter.api.Test;
@@ -24,13 +25,15 @@ class MetricsJmxReporterTest {
   @ParameterizedTest(name = "[{index}] metricNameProvider={0}, expectedMetricName={1}")
   @MethodSource("perTopicKsTableMetricNames")
   void should_create_batch_size_metric_name(
-      TriFunction<String, CqlIdentifier, CqlIdentifier, String> metricNameProvider,
-      String expectedMetricName) {
+      Function<TableConfig, String> metricNameProvider, String expectedMetricName) {
     // given
-    CqlIdentifier keyspace = CqlIdentifier.fromCql("ks_1");
-    CqlIdentifier table = CqlIdentifier.fromCql("table_1");
 
-    String metricName = metricNameProvider.apply("task_1", keyspace, table);
+    TableConfig tableConfig =
+        new TableConfigBuilder("task_1", "ks_1", "table_1")
+            .addSimpleSetting("mapping", "key=key")
+            .build();
+
+    String metricName = metricNameProvider.apply(tableConfig);
 
     // when
     ObjectName metricDomain =
@@ -102,16 +105,13 @@ class MetricsJmxReporterTest {
 
     return Stream.of(
         Arguments.of(
-            (TriFunction<String, CqlIdentifier, CqlIdentifier, String>)
-                MetricNamesCreator::createBatchSizeMetricName,
+            (Function<TableConfig, String>) MetricNamesCreator::createBatchSizeMetricName,
             "batchSize"),
         Arguments.of(
-            (TriFunction<String, CqlIdentifier, CqlIdentifier, String>)
-                MetricNamesCreator::createFailedRecordCountMetricName,
+            (Function<TableConfig, String>) MetricNamesCreator::createFailedRecordCountMetricName,
             "failedRecordCount"),
         Arguments.of(
-            (TriFunction<String, CqlIdentifier, CqlIdentifier, String>)
-                MetricNamesCreator::createRecordCountMetricName,
+            (Function<TableConfig, String>) MetricNamesCreator::createRecordCountMetricName,
             "recordCount"));
   }
 }

@@ -8,25 +8,32 @@
  */
 package com.datastax.kafkaconnector.metrics;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.kafkaconnector.config.TableConfig;
 
 public class MetricNamesCreator {
 
-  public static String createBatchSizeMetricName(
-      String taskName, CqlIdentifier keyspace, CqlIdentifier table) {
-    return String.format("%s/%s/%s/batchSize", taskName, keyspace.asInternal(), table.asInternal());
+  public static String createBatchSizeMetricName(TableConfig tableConfig) {
+    return String.format(
+        "%s/%s/%s/batchSize",
+        tableConfig.getTopicName(),
+        tableConfig.getKeyspace().asInternal(),
+        tableConfig.getTable().asInternal());
   }
 
-  public static String createRecordCountMetricName(
-      String taskName, CqlIdentifier keyspace, CqlIdentifier table) {
+  public static String createRecordCountMetricName(TableConfig tableConfig) {
     return String.format(
-        "%s/%s/%s/recordCount", taskName, keyspace.asInternal(), table.asInternal());
+        "%s/%s/%s/recordCount",
+        tableConfig.getTopicName(),
+        tableConfig.getKeyspace().asInternal(),
+        tableConfig.getTable().asInternal());
   }
 
-  public static String createFailedRecordCountMetricName(
-      String taskName, CqlIdentifier keyspace, CqlIdentifier table) {
+  public static String createFailedRecordCountMetricName(TableConfig tableConfig) {
     return String.format(
-        "%s/%s/%s/failedRecordCount", taskName, keyspace.asInternal(), table.asInternal());
+        "%s/%s/%s/failedRecordCount",
+        tableConfig.getTopicName(),
+        tableConfig.getKeyspace().asInternal(),
+        tableConfig.getTable().asInternal());
   }
 
   public static String createDriverMetricName(String name) {
