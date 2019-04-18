@@ -238,7 +238,6 @@ public class RecordMapper {
         return;
       }
     }
-    // todo fix problem of @CheckedReturnValue warning here
     builder = builder.setBytesUnsafe(variable, bb);
   }
 
