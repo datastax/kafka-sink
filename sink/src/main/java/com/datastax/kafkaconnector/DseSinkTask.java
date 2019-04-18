@@ -202,30 +202,39 @@ public class DseSinkTask extends SinkTask {
       TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
 
       for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
-        InnerDataAndMetadata key = MetadataCreator.makeMeta(record.key());
-        InnerDataAndMetadata value = MetadataCreator.makeMeta(record.value());
-        KeyValueRecord keyValueRecord =
-            new KeyValueRecord(key.getInnerData(), value.getInnerData(), record.timestamp());
-        RecordMapper mapper = instanceState.getRecordMapper(tableConfig);
-        boundStatementsQueue.offer(
-            new RecordAndStatement(
-                record,
-                tableConfig.getKeyspaceAndTable(),
-                mapper
-                    .map(
-                        new KeyValueRecordMetadata(
-                            key.getInnerMetadata(), value.getInnerMetadata()),
-                        keyValueRecord)
-                    .setConsistencyLevel(tableConfig.getConsistencyLevel())));
+        Runnable failedRecordIncrement =
+            () ->
+                instanceState.incrementFailedCounter(topicName, tableConfig.getKeyspaceAndTable());
+        try {
+          InnerDataAndMetadata key = MetadataCreator.makeMeta(record.key());
+          InnerDataAndMetadata value = MetadataCreator.makeMeta(record.value());
+
+          KeyValueRecord keyValueRecord =
+              new KeyValueRecord(key.getInnerData(), value.getInnerData(), record.timestamp());
+          RecordMapper mapper = instanceState.getRecordMapper(tableConfig);
+          boundStatementsQueue.offer(
+              new RecordAndStatement(
+                  record,
+                  tableConfig.getKeyspaceAndTable(),
+                  mapper
+                      .map(
+                          new KeyValueRecordMetadata(
+                              key.getInnerMetadata(), value.getInnerMetadata()),
+                          keyValueRecord)
+                      .setConsistencyLevel(tableConfig.getConsistencyLevel())));
+        } catch (IOException ex) {
+          // The IOException can only theoretically happen when processing json data. But bad json
+          // won't result in this exception. We're not pulling data from a file or any other kind of
+          // IO.
+          handleFailure(record, ex, null, failedRecordIncrement);
+        }
       }
-    } catch (KafkaException | IOException e) {
+    } catch (KafkaException e) {
       // The Kafka exception could occur if the record references an unknown topic.
-      // The IOException can only theoretically happen when processing json data. But bad json
-      // won't result in this exception. We're not pulling data from a file or any other kind of IO.
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
 
-      handleFailure(record, e, null, instanceState::incrementFailedCount);
+      handleFailure(record, e, null, instanceState::incrementFailedWithUnknownTopicCounter);
     }
   }
 

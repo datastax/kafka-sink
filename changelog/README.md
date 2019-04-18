@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.1.0 (in progress)
+- [improvement] KAF-72: Counters and histograms should be per topic/keyspace/table, not global
 - [new feature] KAF-46: Allow mapping of a field in the Kafka record to the WRITETIME of the DSE record
 - [bug] KAF-104: Support topic names that contain periods
 - [new feature] KAF-107: Allow ttl to be set from a Kafka field

@@ -77,6 +77,15 @@ class BoundStatementProcessor implements Callable<Void> {
     Histogram batchSizeHistogram =
         instanceState.getBatchSizeHistogram(
             firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+    Consumer<Integer> recordIncrement =
+        v ->
+            instanceState.incrementRecordCounter(
+                firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable(), v);
+    Runnable failedRecordIncrement =
+        () ->
+            instanceState.incrementFailedCounter(
+                firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+
     if (statements.size() == 1) {
       statement = firstStatement.getStatement();
       batchSizeHistogram.update(1);
@@ -105,12 +114,12 @@ class BoundStatementProcessor implements Callable<Void> {
                           record,
                           ex,
                           recordAndStatement.getStatement().getPreparedStatement().getQuery(),
-                          instanceState::incrementFailedCount);
+                          failedRecordIncrement);
                     });
               } else {
                 successfulRecordCount.addAndGet(statements.size());
               }
-              instanceState.incrementRecordCount(statements.size());
+              recordIncrement.accept(statements.size());
             }));
   }
 
