@@ -156,6 +156,19 @@ class SimpleEndToEndSimulacronIT {
             .build();
   }
 
+  private static SinkRecord makeTtlRecord(int key, String value, long timestamp, long offset) {
+    return new SinkRecord(
+        "mytopic_with_ttl",
+        0,
+        null,
+        key,
+        null,
+        value,
+        offset,
+        timestamp,
+        TimestampType.CREATE_TIME);
+  }
+
   private static SinkRecord makeRecord(int key, String value, long timestamp, long offset) {
     return makeRecord(0, key, value, timestamp, offset);
   }
@@ -376,9 +389,9 @@ class SimpleEndToEndSimulacronIT {
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
     InstanceState instanceState =
         (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
-    assertThat(instanceState.getGlobalSinkMetrics().getFailedRecordCounter().getCount())
+    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
         .isEqualTo(3);
-    assertThat(instanceState.getGlobalSinkMetrics().getRecordCountMeter().getCount()).isEqualTo(5);
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(5);
   }
 
   @Test
@@ -393,28 +406,10 @@ class SimpleEndToEndSimulacronIT {
 
     conn.start(connectorProperties);
 
-    SinkRecord record1 =
-        new SinkRecord(
-            "mytopic_with_ttl",
-            0,
-            null,
-            22,
-            null,
-            "success",
-            1235L,
-            153000987L,
-            TimestampType.CREATE_TIME);
-    SinkRecord record2 =
-        new SinkRecord(
-            "mytopic_with_ttl",
-            0,
-            null,
-            33,
-            null,
-            "success_2",
-            1235L,
-            153000987L,
-            TimestampType.CREATE_TIME);
+    SinkRecord record1 = makeTtlRecord(22, "success", 153000987L, 1235L);
+
+    SinkRecord record2 = makeTtlRecord(33, "success_2", 153000987L, 1235L);
+
     runTaskWithRecords(record1, record2);
 
     Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
@@ -465,6 +460,57 @@ class SimpleEndToEndSimulacronIT {
     assertThat(queryList.size()).isEqualTo(2);
     assertThat(queryList.get(0).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
     assertThat(queryList.get(1).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+  }
+
+  /** Test for KAF-72 */
+  @Test
+  void should_record_counters_per_topic_ks_table() {
+    SimulacronUtils.primeTables(simulacron, schema);
+
+    Query good1topic1 = makeQuery(42, "the answer", 153000987000L);
+    simulacron.prime(when(good1topic1).then(noRows()));
+
+    Query good2topic1 = makeQuery(22, "success", 153000987000L);
+    simulacron.prime(when(good2topic1).then(noRows()));
+
+    Query good1topic2 = makeTtlQuery(22, "success", 153000987000L, 22L);
+    simulacron.prime(when(good1topic2).then(noRows()));
+
+    Query good2topic2 = makeTtlQuery(33, "success_2", 153000987000L, 33L);
+    simulacron.prime(when(good2topic2).then(noRows()));
+
+    conn.start(connectorProperties);
+
+    SinkRecord record1topic1 = makeRecord(42, "the answer", 153000987L, 1234);
+    SinkRecord record2topic1 = makeRecord(22, "success", 153000987L, 1235);
+    SinkRecord record1topic2 = makeTtlRecord(22, "success", 153000987L, 1235);
+    SinkRecord record2topic2 = makeTtlRecord(33, "success_2", 153000987L, 1235);
+
+    runTaskWithRecords(record1topic1, record2topic1, record1topic2, record2topic2);
+
+    Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+    task.preCommit(currentOffsets);
+    assertThat(currentOffsets).isEmpty();
+
+    List<QueryLog> queryList =
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
+            .filter(q -> q.getType().equals("EXECUTE"))
+            .collect(Collectors.toList());
+    assertThat(queryList.size()).isEqualTo(4);
+    assertThat(queryList.get(0).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+    assertThat(queryList.get(1).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+    assertThat(queryList.get(2).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+    assertThat(queryList.get(3).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
+
+    InstanceState instanceState =
+        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(2);
+    assertThat(instanceState.getRecordCounter("mytopic_with_ttl", "ks1.table1_with_ttl").getCount())
+        .isEqualTo(2);
   }
 
   @Test
