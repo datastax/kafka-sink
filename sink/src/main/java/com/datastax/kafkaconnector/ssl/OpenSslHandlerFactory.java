@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.ssl;
 
+import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import com.datastax.oss.driver.internal.core.ssl.SslHandlerFactory;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslContext;
@@ -28,8 +29,9 @@ public class OpenSslHandlerFactory implements SslHandlerFactory {
   }
 
   @Override
-  public SslHandler newSslHandler(Channel channel, SocketAddress socketAddress) {
+  public SslHandler newSslHandler(Channel channel, EndPoint remoteEndpoint) {
     SslHandler sslHandler;
+    SocketAddress socketAddress = remoteEndpoint.resolve();
     if (socketAddress instanceof InetSocketAddress) {
       InetSocketAddress inetAddr = (InetSocketAddress) socketAddress;
       sslHandler = context.newHandler(channel.alloc(), inetAddr.getHostName(), inetAddr.getPort());

@@ -238,7 +238,7 @@ public class RecordMapper {
         return;
       }
     }
-    builder.setBytesUnsafe(variable, bb);
+    builder = builder.setBytesUnsafe(variable, bb);
   }
 
   private boolean isNull(ByteBuffer bb, DataType cqlType) {

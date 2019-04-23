@@ -20,8 +20,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.metadata.DseMetadata;
-import com.datastax.dse.driver.api.core.metadata.schema.DseColumnMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
@@ -30,11 +28,12 @@ import com.datastax.kafkaconnector.config.TableConfigBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.context.DriverContext;
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -54,11 +53,11 @@ class LifeCycleManagerTest {
   private static final CqlIdentifier C1_IDENT = CqlIdentifier.fromInternal(C1);
   private static final CqlIdentifier C2_IDENT = CqlIdentifier.fromInternal(C2);
   private static final CqlIdentifier C3_IDENT = CqlIdentifier.fromInternal(C3);
-  private DseColumnMetadata col1;
-  private DseColumnMetadata col2;
-  private DseColumnMetadata col3;
+  private ColumnMetadata col1;
+  private ColumnMetadata col2;
+  private ColumnMetadata col3;
   private DseSession session;
-  private DseMetadata metadata;
+  private Metadata metadata;
   private DseKeyspaceMetadata keyspace;
   private DseTableMetadata table;
 
@@ -67,15 +66,15 @@ class LifeCycleManagerTest {
     session = mock(DseSession.class);
     DriverContext context = mock(DriverContext.class);
     CodecRegistry codecRegistry = mock(CodecRegistry.class);
-    metadata = mock(DseMetadata.class);
+    metadata = mock(Metadata.class);
     keyspace = mock(DseKeyspaceMetadata.class);
     table = mock(DseTableMetadata.class);
     DseTableMetadata table2 = mock(DseTableMetadata.class);
-    col1 = mock(DseColumnMetadata.class);
-    col2 = mock(DseColumnMetadata.class);
-    col3 = mock(DseColumnMetadata.class);
-    Map<CqlIdentifier, DseColumnMetadata> columns =
-        ImmutableMap.<CqlIdentifier, DseColumnMetadata>builder()
+    col1 = mock(ColumnMetadata.class);
+    col2 = mock(ColumnMetadata.class);
+    col3 = mock(ColumnMetadata.class);
+    Map<CqlIdentifier, ColumnMetadata> columns =
+        ImmutableMap.<CqlIdentifier, ColumnMetadata>builder()
             .put(C1_IDENT, col1)
             .put(C2_IDENT, col2)
             .put(C3_IDENT, col3)
@@ -92,24 +91,19 @@ class LifeCycleManagerTest {
         .thenReturn(preparedStatementStage);
     when(preparedStatementStage.toCompletableFuture()).thenReturn(preparedStatementFuture);
 
-    when((Optional<DseKeyspaceMetadata>) metadata.getKeyspace(any(CqlIdentifier.class)))
-        .thenReturn(Optional.of(keyspace));
-    when((Optional<DseTableMetadata>) keyspace.getTable(CqlIdentifier.fromInternal("mytable")))
-        .thenReturn(Optional.of(table));
-    when((Map<CqlIdentifier, DseColumnMetadata>) table.getColumns()).thenReturn(columns);
-    when((Optional<DseColumnMetadata>) table.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
-    when((Optional<DseColumnMetadata>) table.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
-    when((Optional<DseColumnMetadata>) table.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
-    when((List<DseColumnMetadata>) table.getPrimaryKey())
-        .thenReturn(Collections.singletonList(col1));
+    when(metadata.getKeyspace(any(CqlIdentifier.class))).thenReturn(Optional.of(keyspace));
+    when(keyspace.getTable(CqlIdentifier.fromInternal("mytable"))).thenReturn(Optional.of(table));
+    when(table.getColumns()).thenReturn(columns);
+    when(table.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
+    when(table.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
+    when(table.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
+    when(table.getPrimaryKey()).thenReturn(Collections.singletonList(col1));
 
-    when((Optional<DseTableMetadata>) keyspace.getTable(CqlIdentifier.fromInternal("mytable2")))
-        .thenReturn(Optional.of(table2));
-    when((Optional<DseColumnMetadata>) table2.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
-    when((Optional<DseColumnMetadata>) table2.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
-    when((Optional<DseColumnMetadata>) table2.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
-    when((List<DseColumnMetadata>) table2.getPrimaryKey())
-        .thenReturn(Collections.singletonList(col2));
+    when(keyspace.getTable(CqlIdentifier.fromInternal("mytable2"))).thenReturn(Optional.of(table2));
+    when(table2.getColumn(C1_IDENT)).thenReturn(Optional.of(col1));
+    when(table2.getColumn(C2_IDENT)).thenReturn(Optional.of(col2));
+    when(table2.getColumn(C3_IDENT)).thenReturn(Optional.of(col3));
+    when(table2.getPrimaryKey()).thenReturn(Collections.singletonList(col2));
 
     when(col1.getName()).thenReturn(C1_IDENT);
     when(col2.getName()).thenReturn(C2_IDENT);
@@ -122,8 +116,7 @@ class LifeCycleManagerTest {
   @Test
   void should_error_that_keyspace_was_not_found() {
     when(metadata.getKeyspace(CqlIdentifier.fromInternal("MyKs"))).thenReturn(Optional.empty());
-    when((Optional<DseKeyspaceMetadata>) metadata.getKeyspace("myks"))
-        .thenReturn(Optional.of(keyspace));
+    when(metadata.getKeyspace("myks")).thenReturn(Optional.of(keyspace));
 
     assertThatThrownBy(
             () ->
@@ -137,7 +130,7 @@ class LifeCycleManagerTest {
   @Test
   void should_error_that_table_was_not_found() {
     when(keyspace.getTable(CqlIdentifier.fromInternal("MyTable"))).thenReturn(Optional.empty());
-    when((Optional<DseTableMetadata>) keyspace.getTable("mytable")).thenReturn(Optional.of(table));
+    when(keyspace.getTable("mytable")).thenReturn(Optional.of(table));
 
     assertThatThrownBy(
             () ->
@@ -303,7 +296,7 @@ class LifeCycleManagerTest {
   @Test
   void should_make_correct_update_counter_cql_complex_key() {
     when(col3.getType()).thenReturn(COUNTER);
-    when((List<DseColumnMetadata>) table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col2));
+    when(table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col2));
 
     TableConfig config =
         makeTableConfig(
@@ -318,7 +311,7 @@ class LifeCycleManagerTest {
 
   @Test
   void should_make_correct_delete_cql() {
-    when((List<DseColumnMetadata>) table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col2));
+    when(table.getPrimaryKey()).thenReturn(Arrays.asList(col1, col2));
 
     TableConfig config =
         makeTableConfig(

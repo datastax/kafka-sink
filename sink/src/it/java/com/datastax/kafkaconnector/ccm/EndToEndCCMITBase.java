@@ -106,7 +106,7 @@ abstract class EndToEndCCMITBase {
                     + "timestampCol timestamp, "
                     + "secondsCol timestamp"
                     + ")")
-            .withTimeout(Duration.ofSeconds(10))
+            .setTimeout(Duration.ofSeconds(10))
             .build());
   }
 

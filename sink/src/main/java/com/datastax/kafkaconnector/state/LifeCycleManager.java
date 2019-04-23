@@ -32,7 +32,6 @@ import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
-import com.datastax.dse.driver.internal.core.config.typesafe.DefaultDseDriverConfigLoader;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
@@ -47,6 +46,8 @@ import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
+import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metadata.Node;
@@ -55,7 +56,6 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.DataTypes;
-import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.google.common.annotations.VisibleForTesting;
 import com.typesafe.config.Config;
@@ -524,7 +524,8 @@ public class LifeCycleManager {
         .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
         .forEach(builder::addContactPoint);
 
-    DefaultDriverConfigLoaderBuilder configLoaderBuilder = DefaultDseDriverConfigLoader.builder();
+    ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
+        DriverConfigLoader.programmaticBuilder();
     if (!config.getLocalDc().isEmpty()) {
       configLoaderBuilder.withString(
           DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
@@ -533,7 +534,7 @@ public class LifeCycleManager {
     configLoaderBuilder.withDuration(
         DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
 
-    configLoaderBuilder.with(
+    configLoaderBuilder.withInt(
         DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.getConnectionPoolLocalSize());
 
     if (config.getJmx()) {
@@ -562,7 +563,7 @@ public class LifeCycleManager {
    * @param configLoaderBuilder the config loader builder
    */
   private static void processSslConfig(
-      SslConfig sslConfig, DefaultDriverConfigLoaderBuilder configLoaderBuilder) {
+      SslConfig sslConfig, ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder) {
     if (sslConfig.getProvider() == SslConfig.Provider.JDK) {
       configLoaderBuilder.withString(SSL_ENGINE_FACTORY_CLASS, "DefaultSslEngineFactory");
       List<String> cipherSuites = sslConfig.getCipherSuites();
@@ -592,13 +593,13 @@ public class LifeCycleManager {
    * @param configLoaderBuilder the config loader builder
    */
   private static void processAuthenticatorConfig(
-      DseSinkConfig config, DefaultDriverConfigLoaderBuilder configLoaderBuilder) {
+      DseSinkConfig config, ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder) {
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
     if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
       configLoaderBuilder
           .withClass(AUTH_PROVIDER_CLASS, DsePlainTextAuthProvider.class)
-          .with(AUTH_PROVIDER_USER_NAME, authConfig.getUsername())
-          .with(AUTH_PROVIDER_PASSWORD, authConfig.getPassword());
+          .withString(AUTH_PROVIDER_USER_NAME, authConfig.getUsername())
+          .withString(AUTH_PROVIDER_PASSWORD, authConfig.getPassword());
     } else if (authConfig.getProvider() == AuthenticatorConfig.Provider.GSSAPI) {
       Path keyTabPath = authConfig.getKeyTabPath();
       Map<String, String> loginConfig;
