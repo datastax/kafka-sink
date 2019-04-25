@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.record.RawData.VALUE_FIELD_NAME;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
@@ -94,7 +95,8 @@ public class RecordMapper {
     Object raw;
     DataType cqlType;
     if (!allowMissingFields) {
-      ensureAllFieldsPresent(record.fields());
+      ensureAllFieldsPresent(
+          record.fields(), insertUpdateStatement.getVariableDefinitions(), mapping);
     }
 
     // Determine if we're doing an insert-update or a delete
@@ -263,8 +265,9 @@ public class RecordMapper {
     return primaryKey.contains(variable);
   }
 
-  private void ensureAllFieldsPresent(Set<String> recordFields) {
-    ColumnDefinitions variables = insertUpdateStatement.getVariableDefinitions();
+  @VisibleForTesting
+  static void ensureAllFieldsPresent(
+      Set<String> recordFields, ColumnDefinitions variables, Mapping mapping) {
     for (int i = 0; i < variables.size(); i++) {
       CqlIdentifier variable = variables.get(i).getName();
       if (variable.asInternal().equals(SinkUtil.TIMESTAMP_VARNAME)) {
@@ -272,6 +275,11 @@ public class RecordMapper {
         continue;
       }
       CqlIdentifier field = mapping.columnToField(variable);
+      if (field != null && isFieldValue(field.asInternal()) && valueIsNull(recordFields)) {
+        // if value=null don't analyze fields mapped from value
+        continue;
+      }
+
       if (field != null && !recordFields.contains(field.asInternal())) {
         throw new ConfigException(
             "Required field '"
@@ -282,6 +290,16 @@ public class RecordMapper {
                 + "Please remove it from the mapping.");
       }
     }
+  }
+
+  private static boolean valueIsNull(Set<String> recordFields) {
+    List<String> result =
+        recordFields.stream().filter(RecordMapper::isFieldValue).collect(Collectors.toList());
+    return result.size() == 1 && result.contains(VALUE_FIELD_NAME);
+  }
+
+  private static boolean isFieldValue(String variable) {
+    return variable.startsWith("value.");
   }
 
   private void ensurePrimaryKeySet(BoundStatement bs) {

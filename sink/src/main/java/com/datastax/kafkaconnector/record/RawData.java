@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 /** The key or value of a {@link SinkRecord} when it is a primitive type. */
 public class RawData implements KeyOrValue, RecordMetadata {
   public static final String FIELD_NAME = "__self";
+  public static final String VALUE_FIELD_NAME = "value." + FIELD_NAME;
   private static final Set<String> FIELDS = new HashSet<>();
 
   static {

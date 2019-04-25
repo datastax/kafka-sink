@@ -1188,6 +1188,33 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void delete_simple_key_value_null() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=value.boolean, intcol=value.int",
+            "small_simple",
+            null));
+
+    // Set up records for "mytopic"
+    Schema keySchema =
+        SchemaBuilder.struct().name("Kafka").field("bigint", Schema.INT64_SCHEMA).build();
+    Struct key = new Struct(keySchema).put("bigint", 1234567L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_simple").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
   void insert_with_nulls_when_delete_disabled() {
     conn.start(
         makeConnectorProperties(
@@ -1243,6 +1270,37 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
     Struct value = new Struct(schema).put("bigint", 1234567L).put("boolean", true);
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_compound_key_value_null() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=key.boolean, intcol=value.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic"
+    Schema keySchema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("boolean", Schema.BOOLEAN_SCHEMA)
+            .build();
+    Struct key = new Struct(keySchema).put("bigint", 1234567L).put("boolean", true);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
 
     runTaskWithRecords(record);
 

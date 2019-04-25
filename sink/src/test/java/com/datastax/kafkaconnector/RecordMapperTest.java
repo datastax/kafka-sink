@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.util.SinkUtil.TIMESTAMP_VARNAME;
 import static com.datastax.oss.driver.api.core.DefaultProtocolVersion.V4;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.math.BigDecimal.ONE;
@@ -44,13 +45,20 @@ import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.codec.CodecNotFoundException;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.internal.core.cql.DefaultColumnDefinition;
+import com.datastax.oss.driver.internal.core.cql.DefaultColumnDefinitions;
+import com.datastax.oss.protocol.internal.response.result.ColumnSpec;
+import com.datastax.oss.protocol.internal.response.result.RawType;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.netty.util.concurrent.FastThreadLocal;
 import java.nio.ByteBuffer;
 import java.text.NumberFormat;
@@ -59,11 +67,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.assertj.core.util.Sets;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -849,6 +859,47 @@ class RecordMapperTest {
     // then
     assertThat(result).isEqualTo(-1);
   }
+
+  @ParameterizedTest(name = "[{index}] kafkaRecordFields={0}, columnDefinitions={1}, mapping={2}")
+  @MethodSource("mappingProvider")
+  void should_not_throw_if_mapping_defined_properly(
+      Set<String> kafkaRecordFields,
+      List<ColumnDefinition> columnDefinitionsList,
+      Map<CqlIdentifier, CqlIdentifier> mappingMap) {
+    // given
+    ColumnDefinitions columnDefinitions = DefaultColumnDefinitions.valueOf(columnDefinitionsList);
+    Mapping mapping = new Mapping(mappingMap, null);
+
+    // when
+    RecordMapper.ensureAllFieldsPresent(kafkaRecordFields, columnDefinitions, mapping);
+
+    // then no throw
+  }
+
+  @NotNull
+  private static DefaultColumnDefinition createColumnDefinition(String columnName) {
+    return new DefaultColumnDefinition(
+        new ColumnSpec("ks", "tb", columnName, 0, RawType.PRIMITIVES.get(1)), AttachmentPoint.NONE);
+  }
+
+  private static Stream<? extends Arguments> mappingProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(createColumnDefinition("col1")),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
+        Arguments.of(
+            ImmutableSet.of("f1", "f2", TIMESTAMP_VARNAME),
+            ImmutableList.of(createColumnDefinition("col1")),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
+        Arguments.of(
+            ImmutableSet.of("key.__self", "value.__self", "key.id"),
+            ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.id"),
+                CqlIdentifier.fromInternal("from_value"),
+                    CqlIdentifier.fromInternal("value.some_value"))));
+  } // todo add remaining test cases
 
   private static Stream<? extends Arguments> ttlValuesProvider() {
     return Stream.of(
