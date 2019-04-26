@@ -893,6 +893,71 @@ class RecordMapperTest {
         .isExactlyInstanceOf(ConfigException.class);
   }
 
+  @ParameterizedTest(name = "[{index}] record={0}, mapping={1}, primaryKey={2}, expected={3}")
+  @MethodSource("detectInsertUpdateProvider")
+  void should_detect_that_is_insert_update(
+      Record record,
+      Map<CqlIdentifier, CqlIdentifier> mappingMap,
+      Set<CqlIdentifier> primaryKey,
+      Boolean expected) {
+    // given
+    Mapping mapping = new Mapping(mappingMap, null);
+
+    // when
+    boolean result = RecordMapper.detectIfIsInsertUpdate(record, mapping, primaryKey);
+
+    // then
+    assertThat(result).isEqualTo(expected);
+  }
+
+  private static Stream<? extends Arguments> detectInsertUpdateProvider() {
+    Record returnNullForValue = mock(Record.class);
+    when(returnNullForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(returnNullForValue.getFieldValue("key.f1")).thenReturn("v");
+    when(returnNullForValue.getFieldValue("value.f1")).thenReturn(null);
+
+    Record returnNotNullForValue = mock(Record.class);
+    when(returnNotNullForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(returnNotNullForValue.getFieldValue("key.f1")).thenReturn("v");
+    when(returnNotNullForValue.getFieldValue("value.f1")).thenReturn("v");
+
+    Record allFieldsNull = mock(Record.class);
+    when(allFieldsNull.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(allFieldsNull.getFieldValue(any(String.class))).thenReturn(null);
+
+    return Stream.of(
+        // case for only PK in mapping - insert
+        Arguments.of(
+            mock(Record.class),
+            ImmutableMap.of(CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            true),
+        // field value is null - delete
+        Arguments.of(
+            returnNullForValue,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            false),
+        // field value is not null - insert
+        Arguments.of(
+            returnNotNullForValue,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            true),
+        // all fields values including PK is null
+        Arguments.of(
+            allFieldsNull,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            false));
+  }
+
   private static Stream<? extends Arguments> correctMappingProvider() {
     return Stream.of(
         Arguments.of(

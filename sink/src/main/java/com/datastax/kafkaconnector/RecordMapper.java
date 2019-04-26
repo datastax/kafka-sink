@@ -107,23 +107,7 @@ public class RecordMapper {
       // do an insert/update.
       preparedStatement = insertUpdateStatement;
     } else {
-      // Walk through each record field and check if any non-null fields map to a non-primary-key
-      // column. If so, this is an insert; otherwise it is a delete. However, there is a
-      // special case: if the table only has primary key columns, there is no case for delete.
-      isInsertUpdate =
-          mapping.getMappedColumns().equals(primaryKey)
-              || record
-                  .fields()
-                  .stream()
-                  .filter(field -> record.getFieldValue(field) != null)
-                  .anyMatch(
-                      field -> {
-                        @Nullable
-                        Collection<CqlIdentifier> mappedCols =
-                            mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
-                        return mappedCols != null
-                            && mappedCols.stream().anyMatch(col -> !primaryKey.contains(col));
-                      });
+      isInsertUpdate = detectIfIsInsertUpdate(record, mapping, primaryKey);
       preparedStatement = isInsertUpdate ? insertUpdateStatement : deleteStatement;
     }
     BoundStatementBuilder builder = preparedStatement.boundStatementBuilder();
@@ -170,6 +154,27 @@ public class RecordMapper {
     BoundStatement bs = builder.build();
     ensurePrimaryKeySet(bs);
     return bs;
+  }
+
+  // Walk through each record field and check if any non-null fields map to a non-primary-key
+  // column. If so, this is an insert; otherwise it is a delete. However, there is a
+  // special case: if the table only has primary key columns, there is no case for delete.
+  @VisibleForTesting
+  static boolean detectIfIsInsertUpdate(
+      Record record, Mapping mapping, Set<CqlIdentifier> primaryKey) {
+    return mapping.getMappedColumns().equals(primaryKey)
+        || record
+            .fields()
+            .stream()
+            .filter(field -> record.getFieldValue(field) != null)
+            .anyMatch(
+                field -> {
+                  @Nullable
+                  Collection<CqlIdentifier> mappedCols =
+                      mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
+                  return mappedCols != null
+                      && mappedCols.stream().anyMatch(col -> !primaryKey.contains(col));
+                });
   }
 
   private boolean timestampIsNotSet(BoundStatementBuilder builder) {
