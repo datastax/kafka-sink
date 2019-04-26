@@ -56,6 +56,7 @@ import com.datastax.oss.driver.internal.core.cql.DefaultColumnDefinitions;
 import com.datastax.oss.protocol.internal.response.result.ColumnSpec;
 import com.datastax.oss.protocol.internal.response.result.RawType;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -925,6 +926,11 @@ class RecordMapperTest {
     when(allFieldsNull.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
     when(allFieldsNull.getFieldValue(any(String.class))).thenReturn(null);
 
+    Record returnNullNodeForValue = mock(Record.class);
+    when(returnNullNodeForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(returnNullNodeForValue.getFieldValue("key.f1")).thenReturn("v");
+    when(returnNullNodeForValue.getFieldValue("value.f1")).thenReturn(NullNode.instance);
+
     return Stream.of(
         // case for only PK in mapping - insert
         Arguments.of(
@@ -951,6 +957,14 @@ class RecordMapperTest {
         // all fields values including PK is null
         Arguments.of(
             allFieldsNull,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            false),
+        // field value is NodeNull - delete
+        Arguments.of(
+            returnNullNodeForValue,
             ImmutableMap.of(
                 CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
                 CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),

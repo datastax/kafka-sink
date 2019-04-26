@@ -27,6 +27,7 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
@@ -166,7 +167,14 @@ public class RecordMapper {
         || record
             .fields()
             .stream()
-            .filter(field -> record.getFieldValue(field) != null)
+            .filter(
+                field -> {
+                  Object fieldValue = record.getFieldValue(field);
+                  if (fieldValue instanceof NullNode) { // json null is mapped to NullNode
+                    return false;
+                  }
+                  return fieldValue != null;
+                })
             .anyMatch(
                 field -> {
                   @Nullable

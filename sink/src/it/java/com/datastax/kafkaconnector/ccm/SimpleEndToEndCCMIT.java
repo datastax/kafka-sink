@@ -1188,6 +1188,31 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void delete_simple_key_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            "small_simple",
+            null));
+
+    // Set up records for "mytopic"
+    String json = "{\"bigint\": 1234567, \"boolean\": null, \"int\": null}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_simple").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
   void delete_simple_key_value_null() {
     // First insert a row...
     session.execute(
@@ -1205,6 +1230,32 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Schema keySchema =
         SchemaBuilder.struct().name("Kafka").field("bigint", Schema.INT64_SCHEMA).build();
     Struct key = new Struct(keySchema).put("bigint", 1234567L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_simple").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_simple_key_value_null_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=value.boolean, intcol=value.int",
+            "small_simple",
+            null));
+
+    // Set up records for "mytopic"
+    String key = "{\"bigint\": 1234567}";
+
     SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
 
     runTaskWithRecords(record);
@@ -1279,6 +1330,31 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void delete_compound_key_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic"
+    String json = "{\"bigint\": 1234567, \"boolean\": true, \"int\": null}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
   void delete_compound_key_value_null() {
     // First insert a row...
     session.execute(
@@ -1300,6 +1376,31 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("boolean", Schema.BOOLEAN_SCHEMA)
             .build();
     Struct key = new Struct(keySchema).put("bigint", 1234567L).put("boolean", true);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_compound_key_value_null_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=key.boolean, intcol=value.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic"
+    String key = "{\"bigint\": 1234567, \"boolean\": true}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
 
     runTaskWithRecords(record);
