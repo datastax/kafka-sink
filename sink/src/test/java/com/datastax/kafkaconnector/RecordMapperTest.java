@@ -861,7 +861,7 @@ class RecordMapperTest {
   }
 
   @ParameterizedTest(name = "[{index}] kafkaRecordFields={0}, columnDefinitions={1}, mapping={2}")
-  @MethodSource("mappingProvider")
+  @MethodSource("correctMappingProvider")
   void should_not_throw_if_mapping_defined_properly(
       Set<String> kafkaRecordFields,
       List<ColumnDefinition> columnDefinitionsList,
@@ -876,30 +876,72 @@ class RecordMapperTest {
     // then no throw
   }
 
-  @NotNull
-  private static DefaultColumnDefinition createColumnDefinition(String columnName) {
-    return new DefaultColumnDefinition(
-        new ColumnSpec("ks", "tb", columnName, 0, RawType.PRIMITIVES.get(1)), AttachmentPoint.NONE);
+  @ParameterizedTest(name = "[{index}] kafkaRecordFields={0}, columnDefinitions={1}, mapping={2}")
+  @MethodSource("faultyMappingProvider")
+  void should_throw_if_mapping_not_defined_properly(
+      Set<String> kafkaRecordFields,
+      List<ColumnDefinition> columnDefinitionsList,
+      Map<CqlIdentifier, CqlIdentifier> mappingMap) {
+    // given
+    ColumnDefinitions columnDefinitions = DefaultColumnDefinitions.valueOf(columnDefinitionsList);
+    Mapping mapping = new Mapping(mappingMap, null);
+
+    // when then throw
+    assertThatThrownBy(
+            () ->
+                RecordMapper.ensureAllFieldsPresent(kafkaRecordFields, columnDefinitions, mapping))
+        .isExactlyInstanceOf(ConfigException.class);
   }
 
-  private static Stream<? extends Arguments> mappingProvider() {
+  private static Stream<? extends Arguments> correctMappingProvider() {
     return Stream.of(
         Arguments.of(
             ImmutableSet.of("f1", "f2"),
             ImmutableList.of(createColumnDefinition("col1")),
             ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
         Arguments.of(
-            ImmutableSet.of("f1", "f2", TIMESTAMP_VARNAME),
-            ImmutableList.of(createColumnDefinition("col1")),
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(
+                createColumnDefinition("col1"), createColumnDefinition(TIMESTAMP_VARNAME)),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
+        Arguments.of(
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(createColumnDefinition("col2")),
+            // there is no column definition for col1, validation doesn't catch that case
             ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
         Arguments.of(
             ImmutableSet.of("key.__self", "value.__self", "key.id"),
+            // there is only value.__self so it means that value is null
             ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
             ImmutableMap.of(
-                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.id"),
+                CqlIdentifier.fromInternal("PK"),
+                CqlIdentifier.fromInternal("key.id"),
                 CqlIdentifier.fromInternal("from_value"),
-                    CqlIdentifier.fromInternal("value.some_value"))));
-  } // todo add remaining test cases
+                CqlIdentifier.fromInternal("value.some_value"))));
+  }
+
+  private static Stream<? extends Arguments> faultyMappingProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(createColumnDefinition("col1")),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f3"))),
+        Arguments.of(
+            ImmutableSet.of("key.__self", "value.__self", "key.id", "value.some_other_value"),
+            // there is value.__self and value.some_other_value so it means that value is not null
+            ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"),
+                CqlIdentifier.fromInternal("key.id"),
+                CqlIdentifier.fromInternal("from_value"),
+                CqlIdentifier.fromInternal("value.some_value"))));
+  }
+
+  @NotNull
+  private static DefaultColumnDefinition createColumnDefinition(String columnName) {
+    return new DefaultColumnDefinition(
+        new ColumnSpec("ks", "tb", columnName, 0, RawType.PRIMITIVES.get(1)), AttachmentPoint.NONE);
+  }
 
   private static Stream<? extends Arguments> ttlValuesProvider() {
     return Stream.of(

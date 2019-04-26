@@ -28,29 +28,29 @@ import org.jetbrains.annotations.Nullable;
  */
 public class Mapping {
 
-  private final Map<CqlIdentifier, CqlIdentifier> columnsToFields;
+  private final Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields;
   private final Multimap<CqlIdentifier, CqlIdentifier> fieldsToColumns;
   private final KafkaCodecRegistry codecRegistry;
   private final Cache<CqlIdentifier, TypeCodec<?>> columnsToCodecs;
 
   public Mapping(
-      Map<CqlIdentifier, CqlIdentifier> columnsToFields, KafkaCodecRegistry codecRegistry) {
-    this.columnsToFields = columnsToFields;
+      Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields, KafkaCodecRegistry codecRegistry) {
+    this.dseColumnsToKafkaFields = dseColumnsToKafkaFields;
     this.codecRegistry = codecRegistry;
     columnsToCodecs = Caffeine.newBuilder().build();
     ImmutableMultimap.Builder<CqlIdentifier, CqlIdentifier> builder = ImmutableMultimap.builder();
-    columnsToFields.forEach((c, f) -> builder.put(f, c));
+    dseColumnsToKafkaFields.forEach((c, f) -> builder.put(f, c));
     fieldsToColumns = builder.build();
   }
 
   @Nullable
   CqlIdentifier columnToField(@NotNull CqlIdentifier column) {
-    return columnsToFields.get(column);
+    return dseColumnsToKafkaFields.get(column);
   }
 
   @NotNull
   Collection<CqlIdentifier> getMappedColumns() {
-    return columnsToFields.keySet();
+    return dseColumnsToKafkaFields.keySet();
   }
 
   @Nullable
