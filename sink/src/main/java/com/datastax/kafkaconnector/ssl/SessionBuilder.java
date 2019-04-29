@@ -36,6 +36,7 @@ public class SessionBuilder extends DseSessionBuilder {
       NodeStateListener nodeStateListener,
       SchemaChangeListener schemaChangeListener,
       RequestTracker requestTracker,
+      Map<String, String> localDatacenters,
       Map<String, Predicate<Node>> nodeFilters,
       ClassLoader classLoader) {
     // DseSessionBuilder.buildContext has some side-effects (adding dse type-codecs to typeCodecs)
@@ -47,6 +48,7 @@ public class SessionBuilder extends DseSessionBuilder {
             nodeStateListener,
             schemaChangeListener,
             requestTracker,
+            localDatacenters,
             nodeFilters,
             classLoader);
 
@@ -61,6 +63,7 @@ public class SessionBuilder extends DseSessionBuilder {
         nodeStateListener,
         schemaChangeListener,
         requestTracker,
+        localDatacenters,
         nodeFilters,
         classLoader,
         null,

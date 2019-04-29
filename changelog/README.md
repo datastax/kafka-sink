@@ -1,6 +1,8 @@
 ## Changelog
 
 ### 1.1.0 (in progress)
+- [improvement] KAF-81: Increment kafka-connect-api version to newest one (2.0.0)
+- [improvement] KAF-112: Upgrade to DSE Driver 2.0.1 GA
 - [improvement] KAF-72: Counters and histograms should be per topic/keyspace/table, not global
 - [new feature] KAF-46: Allow mapping of a field in the Kafka record to the WRITETIME of the DSE record
 - [bug] KAF-104: Support topic names that contain periods

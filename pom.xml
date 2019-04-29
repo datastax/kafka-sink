@@ -39,11 +39,11 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
-    <kafka.connect.version>1.1.0</kafka.connect.version>
+    <kafka.connect.version>2.2.0</kafka.connect.version>
     <caffeine.version>2.6.2</caffeine.version>
-    <oss.driver.version>4.0.0-beta2</oss.driver.version>
-    <driver.version>2.0.0-alpha1</driver.version>
-    <dsbulk.version>2.0.0-kafka-SNAPSHOT</dsbulk.version>
+    <oss.driver.version>4.0.1</oss.driver.version>
+    <driver.version>2.0.1</driver.version>
+    <dsbulk.version>2.0.1-kafka-SNAPSHOT</dsbulk.version>
     <guava.version>25.0-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
