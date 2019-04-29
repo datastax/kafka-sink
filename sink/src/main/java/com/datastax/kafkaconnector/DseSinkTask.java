@@ -139,15 +139,14 @@ public class DseSinkTask extends SinkTask {
             try {
               boundStatementProcessorTask.get();
             } catch (ExecutionException e) {
-              // No-op.
+              log.error("Problem when getting boundStatementProcessorTask ", e);
             }
             log.debug("Query futures: {}", queryFutures.size());
             for (CompletionStage<? extends AsyncResultSet> f : queryFutures) {
               try {
                 f.toCompletableFuture().get();
               } catch (ExecutionException e) {
-                // If any requests failed, they were handled by the "whenComplete" of the individual
-                // future, so nothing to do here.
+                log.error("Problem when getting queryFuture", e);
               }
             }
 
@@ -165,10 +164,8 @@ public class DseSinkTask extends SinkTask {
                   f.toCompletableFuture().cancel(true);
                   try {
                     f.toCompletableFuture().get();
-                  } catch (InterruptedException
-                      | ExecutionException
-                      | CancellationException ignored) {
-                    // swallow
+                  } catch (InterruptedException | ExecutionException | CancellationException ex) {
+                    log.warn("Problem when interrupting completableFuture", ex);
                   }
                 });
 
