@@ -161,22 +161,25 @@ public class RecordMapper {
   // special case: if the table only has primary key columns, there is no case for delete.
   @VisibleForTesting
   static boolean isInsertUpdate(Record record, Mapping mapping, Set<CqlIdentifier> primaryKey) {
-    return mapping.getMappedColumns().equals(primaryKey)
-        || record
-            .fields()
-            .stream()
-            .filter(
-                field -> {
-                  Object fieldValue = record.getFieldValue(field);
-                  return fieldValue != null && !(fieldValue instanceof NullNode);
-                })
-            .anyMatch(
-                field -> {
-                  Collection<CqlIdentifier> mappedCols =
-                      mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
-                  return mappedCols != null
-                      && mappedCols.stream().anyMatch(col -> !primaryKey.contains(col));
-                });
+    if (mapping.getMappedColumns().equals(primaryKey)) {
+      return true;
+    }
+    for (String field : record.fields()) {
+      Object fieldValue = record.getFieldValue(field);
+      if (fieldValue == null || fieldValue instanceof NullNode) {
+        continue;
+      }
+      Collection<CqlIdentifier> mappedCols =
+          mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
+      if (mappedCols != null) {
+        for (CqlIdentifier mappedCol : mappedCols) {
+          if (!primaryKey.contains(mappedCol)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private boolean timestampIsNotSet(BoundStatementBuilder builder) {

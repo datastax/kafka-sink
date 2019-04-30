@@ -984,11 +984,6 @@ class RecordMapperTest {
                 createColumnDefinition("col1"), createColumnDefinition(TIMESTAMP_VARNAME)),
             ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
         Arguments.of(
-            ImmutableSet.of("f1", "f2"),
-            ImmutableList.of(createColumnDefinition("col2")),
-            // there is no column definition for col1, validation doesn't catch that case
-            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
-        Arguments.of(
             ImmutableSet.of("key.__self", "value.__self", "key.id"),
             // there is only value.__self so it means that value is null
             ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
