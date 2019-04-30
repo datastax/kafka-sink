@@ -29,18 +29,18 @@ import org.jetbrains.annotations.Nullable;
 public class Mapping {
 
   private final Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields;
-  private final Multimap<CqlIdentifier, CqlIdentifier> fieldsToColumns;
+  private final Multimap<CqlIdentifier, CqlIdentifier> kafkaFieldsToDseColumns;
   private final KafkaCodecRegistry codecRegistry;
-  private final Cache<CqlIdentifier, TypeCodec<?>> columnsToCodecs;
+  private final Cache<CqlIdentifier, TypeCodec<?>> dseColumnsToCodecs;
 
   public Mapping(
       Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields, KafkaCodecRegistry codecRegistry) {
     this.dseColumnsToKafkaFields = dseColumnsToKafkaFields;
     this.codecRegistry = codecRegistry;
-    columnsToCodecs = Caffeine.newBuilder().build();
+    dseColumnsToCodecs = Caffeine.newBuilder().build();
     ImmutableMultimap.Builder<CqlIdentifier, CqlIdentifier> builder = ImmutableMultimap.builder();
     dseColumnsToKafkaFields.forEach((c, f) -> builder.put(f, c));
-    fieldsToColumns = builder.build();
+    kafkaFieldsToDseColumns = builder.build();
   }
 
   @Nullable
@@ -55,7 +55,7 @@ public class Mapping {
 
   @Nullable
   Collection<CqlIdentifier> fieldToColumns(@NotNull CqlIdentifier field) {
-    return fieldsToColumns.get(field);
+    return kafkaFieldsToDseColumns.get(field);
   }
 
   @NotNull
@@ -65,7 +65,8 @@ public class Mapping {
       @NotNull GenericType<? extends T> javaType) {
     @SuppressWarnings("unchecked")
     TypeCodec<T> codec =
-        (TypeCodec<T>) columnsToCodecs.get(column, n -> codecRegistry.codecFor(cqlType, javaType));
+        (TypeCodec<T>)
+            dseColumnsToCodecs.get(column, n -> codecRegistry.codecFor(cqlType, javaType));
     assert codec != null;
     return codec;
   }

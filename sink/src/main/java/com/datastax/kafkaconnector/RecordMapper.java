@@ -229,7 +229,7 @@ public class RecordMapper {
     return raw;
   }
 
-  private <T> void bindColumn(
+  private <T> BoundStatementBuilder bindColumn(
       BoundStatementBuilder builder,
       CqlIdentifier variable,
       T raw,
@@ -247,10 +247,10 @@ public class RecordMapper {
                 + "Check that your mapping setting matches your dataset contents.");
       }
       if (nullToUnset) {
-        return;
+        return builder;
       }
     }
-    builder = builder.setBytesUnsafe(variable, bb);
+    return builder.setBytesUnsafe(variable, bb);
   }
 
   private boolean isNull(ByteBuffer bb, DataType cqlType) {
