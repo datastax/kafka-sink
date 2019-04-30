@@ -106,12 +106,22 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + ")")
             .setTimeout(Duration.ofSeconds(10))
             .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS pk_value ("
+                    + "my_pk bigint PRIMARY KEY,"
+                    + "my_value boolean"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
   }
 
   @BeforeEach
   void truncateTables() {
     session.execute("TRUNCATE small_simple");
     session.execute("TRUNCATE small_compound");
+    session.execute("TRUNCATE pk_value");
   }
 
   @Test
@@ -1158,110 +1168,93 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   @Test
   void delete_simple_key() {
     // First insert a row...
-    session.execute(
-        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
-            "small_simple",
-            null));
+        makeConnectorProperties("my_pk=value.my_pk, my_value=value.my_value", "pk_value", null));
 
     // Set up records for "mytopic"
     Schema schema =
         SchemaBuilder.struct()
             .name("Kafka")
-            .field("bigint", Schema.INT64_SCHEMA)
-            .field("boolean", Schema.BOOLEAN_SCHEMA)
-            .field("int", Schema.INT32_SCHEMA)
+            .field("my_pk", Schema.INT64_SCHEMA)
+            .field("my_value", Schema.BOOLEAN_SCHEMA)
             .build();
-    Struct value = new Struct(schema).put("bigint", 1234567L);
+    Struct value = new Struct(schema).put("my_pk", 1234567L);
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
 
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM small_simple").all();
+    results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
 
   @Test
   void delete_simple_key_json() {
     // First insert a row...
-    session.execute(
-        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
-            "small_simple",
-            null));
+        makeConnectorProperties("my_pk=value.my_pk, my_value=value.my_value", "pk_value", null));
 
     // Set up records for "mytopic"
-    String json = "{\"bigint\": 1234567, \"boolean\": null, \"int\": null}";
+    String json = "{\"my_pk\": 1234567, \"my_value\": null}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
 
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM small_simple").all();
+    results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
 
   @Test
   void delete_simple_key_value_null() {
     // First insert a row...
-    session.execute(
-        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
-        makeConnectorProperties(
-            "bigintcol=key.bigint, booleancol=value.boolean, intcol=value.int",
-            "small_simple",
-            null));
+        makeConnectorProperties("my_pk=key.my_pk, my_value=value.my_value", "pk_value", null));
 
     // Set up records for "mytopic"
     Schema keySchema =
-        SchemaBuilder.struct().name("Kafka").field("bigint", Schema.INT64_SCHEMA).build();
-    Struct key = new Struct(keySchema).put("bigint", 1234567L);
+        SchemaBuilder.struct().name("Kafka").field("my_pk", Schema.INT64_SCHEMA).build();
+    Struct key = new Struct(keySchema).put("my_pk", 1234567L);
     SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
 
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM small_simple").all();
+    results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
 
   @Test
   void delete_simple_key_value_null_json() {
     // First insert a row...
-    session.execute(
-        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
-        makeConnectorProperties(
-            "bigintcol=key.bigint, booleancol=value.boolean, intcol=value.int",
-            "small_simple",
-            null));
+        makeConnectorProperties("my_pk=key.my_pk, my_value=value.my_value", "pk_value", null));
 
     // Set up records for "mytopic"
-    String key = "{\"bigint\": 1234567}";
+    String key = "{\"my_pk\": 1234567}";
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
 
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM small_simple").all();
+    results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
 
