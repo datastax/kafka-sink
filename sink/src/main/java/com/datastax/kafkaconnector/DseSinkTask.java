@@ -139,14 +139,18 @@ public class DseSinkTask extends SinkTask {
             try {
               boundStatementProcessorTask.get();
             } catch (ExecutionException e) {
-              log.error("Problem when getting boundStatementProcessorTask ", e);
+              log.error(
+                  "Problem when getting boundStatementProcessorTask. This is likely a bug in the connector, please report.",
+                  e);
             }
             log.debug("Query futures: {}", queryFutures.size());
             for (CompletionStage<? extends AsyncResultSet> f : queryFutures) {
               try {
                 f.toCompletableFuture().get();
               } catch (ExecutionException e) {
-                log.error("Problem when getting queryFuture", e);
+                log.error(
+                    "Problem when getting queryFuture. This is likely a bug in the connector, please report.",
+                    e);
               }
             }
 
