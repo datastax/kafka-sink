@@ -1755,6 +1755,30 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInt(2)).isEqualTo(1);
   }
 
+  @Test
+  void should_use_ttl_from_config_and_use_as_ttl() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttl", keyspaceName, "types"), "100")));
+
+    // when
+    String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
+    assertThat(row.getInt(2)).isEqualTo(100);
+  }
+
   /** Test for KAF-46. */
   @Test
   void should_extract_timestamp_from_json_and_use_existing_column_as_timestamp() {

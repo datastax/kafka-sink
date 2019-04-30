@@ -905,7 +905,7 @@ class RecordMapperTest {
     Mapping mapping = new Mapping(mappingMap, null);
 
     // when
-    boolean result = RecordMapper.detectIfIsInsertUpdate(record, mapping, primaryKey);
+    boolean result = RecordMapper.isInsertUpdate(record, mapping, primaryKey);
 
     // then
     assertThat(result).isEqualTo(expected);

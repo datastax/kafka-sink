@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +107,7 @@ public class RecordMapper {
       // do an insert/update.
       preparedStatement = insertUpdateStatement;
     } else {
-      isInsertUpdate = detectIfIsInsertUpdate(record, mapping, primaryKey);
+      isInsertUpdate = isInsertUpdate(record, mapping, primaryKey);
       preparedStatement = isInsertUpdate ? insertUpdateStatement : deleteStatement;
     }
     BoundStatementBuilder builder = preparedStatement.boundStatementBuilder();
@@ -161,8 +160,7 @@ public class RecordMapper {
   // column. If so, this is an insert; otherwise it is a delete. However, there is a
   // special case: if the table only has primary key columns, there is no case for delete.
   @VisibleForTesting
-  static boolean detectIfIsInsertUpdate(
-      Record record, Mapping mapping, Set<CqlIdentifier> primaryKey) {
+  static boolean isInsertUpdate(Record record, Mapping mapping, Set<CqlIdentifier> primaryKey) {
     return mapping.getMappedColumns().equals(primaryKey)
         || record
             .fields()
@@ -170,14 +168,10 @@ public class RecordMapper {
             .filter(
                 field -> {
                   Object fieldValue = record.getFieldValue(field);
-                  if (fieldValue instanceof NullNode) { // json null is mapped to NullNode
-                    return false;
-                  }
-                  return fieldValue != null;
+                  return fieldValue != null && !(fieldValue instanceof NullNode);
                 })
             .anyMatch(
                 field -> {
-                  @Nullable
                   Collection<CqlIdentifier> mappedCols =
                       mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
                   return mappedCols != null
