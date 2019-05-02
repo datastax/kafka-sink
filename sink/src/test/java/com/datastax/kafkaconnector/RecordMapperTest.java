@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.util.SinkUtil.TIMESTAMP_VARNAME;
 import static com.datastax.oss.driver.api.core.DefaultProtocolVersion.V4;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.math.BigDecimal.ONE;
@@ -44,13 +45,21 @@ import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
 import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.codec.CodecNotFoundException;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.internal.core.cql.DefaultColumnDefinition;
+import com.datastax.oss.driver.internal.core.cql.DefaultColumnDefinitions;
+import com.datastax.oss.protocol.internal.response.result.ColumnSpec;
+import com.datastax.oss.protocol.internal.response.result.RawType;
 import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.netty.util.concurrent.FastThreadLocal;
 import java.nio.ByteBuffer;
 import java.text.NumberFormat;
@@ -59,11 +68,13 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.assertj.core.util.Sets;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -848,6 +859,165 @@ class RecordMapperTest {
 
     // then
     assertThat(result).isEqualTo(-1);
+  }
+
+  @ParameterizedTest(name = "[{index}] kafkaRecordFields={0}, columnDefinitions={1}, mapping={2}")
+  @MethodSource("correctMappingProvider")
+  void should_not_throw_if_mapping_defined_properly(
+      Set<String> kafkaRecordFields,
+      List<ColumnDefinition> columnDefinitionsList,
+      Map<CqlIdentifier, CqlIdentifier> mappingMap) {
+    // given
+    ColumnDefinitions columnDefinitions = DefaultColumnDefinitions.valueOf(columnDefinitionsList);
+    Mapping mapping = new Mapping(mappingMap, null);
+
+    // when
+    RecordMapper.ensureAllFieldsPresent(kafkaRecordFields, columnDefinitions, mapping);
+
+    // then no throw
+  }
+
+  @ParameterizedTest(name = "[{index}] kafkaRecordFields={0}, columnDefinitions={1}, mapping={2}")
+  @MethodSource("faultyMappingProvider")
+  void should_throw_if_mapping_not_defined_properly(
+      Set<String> kafkaRecordFields,
+      List<ColumnDefinition> columnDefinitionsList,
+      Map<CqlIdentifier, CqlIdentifier> mappingMap) {
+    // given
+    ColumnDefinitions columnDefinitions = DefaultColumnDefinitions.valueOf(columnDefinitionsList);
+    Mapping mapping = new Mapping(mappingMap, null);
+
+    // when then throw
+    assertThatThrownBy(
+            () ->
+                RecordMapper.ensureAllFieldsPresent(kafkaRecordFields, columnDefinitions, mapping))
+        .isExactlyInstanceOf(ConfigException.class);
+  }
+
+  @ParameterizedTest(name = "[{index}] record={0}, mapping={1}, primaryKey={2}, expected={3}")
+  @MethodSource("detectInsertUpdateProvider")
+  void should_detect_that_is_insert_update(
+      Record record,
+      Map<CqlIdentifier, CqlIdentifier> mappingMap,
+      Set<CqlIdentifier> primaryKey,
+      Boolean expected) {
+    // given
+    Mapping mapping = new Mapping(mappingMap, null);
+
+    // when
+    boolean result = RecordMapper.isInsertUpdate(record, mapping, primaryKey);
+
+    // then
+    assertThat(result).isEqualTo(expected);
+  }
+
+  private static Stream<? extends Arguments> detectInsertUpdateProvider() {
+    Record returnNullForValue = mock(Record.class);
+    when(returnNullForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(returnNullForValue.getFieldValue("key.f1")).thenReturn("v");
+    when(returnNullForValue.getFieldValue("value.f1")).thenReturn(null);
+
+    Record returnNotNullForValue = mock(Record.class);
+    when(returnNotNullForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(returnNotNullForValue.getFieldValue("key.f1")).thenReturn("v");
+    when(returnNotNullForValue.getFieldValue("value.f1")).thenReturn("v");
+
+    Record allFieldsNull = mock(Record.class);
+    when(allFieldsNull.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(allFieldsNull.getFieldValue("key.f1")).thenReturn(null);
+    when(allFieldsNull.getFieldValue("value.f1")).thenReturn(null);
+
+    Record returnNullNodeForValue = mock(Record.class);
+    when(returnNullNodeForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
+    when(returnNullNodeForValue.getFieldValue("key.f1")).thenReturn("v");
+    when(returnNullNodeForValue.getFieldValue("value.f1")).thenReturn(NullNode.instance);
+
+    return Stream.of(
+        // case for only PK in mapping - insert
+        Arguments.of(
+            mock(Record.class),
+            ImmutableMap.of(CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            true),
+        // field value is null - delete
+        Arguments.of(
+            returnNullForValue,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            false),
+        // field value is not null - insert
+        Arguments.of(
+            returnNotNullForValue,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            true),
+        // all fields values including PK is null - this is a hypothetical case.
+        // It should not happen on production because record with PK = null is filtered at the
+        // earlier stage of processing
+        Arguments.of(
+            allFieldsNull,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            false),
+        // field value is NodeNull - delete
+        Arguments.of(
+            returnNullNodeForValue,
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("key.f1"),
+                CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
+            ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
+            false));
+  }
+
+  private static Stream<? extends Arguments> correctMappingProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(createColumnDefinition("col1")),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
+        Arguments.of(
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(
+                createColumnDefinition("col1"), createColumnDefinition(TIMESTAMP_VARNAME)),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f1"))),
+        Arguments.of(
+            ImmutableSet.of("key.__self", "value.__self", "key.id"),
+            // there is only value.__self so it means that value is null
+            ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"),
+                CqlIdentifier.fromInternal("key.id"),
+                CqlIdentifier.fromInternal("from_value"),
+                CqlIdentifier.fromInternal("value.some_value"))));
+  }
+
+  private static Stream<? extends Arguments> faultyMappingProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableSet.of("f1", "f2"),
+            ImmutableList.of(createColumnDefinition("col1")),
+            ImmutableMap.of(CqlIdentifier.fromInternal("col1"), CqlIdentifier.fromInternal("f3"))),
+        Arguments.of(
+            ImmutableSet.of("key.__self", "value.__self", "key.id", "value.some_other_value"),
+            // there is value.__self and value.some_other_value so it means that value is not null
+            ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"),
+                CqlIdentifier.fromInternal("key.id"),
+                CqlIdentifier.fromInternal("from_value"),
+                CqlIdentifier.fromInternal("value.some_value"))));
+  }
+
+  @NotNull
+  private static DefaultColumnDefinition createColumnDefinition(String columnName) {
+    return new DefaultColumnDefinition(
+        new ColumnSpec("ks", "tb", columnName, 0, RawType.PRIMITIVES.get(1)), AttachmentPoint.NONE);
   }
 
   private static Stream<? extends Arguments> ttlValuesProvider() {

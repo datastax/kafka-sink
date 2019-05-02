@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.record.RawData.VALUE_FIELD_NAME;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
@@ -26,6 +27,7 @@ import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
@@ -37,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,8 @@ public class RecordMapper {
     Object raw;
     DataType cqlType;
     if (!allowMissingFields) {
-      ensureAllFieldsPresent(record.fields());
+      ensureAllFieldsPresent(
+          record.fields(), insertUpdateStatement.getVariableDefinitions(), mapping);
     }
 
     // Determine if we're doing an insert-update or a delete
@@ -105,23 +107,7 @@ public class RecordMapper {
       // do an insert/update.
       preparedStatement = insertUpdateStatement;
     } else {
-      // Walk through each record field and check if any non-null fields map to a non-primary-key
-      // column. If so, this is an insert; otherwise it is a delete. However, there is a
-      // special case: if the table only has primary key columns, there is no case for delete.
-      isInsertUpdate =
-          mapping.getMappedColumns().equals(primaryKey)
-              || record
-                  .fields()
-                  .stream()
-                  .filter(field -> record.getFieldValue(field) != null)
-                  .anyMatch(
-                      field -> {
-                        @Nullable
-                        Collection<CqlIdentifier> mappedCols =
-                            mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
-                        return mappedCols != null
-                            && mappedCols.stream().anyMatch(col -> !primaryKey.contains(col));
-                      });
+      isInsertUpdate = isInsertUpdate(record, mapping, primaryKey);
       preparedStatement = isInsertUpdate ? insertUpdateStatement : deleteStatement;
     }
     BoundStatementBuilder builder = preparedStatement.boundStatementBuilder();
@@ -168,6 +154,32 @@ public class RecordMapper {
     BoundStatement bs = builder.build();
     ensurePrimaryKeySet(bs);
     return bs;
+  }
+
+  // Walk through each record field and check if any non-null fields map to a non-primary-key
+  // column. If so, this is an insert; otherwise it is a delete. However, there is a
+  // special case: if the table only has primary key columns, there is no case for delete.
+  @VisibleForTesting
+  static boolean isInsertUpdate(Record record, Mapping mapping, Set<CqlIdentifier> primaryKey) {
+    if (mapping.getMappedColumns().equals(primaryKey)) {
+      return true;
+    }
+    for (String field : record.fields()) {
+      Object fieldValue = record.getFieldValue(field);
+      if (fieldValue == null || fieldValue instanceof NullNode) {
+        continue;
+      }
+      Collection<CqlIdentifier> mappedCols =
+          mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
+      if (mappedCols != null) {
+        for (CqlIdentifier mappedCol : mappedCols) {
+          if (!primaryKey.contains(mappedCol)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   private boolean timestampIsNotSet(BoundStatementBuilder builder) {
@@ -217,7 +229,7 @@ public class RecordMapper {
     return raw;
   }
 
-  private <T> void bindColumn(
+  private <T> BoundStatementBuilder bindColumn(
       BoundStatementBuilder builder,
       CqlIdentifier variable,
       T raw,
@@ -235,10 +247,10 @@ public class RecordMapper {
                 + "Check that your mapping setting matches your dataset contents.");
       }
       if (nullToUnset) {
-        return;
+        return builder;
       }
     }
-    builder = builder.setBytesUnsafe(variable, bb);
+    return builder.setBytesUnsafe(variable, bb);
   }
 
   private boolean isNull(ByteBuffer bb, DataType cqlType) {
@@ -263,8 +275,9 @@ public class RecordMapper {
     return primaryKey.contains(variable);
   }
 
-  private void ensureAllFieldsPresent(Set<String> recordFields) {
-    ColumnDefinitions variables = insertUpdateStatement.getVariableDefinitions();
+  @VisibleForTesting
+  static void ensureAllFieldsPresent(
+      Set<String> recordFields, ColumnDefinitions variables, Mapping mapping) {
     for (int i = 0; i < variables.size(); i++) {
       CqlIdentifier variable = variables.get(i).getName();
       if (variable.asInternal().equals(SinkUtil.TIMESTAMP_VARNAME)) {
@@ -272,6 +285,13 @@ public class RecordMapper {
         continue;
       }
       CqlIdentifier field = mapping.columnToField(variable);
+      if (field != null
+          && isFieldValue(field.asInternal())
+          && isValueSelfOnlyValueField(recordFields)) {
+        // if kafka record value=null don't analyze fields mapped from value
+        continue;
+      }
+
       if (field != null && !recordFields.contains(field.asInternal())) {
         throw new ConfigException(
             "Required field '"
@@ -282,6 +302,16 @@ public class RecordMapper {
                 + "Please remove it from the mapping.");
       }
     }
+  }
+
+  private static boolean isValueSelfOnlyValueField(Set<String> recordFields) {
+    List<String> result =
+        recordFields.stream().filter(RecordMapper::isFieldValue).collect(Collectors.toList());
+    return result.size() == 1 && result.contains(VALUE_FIELD_NAME);
+  }
+
+  private static boolean isFieldValue(String variable) {
+    return variable.startsWith("value.");
   }
 
   private void ensurePrimaryKeySet(BoundStatement bs) {

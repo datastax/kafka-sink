@@ -106,12 +106,22 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + ")")
             .setTimeout(Duration.ofSeconds(10))
             .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS pk_value ("
+                    + "my_pk bigint PRIMARY KEY,"
+                    + "my_value boolean"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
   }
 
   @BeforeEach
   void truncateTables() {
     session.execute("TRUNCATE small_simple");
     session.execute("TRUNCATE small_compound");
+    session.execute("TRUNCATE pk_value");
   }
 
   @Test
@@ -1158,32 +1168,93 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   @Test
   void delete_simple_key() {
     // First insert a row...
-    session.execute(
-        "INSERT INTO small_simple (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
-    List<Row> results = session.execute("SELECT * FROM small_simple").all();
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(1);
 
     conn.start(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
-            "small_simple",
-            null));
+        makeConnectorProperties("my_pk=value.my_pk, my_value=value.my_value", "pk_value", null));
 
     // Set up records for "mytopic"
     Schema schema =
         SchemaBuilder.struct()
             .name("Kafka")
-            .field("bigint", Schema.INT64_SCHEMA)
-            .field("boolean", Schema.BOOLEAN_SCHEMA)
-            .field("int", Schema.INT32_SCHEMA)
+            .field("my_pk", Schema.INT64_SCHEMA)
+            .field("my_value", Schema.BOOLEAN_SCHEMA)
             .build();
-    Struct value = new Struct(schema).put("bigint", 1234567L);
+    Struct value = new Struct(schema).put("my_pk", 1234567L);
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
 
     runTaskWithRecords(record);
 
     // Verify that the record was deleted from DSE.
-    results = session.execute("SELECT * FROM small_simple").all();
+    results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_simple_key_json() {
+    // First insert a row...
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties("my_pk=value.my_pk, my_value=value.my_value", "pk_value", null));
+
+    // Set up records for "mytopic"
+    String json = "{\"my_pk\": 1234567, \"my_value\": null}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_simple_key_value_null() {
+    // First insert a row...
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties("my_pk=key.my_pk, my_value=value.my_value", "pk_value", null));
+
+    // Set up records for "mytopic"
+    Schema keySchema =
+        SchemaBuilder.struct().name("Kafka").field("my_pk", Schema.INT64_SCHEMA).build();
+    Struct key = new Struct(keySchema).put("my_pk", 1234567L);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_simple_key_value_null_json() {
+    // First insert a row...
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties("my_pk=key.my_pk, my_value=value.my_value", "pk_value", null));
+
+    // Set up records for "mytopic"
+    String key = "{\"my_pk\": 1234567}";
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
 
@@ -1243,6 +1314,87 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .build();
     Struct value = new Struct(schema).put("bigint", 1234567L).put("boolean", true);
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_compound_key_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic"
+    String json = "{\"bigint\": 1234567, \"boolean\": true, \"int\": null}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_compound_key_value_null() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=key.boolean, intcol=value.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic"
+    Schema keySchema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("boolean", Schema.BOOLEAN_SCHEMA)
+            .build();
+    Struct key = new Struct(keySchema).put("bigint", 1234567L).put("boolean", true);
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void delete_compound_key_value_null_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=key.boolean, intcol=value.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic"
+    String key = "{\"bigint\": 1234567, \"boolean\": true}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, key, null, null, 1234L);
 
     runTaskWithRecords(record);
 
@@ -1594,6 +1746,30 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
     assertThat(row.getInt(2)).isEqualTo(1);
+  }
+
+  @Test
+  void should_use_ttl_from_config_and_use_as_ttl() {
+    // given
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.bigint, doublecol=value.double",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.ttl", keyspaceName, "types"), "100")));
+
+    // when
+    String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
+    assertThat(row.getInt(2)).isEqualTo(100);
   }
 
   /** Test for KAF-46. */
