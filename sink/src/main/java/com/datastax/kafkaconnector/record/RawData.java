@@ -10,8 +10,8 @@ package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.google.common.collect.ImmutableSet;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
@@ -19,12 +19,7 @@ import org.jetbrains.annotations.NotNull;
 /** The key or value of a {@link SinkRecord} when it is a primitive type. */
 public class RawData implements KeyOrValue, RecordMetadata {
   public static final String FIELD_NAME = "__self";
-  public static final String VALUE_FIELD_NAME = "value." + FIELD_NAME;
-  private static final Set<String> FIELDS = new HashSet<>();
-
-  static {
-    FIELDS.add(FIELD_NAME);
-  }
+  private static final Set<String> FIELDS = ImmutableSet.of(FIELD_NAME);
 
   private final GenericType<?> type;
   private final Object value;
