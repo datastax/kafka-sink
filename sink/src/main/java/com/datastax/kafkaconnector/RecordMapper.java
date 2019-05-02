@@ -285,8 +285,10 @@ public class RecordMapper {
         continue;
       }
       CqlIdentifier field = mapping.columnToField(variable);
-      if (field != null && isFieldValue(field.asInternal()) && valueIsNull(recordFields)) {
-        // if value=null don't analyze fields mapped from value
+      if (field != null
+          && isFieldValue(field.asInternal())
+          && isValueSelfOnlyValueField(recordFields)) {
+        // if kafka record value=null don't analyze fields mapped from value
         continue;
       }
 
@@ -302,7 +304,7 @@ public class RecordMapper {
     }
   }
 
-  private static boolean valueIsNull(Set<String> recordFields) {
+  private static boolean isValueSelfOnlyValueField(Set<String> recordFields) {
     List<String> result =
         recordFields.stream().filter(RecordMapper::isFieldValue).collect(Collectors.toList());
     return result.size() == 1 && result.contains(VALUE_FIELD_NAME);
