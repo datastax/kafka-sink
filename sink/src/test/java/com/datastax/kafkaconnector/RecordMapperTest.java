@@ -955,7 +955,9 @@ class RecordMapperTest {
                 CqlIdentifier.fromInternal("f1"), CqlIdentifier.fromInternal("value.f1")),
             ImmutableSet.of(CqlIdentifier.fromInternal("PK")),
             true),
-        // all fields values including PK is null
+        // all fields values including PK is null - this is a hypothetical case.
+        // It should not happen on production because record with PK = null is filtered at the
+        // earlier stage of processing
         Arguments.of(
             allFieldsNull,
             ImmutableMap.of(
