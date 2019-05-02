@@ -924,7 +924,8 @@ class RecordMapperTest {
 
     Record allFieldsNull = mock(Record.class);
     when(allFieldsNull.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
-    when(allFieldsNull.getFieldValue(any(String.class))).thenReturn(null);
+    when(allFieldsNull.getFieldValue("key.f1")).thenReturn(null);
+    when(allFieldsNull.getFieldValue("value.f1")).thenReturn(null);
 
     Record returnNullNodeForValue = mock(Record.class);
     when(returnNullNodeForValue.fields()).thenReturn(ImmutableSet.of("key.f1", "value.f1"));
