@@ -11,15 +11,15 @@
 # 4. Use TOPIC_NAME env var to set the Kafka Topic that will be created
 # 5. Use TOTAL_RECORDS env var to control the number of records written to Kafka
 
-ACADEMY_MAIL=tomasz.lelek@datastax.com
-ACADEMY_PASSWORD=
 ACADEMY_USERNAME=tomasz.lelek_158823
-ACADEMY_DOWNLOAD_KEY=academy_key
-CONFLUENT_HOME=/tmp/confluent
+ACADEMY_DOWNLOAD_KEY=
+CONFLUENT_HOME=/tmp/confluent-5.2
 CONNECTOR_HOME=/tmp/dse-connector
 DSE_HOME=/tmp/dse
 KAFKA_EXAMPLES_HOME=/tmp/kafka-examples
-DSE_CONNECTOR_VERSION=1.1.0-SNAPSHOT
+DSE_CONNECTOR_VERSION=1.0.0
+TOTAL_RECORDS=1000
+TOPIC_NAME="avro-stream"
 
 
 wait_for_port () {
@@ -33,7 +33,7 @@ wait_for_port () {
 }
 
 assert_academy_username () {
-  if [[ -z "$ACADEMY_USERNAME" ]] ; then
+  if [ -z "$ACADEMY_USERNAME" ] ; then
     echo "You must set the ACADEMY_USERNAME env var to your DataStax Academy username login before performing this operation."
     echo "See https://academy.datastax.com/user/login for details"
     exit 1
@@ -41,7 +41,7 @@ assert_academy_username () {
 }
 
 assert_academy_download_key () {
-  if [[ -z "$ACADEMY_DOWNLOAD_KEY" ]] ; then
+  if [ -z "$ACADEMY_DOWNLOAD_KEY" ] ; then
     echo "You must set the ACADEMY_DOWNLOAD_KEY env var to your DataStax Academy download key before performing this operation."
     echo "See https://academy.datastax.com/downloads for details"
     exit 1
@@ -49,40 +49,40 @@ assert_academy_download_key () {
 }
 
 assert_confluent_home () {
-  if [[ -z "$CONFLUENT_HOME" ]] ; then
+  if [ -z "$CONFLUENT_HOME" ] ; then
     echo "You must set the CONFLUENT_HOME env var to the location of the Confluent installation before performing this operation."
     exit 1
   fi
 }
 
 assert_connector_home () {
-  if [[ -z "$CONNECTOR_HOME" ]] ; then
+  if [ -z "$CONNECTOR_HOME" ] ; then
     echo "You must set the CONNECTOR_HOME env var to the location of the DSE connector installation before performing this operation."
     exit 1
   fi
 }
 
 assert_dse_home () {
-  if [[ -z "$DSE_HOME" ]] ; then
+  if [ -z "$DSE_HOME" ] ; then
     echo "You must set the DSE_HOME env var to the location of the DSE installation before performing this operation."
     exit 1
   fi
 }
 
 maybe_set_topic_name () {
-  if [[ -z "$TOPIC_NAME" ]] ; then
+  if [ -z "$TOPIC_NAME" ] ; then
     TOPIC_NAME="avro-stream"
   fi
 }
 
 maybe_set_total_records () {
-  if [[ -z "$TOTAL_RECORDS" ]] ; then
+  if [ -z "$TOTAL_RECORDS" ] ; then
     TOTAL_RECORDS=1000
   fi
 }
 
 maybe_set_dse_connector_version () {
-  if [[ -z "$DSE_CONNECTOR_VERSION" ]] ; then
+  if [ -z "$DSE_CONNECTOR_VERSION" ] ; then
     DSE_CONNECTOR_VERSION=1.0.0
   fi
 }
@@ -107,8 +107,7 @@ install_dse_connector () {
 	echo "---   INSTALLING DATASTAX CONNECTOR  ---"
 	echo "----------------------------------------"
 	mkdir ${CONNECTOR_HOME};
-	#curl --user ${ACADEMY_USERNAME}:${ACADEMY_DOWNLOAD_KEY} -L -O https://downloads.datastax.com/kafka/kafka-connect-dse-${DSE_CONNECTOR_VERSION}.tar.gz && wait
-	curl --user ${ACADEMY_MAIL}:${ACADEMY_PASSWORD} -L -O https://downloads.datastax.com/kafka/kafka-connect-dse-${DSE_CONNECTOR_VERSION}.tar.gz && wait
+	curl --user ${ACADEMY_USERNAME}:${ACADEMY_DOWNLOAD_KEY} -L -O https://downloads.datastax.com/kafka/kafka-connect-dse-${DSE_CONNECTOR_VERSION}.tar.gz && wait
 	tar xzf kafka-connect-dse-${DSE_CONNECTOR_VERSION}.tar.gz -C ${CONNECTOR_HOME} --strip-components=1
 }
 
@@ -118,8 +117,7 @@ install_dse () {
 	echo "---  INSTALLING DATASTAX ENTERPRISE  ---"
 	echo "----------------------------------------"
 	mkdir ${DSE_HOME}; mkdir ${DSE_HOME}/logs; mkdir ${DSE_HOME}/data;
-	#curl --user ${ACADEMY_USERNAME}:${ACADEMY_DOWNLOAD_KEY} -L -O https://downloads.datastax.com/enterprise/dse.tar.gz && wait
-	curl --user ${ACADEMY_MAIL}:${ACADEMY_PASSWORD} -L -O https://downloads.datastax.com/enterprise/dse.tar.gz && wait
+	curl --user ${ACADEMY_USERNAME}:${ACADEMY_DOWNLOAD_KEY} -L -O https://downloads.datastax.com/enterprise/dse.tar.gz && wait
 	tar xzf dse.tar.gz -C ${DSE_HOME} --strip-components=1
 	sed -i 's/\/var\/lib\/cassandra\/*//g' ${DSE_HOME}/resources/cassandra/conf/cassandra.yaml
 	sed -i 's/\/var\/log\/cassandra\/*//g' ${DSE_HOME}/resources/cassandra/conf/cassandra.yaml
@@ -151,6 +149,8 @@ stop_confluent(){
 	echo "---    STOPPING SCHEMA REGISTRY    ---"
 	echo "----------------------------------------"
 	${CONFLUENT_HOME}/bin/schema-registry-stop
+
+	kill -9 `lsof -t -i:8083`
 }
 
 start_confluent () {
@@ -250,7 +250,7 @@ create_dse_schema () {
 	echo
 	echo `cat ${KAFKA_EXAMPLES_HOME}/producers/src/main/java/avro/create_avro_table_udt.cql`
 
-	${DSE_HOME}/bin/cqlsh -f ${KAFKA_EXAMPLES_HOME}producers/src/main/java/avro/create_avro_table_udt.cql
+	${DSE_HOME}/bin/cqlsh -f ${KAFKA_EXAMPLES_HOME}/producers/src/main/java/avro/create_avro_table_udt.cql
 }
 
 verify_rows_in_dse () {
@@ -258,25 +258,31 @@ verify_rows_in_dse () {
 	echo "----------------------------------------"
 	echo "---      VERIYING ROWS IN DSE        ---"
 	echo "----------------------------------------"
+
 	${DSE_HOME}/bin/cqlsh -e "select * from kafka_examples.avro_udt_table limit 5;"
+
+	echo "Counting rows in DSE using -- $DSE_HOME/bin/dsbulk count -k kafka_examples -t avro_udt_table --"
+
+	${DSE_HOME}/bin/dsbulk count -k kafka_examples -t avro_udt_table
 }
 
 # check that all needed options are set
-#assert_confluent_home
-#assert_dse_home
-#assert_connector_home
-#maybe_set_topic_name
-#maybe_set_total_records
-#maybe_set_dse_connector_version
+assert_confluent_home
+assert_dse_home
+assert_connector_home
+maybe_set_topic_name
+maybe_set_total_records
+maybe_set_dse_connector_version
 #
 ## Install Confluent, DataStax Connector, DSE, and Kafka Examples
-#install_confluent
-#install_dse_connector
-#install_dse
-#install_kafka_examples
+install_confluent
+install_dse_connector
+install_dse
+install_kafka_examples
 
 # Start Confluent, DSE, Kafka Connect Worker, and DataStax Connector
 
+#stop_confluent
 start_confluent
 start_dse
 start_distributed_worker
@@ -285,7 +291,11 @@ start_connector
 # Create the Kafka Topic and DSE Schema
 create_kafka_topic
 create_dse_schema
+
+# Start Avro Producer
 start_producer
+
+# Verify that the producer wrote records to Kafka and that those rows show up in DSE
 verify_records_in_kafka
 verify_rows_in_dse
 
