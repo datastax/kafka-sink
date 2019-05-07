@@ -99,7 +99,7 @@ install_confluent () {
         install_confluent_5_1
     elif [ "$CONFLUENT_VERSION" = "5.0" ]
     then
-        install_confluent_5.0
+        install_confluent_5_0
     elif [ "$CONFLUENT_VERSION" = "4.1" ]
     then
         install_confluent_4_1
