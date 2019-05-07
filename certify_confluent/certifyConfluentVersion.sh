@@ -12,12 +12,14 @@
 # 5. Use TOTAL_RECORDS env var to control the number of records written to Kafka
 ACADEMY_USERNAME=tomasz.lelek_158823
 ACADEMY_DOWNLOAD_KEY=download_key
-CONFLUENT_HOME=/tmp/confluent-5.2
+CONFLUENT_HOME=/tmp/confluent
 CONNECTOR_HOME=/tmp/dse-connector
 DSE_HOME=/tmp/dse
-DSE_CONNECTOR_VERSION=1.0.0
 TOTAL_RECORDS=1000
 TOPIC_NAME="avro-stream"
+
+CONFLUENT_VERSION=$1
+DSE_CONNECTOR_VERSION=$2
 
 wait_for_port () {
   SVCNAME=$1
@@ -89,10 +91,109 @@ confluent_major () {
 }
 
 install_confluent () {
-	echo
-	echo "----------------------------------------"
-	echo "---        INSTALLING CONFLUENT      ---"
-	echo "----------------------------------------"
+    if [ "$CONFLUENT_VERSION" = "5.2" ]
+    then
+        install_confluent_5_2
+    elif [ "$CONFLUENT_VERSION" = "5.1" ]
+    then
+        install_confluent_5_1
+    elif [ "$CONFLUENT_VERSION" = "5.0" ]
+    then
+        install_confluent_5.0
+    elif [ "$CONFLUENT_VERSION" = "4.1" ]
+    then
+        install_confluent_4_1
+    elif [ "$CONFLUENT_VERSION" = "4.0" ]
+    then
+        install_confluent_4_0
+    elif [ "$CONFLUENT_VERSION" = "3.3" ]
+    then
+        install_confluent_3_3
+    elif [ "$CONFLUENT_VERSION" = "3.2" ]
+    then
+        install_confluent_3_2
+    fi
+}
+
+install_confluent_3_2(){
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
+	mkdir $CONFLUENT_HOME
+	curl -O http://packages.confluent.io/archive/3.2/confluent-3.2.4-2.11.tar.gz && wait
+	tar xzf confluent-3.2.4-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
+
+}
+
+install_confluent_3_3(){
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
+	mkdir $CONFLUENT_HOME
+	curl -O http://packages.confluent.io/archive/3.3/confluent-3.3.2-2.11.tar.gz && wait
+	tar xzf confluent-3.3.2-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
+
+}
+
+install_confluent_4_0(){
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
+	mkdir $CONFLUENT_HOME
+	curl -O http://packages.confluent.io/archive/4.0/confluent-4.0.2-2.11.tar.gz && wait
+	tar xzf confluent-4.0.2-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
+
+}
+
+install_confluent_4_1(){
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
+	mkdir $CONFLUENT_HOME
+	curl -O http://packages.confluent.io/archive/4.1/confluent-4.1.2-2.11.tar.gz && wait
+	tar xzf confluent-4.1.2-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
+
+}
+
+install_confluent_5_0 () {
+
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
+	mkdir $CONFLUENT_HOME
+	curl -O http://packages.confluent.io/archive/5.0/confluent-5.0.2-2.11.tar.gz && wait
+	tar xzf confluent-5.0.2-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
+}
+
+install_confluent_5_1 () {
+
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
+	mkdir $CONFLUENT_HOME
+	curl -O http://packages.confluent.io/archive/5.1/confluent-5.1.2-2.11.tar.gz && wait
+	tar xzf confluent-5.1.2-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
+}
+
+install_confluent_5_2 () {
+
+    echo
+	echo "-----------------------------------------------"
+	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
+	echo "-----------------------------------------------"
+	echo "version: "
 	mkdir $CONFLUENT_HOME
 	curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz && wait
 	tar xzf confluent-community-5.2.1-2.12.tar.gz -C $CONFLUENT_HOME --strip-components=1
@@ -273,7 +374,6 @@ maybe_set_dse_connector_version
 
 # Install Confluent, DataStax Connector, DSE, and Kafka Examples
 install_confluent
-install_dse_connector
 install_dse
 install_kafka_examples
 
