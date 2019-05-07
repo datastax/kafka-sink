@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+pyenv activate ctool-env
 
 CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.1.0-SNAPSHOT.jar
 KAFKA_SINK_REPO_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink
@@ -6,7 +7,6 @@ DSE_CONNECTOR_VERSION=1.1.0-SNAPSHOT
 LOGS_OUTPUT_DIRECTORY=/tmp/certify-confluent-tests
 
 mkdir ${LOGS_OUTPUT_DIRECTORY}
-pyenv activate ctool-env
 
 echo "smoke test confluent 5.2"
 ctool --provider=ironic launch -p devtools-ironic kct 1
