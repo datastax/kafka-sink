@@ -77,14 +77,3 @@ ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluent.sh; chmod 777 /
 ctool run kct "~/certifyConfluentVersion.sh "3.3" "${DSE_CONNECTOR_VERSION}" &> certify_confluent_3.3.log"
 ctool scp -r kct 0 ${LOGS_OUTPUT_DIRECTORY}/certify_confluent_3.3.log /home/automaton/certify_confluent_3.3.log
 ctool destroy kct
-
-echo "smoke test confluent 3.2"
-ctool --provider=ironic launch -p devtools-ironic kct 1
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
-ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluent.sh /home/automaton
-ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
-ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluent.sh; chmod 777 /home/automaton/certifyConfluentVersion.sh"
-ctool run kct "~/certifyConfluentVersion.sh "3.2" "${DSE_CONNECTOR_VERSION}" &> certify_confluent_3.2.log"
-ctool scp -r kct 0 ${LOGS_OUTPUT_DIRECTORY}/certify_confluent_3.2.log /home/automaton/certify_confluent_3.2.log
-ctool destroy kct

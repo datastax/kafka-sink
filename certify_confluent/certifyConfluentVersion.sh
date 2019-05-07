@@ -109,23 +109,9 @@ install_confluent () {
     elif [ "$CONFLUENT_VERSION" = "3.3" ]
     then
         install_confluent_3_3
-    elif [ "$CONFLUENT_VERSION" = "3.2" ]
-    then
-        install_confluent_3_2
     fi
 }
 
-install_confluent_3_2(){
-    echo
-	echo "-----------------------------------------------"
-	echo "--- INSTALLING CONFLUENT $CONFLUENT_VERSION ---"
-	echo "-----------------------------------------------"
-	echo "version: "
-	mkdir $CONFLUENT_HOME
-	curl -O http://packages.confluent.io/archive/3.2/confluent-3.2.4-2.11.tar.gz && wait
-	tar xzf confluent-3.2.4-2.11.tar.gz -C $CONFLUENT_HOME --strip-components=1
-
-}
 
 install_confluent_3_3(){
     echo
