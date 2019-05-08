@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # This script validates the correctness of kafka-connector-dse against different confluent versions.
-# It will start the open-stack instance for every confluent version, setups Kafka ecosystem + DSE + starts connector.
+# It will start the Openstack instance for every Confluent version, set up the Kafka ecosystem + DSE and start the connector.
 # The output logs with a status of verification will be copied to $LOGS_OUTPUT_DIRECTORY on your local machine.
 # After every run the open-stack instance is destroyed and the new one for the next confluent version is created
 # The process is repeated for confluent versions: 5.2, 5.1, 5.0, 4.1, 4.0, 3.3
