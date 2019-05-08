@@ -7,10 +7,10 @@
 # Prerequisites
 # 1. Java 8+ must be installed
 # 2. Maven must be installed
-# 3. Define ACADEMY_USERNAME, ACADEMY_DOWNLOAD_KEY, CONFLUENT_HOME, DSE_HOME, CONNECTOR_HOME environment variables
+# 3. Define ACADEMY_USERNAME, ACADEMY_DOWNLOAD_KEY environment variables
 # 4. Use TOPIC_NAME env var to set the Kafka Topic that will be created
 # 5. Use TOTAL_RECORDS env var to control the number of records written to Kafka
-ACADEMY_USERNAME=tomasz.lelek_158823
+ACADEMY_USERNAME=academy_user_name
 ACADEMY_DOWNLOAD_KEY=download_key
 CONFLUENT_HOME=/tmp/confluent
 CONNECTOR_HOME=/tmp/dse-connector
