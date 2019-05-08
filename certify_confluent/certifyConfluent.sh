@@ -8,14 +8,17 @@
 # Version of that JAR should be the same as the DSE_CONNECTOR_VERSION parameter (that you can change as well).
 # You need to specify the location of the repo with kafka-connect project via KAFKA_SINK_REPO_LOCATION parameter.
 # This is needed for copying the running script into a ctool instance.
-
-pyenv activate ctool-env
-ctool destroy kct
+# To use ctool properly the virtual-env is used.
+# Set CTOOL_ENV to name of the virtual-env inside of which you have ctool setup.
 
 CONNECTOR_JAR_LOCATION=path-to-connector-jar-on-your-local-system
 KAFKA_SINK_REPO_LOCATION=/your-local-location/kafka-sink
 DSE_CONNECTOR_VERSION=1.1.0-SNAPSHOT
 LOGS_OUTPUT_DIRECTORY=/tmp/certify-confluent-tests
+CTOOL_ENV=ctool-env
+
+pyenv activate ${CTOOL_ENV}
+ctool destroy kct
 
 mkdir ${LOGS_OUTPUT_DIRECTORY}
 
