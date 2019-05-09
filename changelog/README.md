@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.1.0 (in progress)
+- [improvement] KAF-115: Configure advanced.metrics.session.cql-requests.highest-latency according to request-timeout
 - [improvement] KAF-113: Support deleting rows in DSE when value is null in kafka record
 - [improvement] KAF-81: Increment kafka-connect-api version to newest one (2.0.0)
 - [improvement] KAF-112: Upgrade to DSE Driver 2.0.1 GA
