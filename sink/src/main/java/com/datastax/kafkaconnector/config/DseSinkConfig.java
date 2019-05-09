@@ -45,7 +45,7 @@ public class DseSinkConfig {
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
-  static final String METRICS_HIGHES_LATENCY_OPT = "metricsHighestLatency";
+  static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -94,7 +94,7 @@ public class DseSinkConfig {
               ConfigDef.Importance.HIGH,
               "CQL statement execution timeout, in seconds")
           .define(
-              METRICS_HIGHES_LATENCY_OPT,
+              METRICS_HIGHEST_LATENCY_OPT,
               ConfigDef.Type.INT,
               35,
               ConfigDef.Range.atLeast(1),
@@ -220,7 +220,7 @@ public class DseSinkConfig {
   }
 
   public int getMetricsHighestLatency() {
-    return globalConfig.getInt(METRICS_HIGHES_LATENCY_OPT);
+    return globalConfig.getInt(METRICS_HIGHEST_LATENCY_OPT);
   }
 
   public int getConnectionPoolLocalSize() {
