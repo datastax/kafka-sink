@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 public class RawData implements KeyOrValue, RecordMetadata {
   public static final String FIELD_NAME = "__self";
   public static final String VALUE_FIELD_NAME = "value." + FIELD_NAME;
-  private static final Set<String> FIELDS = ImmutableSet.of(FIELD_NAME);
+  private static final ImmutableSet<String> FIELDS = ImmutableSet.of(FIELD_NAME);
 
   private final GenericType<?> type;
   private final Object value;
