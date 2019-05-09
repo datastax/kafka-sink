@@ -100,7 +100,7 @@ public class DseSinkConfig {
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
               "This is used to scale internal data structures for gathering metrics. "
-                  + "It should be higher than queryExecutionTimeout.")
+                  + "It should be higher than queryExecutionTimeout. This parameter should be expressed in seconds.")
           .define(
               MAX_NUMBER_OF_RECORDS_IN_BATCH,
               ConfigDef.Type.INT,
