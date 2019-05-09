@@ -13,6 +13,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUES
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
@@ -67,6 +68,26 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
 
     props.put(QUERY_EXECUTION_TIMEOUT_OPT, "-1");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
+  void should_error_invalid_metricsHighestLatency() {
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(METRICS_HIGHEST_LATENCY_OPT, "foo").build());
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Invalid value foo for configuration metricsHighestLatency");
+
+    props.put(METRICS_HIGHEST_LATENCY_OPT, "0");
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("Value must be at least 1");
+
+    props.put(METRICS_HIGHEST_LATENCY_OPT, "-1");
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");

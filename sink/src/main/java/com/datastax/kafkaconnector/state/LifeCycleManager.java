@@ -534,6 +534,10 @@ public class LifeCycleManager {
     configLoaderBuilder.withDuration(
         DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
 
+    configLoaderBuilder.withDuration(
+        DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST,
+        Duration.ofSeconds(config.getMetricsHighestLatency()));
+
     configLoaderBuilder.withInt(
         DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.getConnectionPoolLocalSize());
 
