@@ -1,0 +1,12 @@
+{
+  "name": "kc-perf-connect-l-0",
+  "config": {
+    "connector.class": "com.datastax.kafkaconnector.DseSinkConnector",
+    "tasks.max": "100",
+    "topics": "tick-stream-json",
+    "contactPoints": "10.200.179.112,10.200.179.114",
+    "loadBalancing.localDc": "kc-dc",
+    "topic.json-stream.stocks.ticks.mapping": "name=key, symbol=value.symbol, ts=value.dateTime, exchange=value.exchange, industry=value.industry, value=value.value",
+    "topic.json-stream.consistencyLevel": "LOCAL_QUORUM"
+  }
+}
