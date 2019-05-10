@@ -7,6 +7,6 @@
     "contactPoints": "{dse_contact_point_1},{dse_contact_point_2}",
     "loadBalancing.localDc": "kc-dc",
     "topic.json-stream.stocks.ticks.mapping": "name=key, symbol=value.symbol, ts=value.dateTime, exchange=value.exchange, industry=value.industry, value=value.value",
-    "topic.json-stream.consistencyLevel": "LOCAL_QUORUM"
+    "topic.json-stream.stocks.consistencyLevel": "LOCAL_QUORUM"
   }
 }

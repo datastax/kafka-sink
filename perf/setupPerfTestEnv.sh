@@ -64,9 +64,6 @@ ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhos
 
 ctool run kc-brokers 0 "git clone https://github.com/datastax/kafka-examples.git"
 
-# Produce 1_000_000_000 records to json-stream topic todo uncomment
-#ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer"
-
 
 # -------- Kafka Connect L Setup --------
 ctool launch -p bionic -i c3.2xlarge kc-connect-l 3
@@ -126,6 +123,8 @@ ctool run kc-dse 0 "dse/bin/cqlsh -f setup_dse_schema.cql"
 DSE_FIRST_ADDRESS=`ctool info --public-ips kc-dse -n 0`
 DSE_SECOND_ADDRESS=`ctool info --public-ips kc-dse -n 1`
 
+# Produce 1_000_000_000 records to json-stream topic
+ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer"
 
 # Submit connector task
 sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink.json
