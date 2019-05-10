@@ -1,0 +1,47 @@
+
+<jmxtrans-agent>
+    <queries>
+        <!-- Kafka Consumer Metrics -->
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*' attribute='records-lag-max' resultAlias='%client-id%-records-lag-max'/>
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*' attribute='fetch-latency-avg' resultAlias='%client-id%-fetch-latency-avg'/>
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*' attribute='fetch-rate' resultAlias='%client-id%-fetch-rate'/>
+
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*,topic=*' attribute='bytes-consumed-rate' resultAlias='%client-id%-%topic%-bytes-consumed-rate'/>
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*,topic=*' attribute='records-consumed-rate' resultAlias='%client-id%-%topic%-records-consumed-rate'/>
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*,topic=*' attribute='records-per-request-avg' resultAlias='%client-id%-%topic%-records-per-request-avg'/>
+        <query objectName='kafka.consumer:type=consumer-fetch-manager-metrics,client-id=*,topic=*' attribute='fetch-size-avg' resultAlias='%client-id%-%topic%-fetch-size-avg'/>
+
+        <query objectName='kafka.consumer:type=consumer-coordinator-metrics,client-id=*' attribute='assigned-partitions' resultAlias='%client-id%-assigned-partitions'/>
+        <query objectName='kafka.consumer:type=consumer-coordinator-metrics,client-id=*' attribute='commit-total' resultAlias='%client-id%-commit-total'/>
+        <query objectName='kafka.consumer:type=consumer-coordinator-metrics,client-id=*' attribute='commit-latency-avg' resultAlias='%client-id%-commit-latency-avg'/>
+
+        <query objectName='kafka.consumer:type=consumer-metrics,client-id=*' attribute='request-rate' resultAlias='%client-id%-request-rate'/>
+        <query objectName='kafka.consumer:type=consumer-metrics,client-id=*' attribute='incoming-byte-rate' resultAlias='%client-id%-incoming-byte-rate'/>
+        <query objectName='kafka.consumer:type=consumer-metrics,client-id=*' attribute='outgoing-byte-rate' resultAlias='%client-id%-outgoing-byte-rate'/>
+
+        <query objectName='kafka.consumer:type=connect-worker-metrics' attribute='connector-count' resultAlias='connector-count'/>
+        <query objectName='kafka.consumer:type=connect-worker-metrics' attribute='task-count' resultAlias='task-count'/>
+
+        <!-- Kafka General Connector Metrics -->
+        <query objectName='kafka.connect:type=task-metrics,connector=*,task=*' attribute='batch-size-avg' resultAlias='%connector%-%task%-batch-size-avg'/>
+        <query objectName='kafka.connect:type=sink-task-metrics,connector=*,task=*' attribute='put-batch-avg-time-ms' resultAlias='%connector%-%task%-put-batch-avg-time-ms'/>
+        <query objectName='kafka.connect:type=sink-task-metrics,connector=*,task=*' attribute='sink-record-read-total' resultAlias='%connector%-%task%-sink-record-read-total'/>
+        <query objectName='kafka.connect:type=sink-task-metrics,connector=*,task=*' attribute='sink-record-active-count' resultAlias='%connector%-%task%-sink-record-active-count'/>
+        <query objectName='kafka.connect:type=sink-task-metrics,connector=*,task=*' attribute='offset-commit-completion-total' resultAlias='%connector%-%task%-offset-commit-completion-total'/>
+        <query objectName='kafka.connect:type=sink-task-metrics,connector=*,task=*' attribute='partition-count' resultAlias='%connector%-%task%-partition-count'/>
+
+        <!-- DataStax Kafka Connector Metrics -->
+        <query objectName='com.datastax.kafkaconnector:0=*,1=driver,name=*.cql-client-timeouts' attribute='Count' resultAlias='%0%-%name%-count'/>
+        <query objectName='com.datastax.kafkaconnector:0=*,1=driver,name=*.cql-requests' attribute='99thPercentile' resultAlias='%0%-%name%-requests-99thPercentile'/>
+        <query objectName='com.datastax.kafkaconnector:0=*,1=*,2=*,name=batchSize' attribute='Mean' resultAlias='%0%-%1%-%2%-%name%-Mean'/>
+        <query objectName='com.datastax.kafkaconnector:0=*,name=failedRecordCount' attribute='Count' resultAlias='%0%-failedRecordCount'/>
+        <query objectName='com.datastax.kafkaconnector:0=*,name=recordCount' attribute='Count' resultAlias='%0%-recordCount'/>
+    </queries>
+    <outputWriter class="org.jmxtrans.agent.GraphitePlainTextTcpOutputWriter">
+        <host>10.200.176.150</host>
+        <port>2003</port>
+        <namePrefix>kc-connect-l-worker-2.</namePrefix>
+    </outputWriter>
+    <collectIntervalInSeconds>5</collectIntervalInSeconds>
+    <reloadConfigurationCheckIntervalInSeconds>60</reloadConfigurationCheckIntervalInSeconds>
+</jmxtrans-agent>

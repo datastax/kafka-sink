@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+
+CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.1.0-SNAPSHOT.jar
 CTOOL_ENV=ctool-env
 
 pyenv activate ${CTOOL_ENV}
@@ -47,7 +49,7 @@ ctool run kc-brokers 1 "mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; ech
 ctool run kc-brokers 2 "mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 2 >> /tmp/zookeeper/myid"
 
 # Install graphite collectors on all kc-brokers
-ctool perf_monitoring --install-only collectors --collect-only os --graphite-ip ${GRAPHITE_ADDRESS} kc-brokers #todo failed
+ctool perf_monitoring --install-only collectors --collect-only os --graphite-ip ${GRAPHITE_ADDRESS} kc-brokers #todo execute
 
 # start zookeeper, kafka on all brokers, and schema registry on node0
 ctool run kc-brokers all "confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &"
@@ -62,3 +64,61 @@ ctool run kc-brokers 0 "git clone https://github.com/datastax/kafka-examples.git
 
 # Produce 1_000_000_000 records to json-stream topic
 ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer"
+
+
+# -------- Kafka Connect L Setup --------
+ctool launch -p bionic -i c3.2xlarge kc-connect-l 3
+ctool run kc-connect-l all "curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz"
+ctool run kc-connect-l all "mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1"
+
+# Setup worker Distributed Properties
+ctool run kc-connect-l all "echo \"confluent.support.metrics.enable=false\" >> confluent/etc/kafka/connect-distributed.properties"
+ctool run kc-connect-l all "sed -i \"s/^group.id=.*/group.id=kc-connect-s-group/\" confluent/etc/kafka/connect-distributed.properties"
+
+ctool run kc-connect-l all "sed -i \"s/^bootstrap.servers=.*/bootstrap.servers=$BROKER_FIRST_ADDRESS:9092,$BROKER_SECOND_ADDRESS:9092,$BROKER_THIRD_ADDRESS:9092/\" confluent/etc/kafka/connect-distributed.properties"
+
+# Configure Metrics
+ctool perf_monitoring --install-only collectors --collect-only os --graphite-ip ${GRAPHITE_ADDRESS} kc-connect-l #todo execute
+
+ctool run kc-connect-l all "curl -O http://central.maven.org/maven2/org/jmxtrans/agent/jmxtrans-agent/1.2.6/jmxtrans-agent-1.2.6.jar"
+ctool scp kc-connect-l 0 kafka/kafka-connect-metrics-0.xml .
+ctool scp kc-connect-l 1 kafka/kafka-connect-metrics-1.xml .
+ctool scp kc-connect-l 2 kafka/kafka-connect-metrics-2.xml .
+
+# Copy connector JAR
+ctool scp -R kc-connect-l all ${CONNECTOR_JAR_LOCATION} kafka-connect-dse.jar
+
+ctool run kc-connect-l all "sed -i \"s/^plugin.path=.*/plugin.path=share\/java,\/home\/automaton\/kafka-connect-dse.jar/\" confluent/etc/kafka/connect-distributed.properties"
+
+
+CONNECT_FIRST_ADDRESS=`ctool info --public-ips kc-connect-l -n 0`
+CONNECT_SECOND_ADDRESS=`ctool info --public-ips kc-connect-l -n 1`
+CONNECT_THIRD_ADDRESS=`ctool info --public-ips kc-connect-l -n 2`
+
+# Enable JMX on connect workers (inserts at line 72 - when incrementing confluent version be careful to validate if this is a proper line)
+ctool run kc-connect-l 0 "sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/home/automaton/jmxtrans-agent-1.2.6.jar=/home/automaton/kafka-connect-metrics-0.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${CONNECT_FIRST_ADDRESS} -Dcom.sun.management.jmxremote.port=7199/\"' confluent/bin/connect-distributed"
+ctool run kc-connect-l 1 "sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/home/automaton/jmxtrans-agent-1.2.6.jar=/home/automaton/kafka-connect-metrics-1.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${CONNECT_SECOND_ADDRESS} -Dcom.sun.management.jmxremote.port=7199/\"' confluent/bin/connect-distributed"
+ctool run kc-connect-l 2 "sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/home/automaton/jmxtrans-agent-1.2.6.jar=/home/automaton/kafka-connect-metrics-2.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=${CONNECT_THIRD_ADDRESS} -Dcom.sun.management.jmxremote.port=7199/\"' confluent/bin/connect-distributed"
+
+
+ctool run kc-connect-l all "sed -i \"s/^key.converter=.*/key.converter=org.apache.kafka.connect.storage.StringConverter/\" confluent/etc/kafka/connect-distributed.properties"
+ctool run kc-connect-l all "sed -i \"s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties"
+ctool run kc-connect-l all "sed -i \"s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties"
+
+ctool run kc-connect-l all "confluent/bin/connect-distributed confluent/etc/kafka/connect-distributed.properties &> worker.log &"
+
+
+# DSE Cluster Setup
+ctool launch -p bionic -i m3.2xlarge kc-dse 5
+ctool install -v 6.0.4 -i tar -n 8 -x kc-dse-topology.json kc-dse enterprise
+ctool yaml -o set -k allocate_tokens_for_local_replication_factor -v 3 kc-dse all
+ctool run kc-dse 0 "dse cassandra &> startup.log &"; sleep 120
+ctool run kc-dse 1 "dse cassandra &> startup.log &"; sleep 120
+ctool run kc-dse 2 "dse cassandra &> startup.log &"; sleep 120
+ctool run kc-dse 3 "dse cassandra &> startup.log &"; sleep 120
+ctool run kc-dse 4 "dse cassandra &> startup.log &"; sleep 120
+ctool perf_monitoring --install-only collectors --graphite-ip ${GRAPHITE_ADDRESS} kc-dse #todo execute
+ctool scp -R kc-dse 0 setup_dse_schema.cql .
+ctool run kc-dse 0 "dse/bin/cqlsh -f setup_dse_schema.cql"
+
+
