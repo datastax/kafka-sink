@@ -130,7 +130,7 @@ DSE_SECOND_ADDRESS=`ctool info --public-ips kc-dse -n 1`
 # Submit connector task
 sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink.json
 sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink.json
-curl -X POST -H "Content-Type: application/json" -d dse-sink.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+curl -X POST -H "Content-Type: application/json" -d @dse-sink.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
 
 
 stop_kafka_broker_services(){
