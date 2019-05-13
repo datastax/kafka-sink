@@ -126,7 +126,8 @@ ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java
 start_json_test
 
 # Produce 200_000_000 avro record
-ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args=avro-stream 200000000"
+ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true"
+ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args=\"avro-stream 200000000\""
 
 start_avro_test
 
