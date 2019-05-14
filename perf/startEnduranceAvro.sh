@@ -4,7 +4,7 @@ CTOOL_ENV=ctool-env
 
 pyenv activate ${CTOOL_ENV}
 
-./setupPerfAvro.sh 100 avro
+./setupPerfEnv.sh 100 avro
 
 # Produce 5_000 avro records per second
 ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.InfiniteAvroProducer -Dexec.args=\"5000 avro-stream\" &> infinite-avro-producer.log &"

@@ -9,6 +9,8 @@ CONNECTOR_TYPE=$2
 CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.1.0-SNAPSHOT.jar
 CTOOL_ENV=ctool-env
 
+echo "starting connector type: $CONNECTOR_TYPE"
+
 pyenv activate ${CTOOL_ENV}
 
 # start Graphite Instance
