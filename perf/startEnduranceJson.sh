@@ -6,8 +6,13 @@ pyenv activate ${CTOOL_ENV}
 
 ./setupPerfEnv.sh 500 json
 
-# Produce 1_000_000_000 records to json-stream topic
-ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer"
+BROKER_FIRST_ADDRESS=`ctool info --public-ips kc-brokers -n 0`
+BROKER_SECOND_ADDRESS=`ctool info --public-ips kc-brokers -n 1`
+BROKER_THIRD_ADDRESS=`ctool info --public-ips kc-brokers -n 2`
+
+# Produce 20_000 records per second to json-stream topic
+KC_BROKERS_LIST=${BROKER_FIRST_ADDRESS}:9092,${BROKER_SECOND_ADDRESS}:9092,${BROKER_THIRD_ADDRESS}:9092
+ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.InfiniteJsonProducer -Dexec.args=\"20000 json-stream $KC_BROKERS_LIST\" &> infinite-json-producer.log &"
 
 start_json_test
 
