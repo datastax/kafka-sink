@@ -1,7 +1,7 @@
 CREATE KEYSPACE stocks WITH replication = {'class': 'NetworkTopologyStrategy', 'kc-dc': 3};
 CREATE TABLE stocks.ticks (symbol text, ts timestamp, exchange text, industry text, name text, value double, PRIMARY KEY (symbol, ts));
 
-create keyspace if not exists kafka_examples with replication = {'class': 'NetworkTopologyStrategy', 'Cassandra': 1};
+create keyspace if not exists kafka_examples with replication = {'class': 'NetworkTopologyStrategy', 'kc-dc': 3};
 
 CREATE type if not exists kafka_examples.segment0_udt (
 segment0_0 text,

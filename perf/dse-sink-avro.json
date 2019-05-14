@@ -2,7 +2,7 @@
   "name": "kc-perf-connect-l-avro-0",
   "config": {
     "connector.class": "com.datastax.kafkaconnector.DseSinkConnector",
-    "tasks.max": "10",
+    "tasks.max": "100",
     "topics": "avro-stream",
     "contactPoints": "{dse_contact_point_1},{dse_contact_point_2}",
     "loadBalancing.localDc": "Cassandra",
