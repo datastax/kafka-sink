@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
+# MAX_POOL_RECORDS will be set as the consumer.max.poll.records in the connect-distributed.properties file.
+# CONNECTOR_TYPE you can start this script with avro or json parameter value.
+# The connect converters will be configured accordingly.
 
 MAX_POOL_RECORDS=$1
+CONNECTOR_TYPE=$2
 CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.1.0-SNAPSHOT.jar
 CTOOL_ENV=ctool-env
 
@@ -57,7 +61,7 @@ ctool run kc-brokers all "confluent/bin/zookeeper-server-start confluent/etc/kaf
 ctool run kc-brokers all "confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &"
 
 ctool run kc-brokers all "echo \"kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092\" >>confluent/etc/schema-registry/schema-registry.properties"
-ctool run kc-brokers 0 "./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &"
+ctool run kc-brokers all "./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &"
 
 ctool run kc-brokers all "sudo apt-get install -y maven"
 
@@ -104,10 +108,28 @@ ctool run kc-connect-l 0 "sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/home/automato
 ctool run kc-connect-l 1 "sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/home/automaton/jmxtrans-agent-1.2.6.jar=/home/automaton/kafka-connect-metrics-1.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_SECOND_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed"
 ctool run kc-connect-l 2 "sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/home/automaton/jmxtrans-agent-1.2.6.jar=/home/automaton/kafka-connect-metrics-2.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_THIRD_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed"
 
+if [ "$CONNECTOR_TYPE" = "json" ]
+then
+    setup_json_convertes
+elif [ "$CONNECTOR_TYPE" = "avro" ]
+then
+    setup_avro_converters
+fi
 
-ctool run kc-connect-l all "sed -i \"s/^key.converter=.*/key.converter=org.apache.kafka.connect.storage.StringConverter/\" confluent/etc/kafka/connect-distributed.properties"
-ctool run kc-connect-l all "sed -i \"s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties"
-ctool run kc-connect-l all "sed -i \"s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties"
+setup_json_convertes(){
+    ctool run kc-connect-l all "sed -i \"s/^key.converter=.*/key.converter=org.apache.kafka.connect.storage.StringConverter/\" confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "sed -i \"s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "sed -i \"s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties"
+}
+
+setup_avro_converters(){
+    ctool run kc-connect-l all "sed -i \"s/^key.converter=.*/key.converter=io.confluent.connect.avro.AvroConverter/\" confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "sed -i \"s/^value.converter=.*/value.converter=io.confluent.connect.avro.AvroConverter/\" confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "echo \"key.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081\" >> confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "echo \"value.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081\" >> confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "sed -i \"s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=true/\" confluent/etc/kafka/connect-distributed.properties"
+    ctool run kc-connect-l all "sed -i \"s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=true/\" confluent/etc/kafka/connect-distributed.properties"
+}
 
 ctool run kc-connect-l all "confluent/bin/connect-distributed confluent/etc/kafka/connect-distributed.properties &> worker.log &"
 

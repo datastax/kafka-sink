@@ -4,7 +4,7 @@ CTOOL_ENV=ctool-env
 
 pyenv activate ${CTOOL_ENV}
 
-./setupPerfAvro.sh 100
+./setupPerfAvro.sh 100 avro
 
 # Produce 200_000_000 avro record
 ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true"

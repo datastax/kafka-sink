@@ -4,7 +4,7 @@ CTOOL_ENV=ctool-env
 
 pyenv activate ${CTOOL_ENV}
 
-./setupPerfEnv.sh 500
+./setupPerfEnv.sh 500 json
 
 # Produce 1_000_000_000 records to json-stream topic
 ctool run kc-brokers 0 "cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer"
