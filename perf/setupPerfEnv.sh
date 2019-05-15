@@ -132,7 +132,7 @@ ctool run kc-connect-l all "confluent/bin/connect-distributed confluent/etc/kafk
 
 
 # DSE Cluster Setup
-ctool launch -p bionic -i m3.2xlarge kc-dse 5
+ctool launch -p bionic -i m3.2xlarge kc-dse 5 <<< YES
 ctool install -v 6.0.4 -i tar -n 8 -x kc-dse-topology.json kc-dse enterprise
 ctool yaml -o set -k allocate_tokens_for_local_replication_factor -v 3 kc-dse all
 ctool run kc-dse 0 "dse cassandra &> startup.log &"; sleep 120
