@@ -18,7 +18,7 @@ sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro.json
 curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
 
 # WAIT FOR COMPLETE && validate number of inserted records using DSBULK:
-# ctool run kc-dse 0 "dse/bin/dsbulk count -k kafka_examples -t avro_udt_table"
+# ./verifyAvroDseTable.sh
 
 
 cate_avro_dse_table(){

@@ -18,7 +18,7 @@ sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink.json
 curl -X POST -H "Content-Type: application/json" -d @dse-sink.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
 
 # WAIT FOR COMPLETE && validate number of inserted records using DSBULK:
-# ctool run kc-dse 0 "dse/bin/dsbulk count -k stocks -t ticks"
+# ./verifyJsonDseTable.sh
 
 
 truncate_json_dse_table(){

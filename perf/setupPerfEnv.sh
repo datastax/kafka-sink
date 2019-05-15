@@ -3,6 +3,8 @@
 # MAX_POOL_RECORDS will be set as the consumer.max.poll.records in the connect-distributed.properties file.
 # CONNECTOR_TYPE you can start this script with avro or json parameter value.
 # The connect converters will be configured accordingly.
+# CONNECTOR_JAR_LOCATION set it to exact location of connector JAR on your local machine.
+# CTOOL_ENV set it to the python virtual environment in which you have setup of ctool.
 
 MAX_POOL_RECORDS=$1
 CONNECTOR_TYPE=$2
@@ -151,11 +153,4 @@ stop_kafka_broker_services(){
     ctool run kc-brokers all "kill -9 `lsof -t -i:8081`"
     ctool run kc-brokers all "kill -9 `lsof -t -i:2181`"
     ctool run kc-brokers all "kill -9 `lsof -t -i:9092`"
-}
-
-destroy_env(){
-    ctool destroy kc-connect-l
-    ctool destroy kc-brokers
-    ctool destroy kc-dse
-    ctool destroy kc-perf
 }
