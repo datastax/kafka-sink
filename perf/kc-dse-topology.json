@@ -1,0 +1,15 @@
+
+{
+  "cluster":
+  {
+    "snitch":"GossipingPropertyFileSnitch",
+    "nodes":
+    {
+      "0":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra", "seed":"True"},
+      "1":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra", "seed":"True"},
+      "2":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra"},
+      "3":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra"},
+      "4":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra"}
+    }
+  }
+}
