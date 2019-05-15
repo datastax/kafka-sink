@@ -8,7 +8,7 @@
 
 MAX_POOL_RECORDS=$1
 CONNECTOR_TYPE=$2
-CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.1.0-SNAPSHOT.jar
+CONNECTOR_JAR_LOCATION=/absoulte/path/to/your/connector.jar
 CTOOL_ENV=ctool-env
 
 pyenv activate ${CTOOL_ENV}
