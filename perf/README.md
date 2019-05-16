@@ -21,7 +21,7 @@ The setup script will create:
 To start JSON Performance Testing use ./startPerfJson.sh
 This script will spin up the whole testing environment.
 When the environment will be ready it will produce 1_000_000_000 records to the json-stream topic - that operation will be blocking.
-Once the all records will be sent successfully to Kafka it will submit new connect connector that will save all data into DSE.
+Once all records will be sent successfully to Kafka it will submit new connect connector that will save all data into DSE.
 You need to monitor the status of saving. You can do it by accessing graphite. To open Grafana run ./openGrafana.sh.
 
 Once the connector will insert 1_000_000_000 records you should verify that those records were saved successfully into DSE
@@ -34,7 +34,7 @@ After the successful test, you should destroy the whole cluster by using ./destr
 To start AVRO Performance Testing use ./startPerfAvro.sh
 This script will spin up the whole testing environment.
 When the environment will be ready it will produce 200_000_000 records to the avro-stream topic - that operation will be blocking.
-Once the all records will be sent successfully to Kafka it will submit new connect connector that will save all data into DSE.
+Once all records will be sent successfully to Kafka it will submit new connect connector that will save all data into DSE.
 You need to monitor the status of saving. You can do it by accessing graphite. To open Grafana run ./openGrafana.sh.
 
 Once the connector will insert 200_000_000 records you should verify that those records were saved successfully into DSE
