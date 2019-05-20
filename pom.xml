@@ -43,7 +43,7 @@
     <caffeine.version>2.6.2</caffeine.version>
     <oss.driver.version>4.0.1</oss.driver.version>
     <driver.version>2.0.1</driver.version>
-    <dsbulk.version>2.0.1-kafka-SNAPSHOT</dsbulk.version>
+    <dsbulk.version>2.0.2-kafka</dsbulk.version>
     <guava.version>25.0-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
@@ -700,7 +700,7 @@
     <repository>
       <id>datastax-releases-local</id>
       <name>DataStax Local Releases</name>
-      <url>https://datastax.jfrog.io/datastax/datastax-releases-local/</url>
+      <url> https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -714,12 +714,12 @@
     <repository>
       <id>datastax-releases-local</id>
       <name>DataStax Local Releases</name>
-      <url>https://datastax.jfrog.io/datastax/datastax-releases-local/</url>
+      <url> https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
     </repository>
     <snapshotRepository>
       <id>datastax-snapshots-local</id>
       <name>DataStax Local Snapshots</name>
-      <url>https://datastax.jfrog.io/datastax/datastax-snapshots-local/</url>
+      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-snapshots-local/</url>
     </snapshotRepository>
   </distributionManagement>
 
@@ -736,7 +736,7 @@
     <connection>scm:git:git@github.com:riptano/kafka-sink.git</connection>
     <developerConnection>scm:git:git@github.com:riptano/kafka-sink.git</developerConnection>
     <url>https://github.com/riptano/kafka-sink</url>
-    <tag>HEAD</tag>
+    <tag>1.1.0</tag>
   </scm>
 
   <developers>
