@@ -15,7 +15,7 @@
   <groupId>com.datastax.dse</groupId>
   <artifactId>kafka-connect-dse-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.1.0</version>
+  <version>1.1.1-SNAPSHOT</version>
 
   <name>DataStax Apache Kafka Connector</name>
   <description>
@@ -736,7 +736,7 @@
     <connection>scm:git:git@github.com:riptano/kafka-sink.git</connection>
     <developerConnection>scm:git:git@github.com:riptano/kafka-sink.git</developerConnection>
     <url>https://github.com/riptano/kafka-sink</url>
-    <tag>1.1.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <developers>
