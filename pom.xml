@@ -736,7 +736,7 @@
     <connection>scm:git:git@github.com:riptano/kafka-sink.git</connection>
     <developerConnection>scm:git:git@github.com:riptano/kafka-sink.git</developerConnection>
     <url>https://github.com/riptano/kafka-sink</url>
-    <tag>1.1.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <developers>
