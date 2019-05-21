@@ -19,7 +19,7 @@
     <version>1.1.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>kafka-connect-dse-dist</artifactId>
+  <artifactId>kafka-connect-dse</artifactId>
 
   <name>DataStax Apache Kafka Connector - Binary Distribution</name>
   <description>
