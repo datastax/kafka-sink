@@ -7,11 +7,8 @@
 # Prerequisites
 # 1. Java 8+ must be installed
 # 2. Maven must be installed
-# 3. Define ACADEMY_USERNAME, ACADEMY_DOWNLOAD_KEY environment variables
-# 4. Use TOPIC_NAME env var to set the Kafka Topic that will be created
-# 5. Use TOTAL_RECORDS env var to control the number of records written to Kafka
-ACADEMY_USERNAME=academy_user_name
-ACADEMY_DOWNLOAD_KEY=download_key
+# 3. Use TOPIC_NAME env var to set the Kafka Topic that will be created
+# 4. Use TOTAL_RECORDS env var to control the number of records written to Kafka
 CONFLUENT_HOME=/tmp/confluent
 CONNECTOR_HOME=/tmp/dse-connector
 DSE_HOME=/tmp/dse
@@ -29,22 +26,6 @@ wait_for_port () {
     echo "[$(date '+%H:%M:%S')]: Waiting for $SVCNAME to listen on port $PORT"
     sleep 2
   done
-}
-
-assert_academy_username () {
-  if [ -z "$ACADEMY_USERNAME" ] ; then
-    echo "You must set the ACADEMY_USERNAME env var to your DataStax Academy username login before performing this operation."
-    echo "See https://academy.datastax.com/user/login for details"
-    exit 1
-  fi
-}
-
-assert_academy_download_key () {
-  if [ -z "$ACADEMY_DOWNLOAD_KEY" ] ; then
-    echo "You must set the ACADEMY_DOWNLOAD_KEY env var to your DataStax Academy download key before performing this operation."
-    echo "See https://academy.datastax.com/downloads for details"
-    exit 1
-  fi
 }
 
 assert_confluent_home () {
@@ -185,23 +166,13 @@ install_confluent_5_2 () {
 	tar xzf confluent-community-5.2.1-2.12.tar.gz -C $CONFLUENT_HOME --strip-components=1
 }
 
-install_dse_connector () {
-	echo
-	echo "----------------------------------------"
-	echo "---   INSTALLING DATASTAX CONNECTOR  ---"
-	echo "----------------------------------------"
-	mkdir $CONNECTOR_HOME;
-	curl --user ${ACADEMY_USERNAME}:${ACADEMY_DOWNLOAD_KEY} -L -O https://downloads.datastax.com/kafka/kafka-connect-dse-${DSE_CONNECTOR_VERSION}.tar.gz && wait
-	tar xzf kafka-connect-dse-${DSE_CONNECTOR_VERSION}.tar.gz -C $CONNECTOR_HOME --strip-components=1
-}
-
 install_dse () {
 	echo
 	echo "----------------------------------------"
 	echo "---  INSTALLING DATASTAX ENTERPRISE  ---"
 	echo "----------------------------------------"
 	mkdir $DSE_HOME; mkdir $DSE_HOME/logs; mkdir $DSE_HOME/data;
-	curl --user ${ACADEMY_USERNAME}:${ACADEMY_DOWNLOAD_KEY} -L -O https://downloads.datastax.com/enterprise/dse.tar.gz && wait
+	curl -L -O https://downloads.datastax.com/enterprise/dse.tar.gz && wait
 	tar xzf dse.tar.gz -C $DSE_HOME --strip-components=1
 	sed -i 's/\/var\/lib\/cassandra\/*//g' $DSE_HOME/resources/cassandra/conf/cassandra.yaml
 	sed -i 's/\/var\/log\/cassandra\/*//g' $DSE_HOME/resources/cassandra/conf/cassandra.yaml
@@ -212,7 +183,7 @@ install_kafka_examples () {
 	echo "----------------------------------------"
 	echo "---  CLONING KAFKA-EXAMPLES GITHUB   ---"
 	echo "----------------------------------------"
-	git clone https://github.com/datastax/kafka-examples.git ${KAFKA_EXAMPLES_HOME}
+	git clone https://github.com/datastax/kafka-examples.git kafka-examples
 }
 
 stop_confluent(){
