@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.metadata.InnerDataAndMetadata;
@@ -261,20 +262,11 @@ public class DseSinkTask extends SinkTask {
     // we perform these checks/updates in a synchronized block. Presumably failures
     // don't occur that often, so we don't have to be very fancy here.
 
-    if (!instanceState.getConfig().getIgnoreErrors()) {
-      failCounter.run();
-      TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
-      long currentOffset = Long.MAX_VALUE;
-      if (failureOffsets.containsKey(topicPartition)) {
-        currentOffset = failureOffsets.get(topicPartition).offset();
-      }
-      if (record.kafkaOffset() < currentOffset) {
-        failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
-        context.offset(topicPartition, record.kafkaOffset());
-      }
-    } else {
-      failCounter.run();
+    if (!instanceState.getConfig().isIgnoreErrors() || ignoreEnabledButExceptionDoNotMatch(e)) {
+      handleOffsetRewind(record);
     }
+
+    failCounter.run();
     String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";
 
     log.warn(
@@ -282,5 +274,26 @@ public class DseSinkTask extends SinkTask {
         record,
         e.getMessage(),
         statementError);
+  }
+
+  private void handleOffsetRewind(SinkRecord record) {
+    TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
+    long currentOffset = Long.MAX_VALUE;
+    if (failureOffsets.containsKey(topicPartition)) {
+      currentOffset = failureOffsets.get(topicPartition).offset();
+    }
+    if (record.kafkaOffset() < currentOffset) {
+      failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
+      context.offset(topicPartition, record.kafkaOffset());
+    }
+  }
+
+  private boolean ignoreEnabledButExceptionDoNotMatch(Throwable e) {
+    DseSinkConfig config = instanceState.getConfig();
+    if (config.isIgnoreErrors() && config.getExceptionsToIgnore().isEmpty()) {
+      return false;
+    }
+    return config.isIgnoreErrors()
+        && !config.getExceptionsToIgnore().contains(e.getClass().getCanonicalName());
   }
 }

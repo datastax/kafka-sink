@@ -47,6 +47,7 @@ public class DseSinkConfig {
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
   static final String IGNORE_ERRORS = "ignoreErrors";
+  static final String EXCEPTIONS_TO_IGNORE = "exceptionsToIgnore";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -121,7 +122,13 @@ public class DseSinkConfig {
               ConfigDef.Type.BOOLEAN,
               false,
               ConfigDef.Importance.HIGH,
-              "Specifies if the connector should ignore events that occurred when processing the record.");
+              "Specifies if the connector should ignore errors that occurred when processing the record.")
+          .define(
+              EXCEPTIONS_TO_IGNORE,
+              ConfigDef.Type.LIST,
+              Collections.EMPTY_LIST,
+              ConfigDef.Importance.HIGH,
+              "Exceptions that should be ignored if ignoreErrors is enabled. Empty list while ignoreErrors enabled means that all exceptions will be ignored.");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -234,8 +241,12 @@ public class DseSinkConfig {
     return globalConfig.getInt(CONNECTION_POOL_LOCAL_SIZE);
   }
 
-  public boolean getIgnoreErrors() {
+  public boolean isIgnoreErrors() {
     return globalConfig.getBoolean(IGNORE_ERRORS);
+  }
+
+  public List<String> getExceptionsToIgnore() {
+    return globalConfig.getList(EXCEPTIONS_TO_IGNORE);
   }
 
   public boolean getJmx() {

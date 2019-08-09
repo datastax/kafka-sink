@@ -32,9 +32,13 @@ topics=my_topic
 #jmx=true
 
 
-# Specifies if the connector should ignore events that occurred when processing the record.
+# Specifies if the connector should ignore errors that occurred when processing the record.
 # Default is false meaning that no errors are ignored.
 #ignoreErrors=false
+
+# Exceptions that should be ignored if ignoreErrors is enabled. Empty list while ignoreErrors enabled means that all exceptions will be ignored.
+# This property is ignored if ignoreErrors=false
+#exceptionsToIgnore=[]
 
 # Compression algorithm to use when issuing requests to DSE. Valid values are
 # None, Snappy, LZ4. Defaults to None.

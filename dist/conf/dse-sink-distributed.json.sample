@@ -8,6 +8,7 @@
         "loadBalancing.localDc": "",
         "port": 9042,
         "ignoreErrors": false,
+        exceptionsToIgnore=[],
         "maxConcurrentRequests": 500,
         "maxNumberOfRecordsInBatch": 32,
         "queryExecutionTimeout": 30,
