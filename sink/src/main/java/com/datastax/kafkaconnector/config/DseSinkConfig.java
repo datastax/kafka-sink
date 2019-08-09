@@ -299,6 +299,8 @@ public class DseSinkConfig {
             + "        connectionPoolLocalSize: %d%n"
             + "        jmx: %b%n"
             + "        compression: %s%n"
+            + "        ignoreErrors: %s%n"
+            + "        exceptionsToIgnore: %s%n"
             + "SSL configuration:%n%s%n"
             + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s",
@@ -311,6 +313,8 @@ public class DseSinkConfig {
         getConnectionPoolLocalSize(),
         getJmx(),
         getCompressionType(),
+        isIgnoreErrors(),
+        getExceptionsToIgnore(),
         Splitter.on("\n")
             .splitToList(sslConfig.toString())
             .stream()
