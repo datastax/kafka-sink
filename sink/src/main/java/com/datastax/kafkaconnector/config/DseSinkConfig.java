@@ -121,7 +121,7 @@ public class DseSinkConfig {
               ConfigDef.Type.BOOLEAN,
               false,
               ConfigDef.Importance.HIGH,
-              "State if the connector should ignore events that occurred when processing the record.");
+              "Specifies if the connector should ignore events that occurred when processing the record.");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;

@@ -31,6 +31,11 @@ topics=my_topic
 # Whether or not to enable stats reporting through JMX. Defaults to true.
 #jmx=true
 
+
+# Specifies if the connector should ignore events that occurred when processing the record.
+# Default is false meaning that no errors are ignored.
+#ignoreErrors=false
+
 # Compression algorithm to use when issuing requests to DSE. Valid values are
 # None, Snappy, LZ4. Defaults to None.
 #compression=None
