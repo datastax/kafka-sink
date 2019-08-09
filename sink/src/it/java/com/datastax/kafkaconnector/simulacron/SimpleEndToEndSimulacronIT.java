@@ -395,6 +395,57 @@ class SimpleEndToEndSimulacronIT {
   }
 
   @Test
+  void should_progress_on_failure_if_threshold_met() {
+    SimulacronUtils.primeTables(simulacron, schema);
+
+    Query good1 = makeQuery(42, "the answer", 153000987000L);
+    simulacron.prime(when(good1).then(noRows()));
+
+    Query bad1 = makeQuery(32, "fail", 153000987000L);
+    simulacron.prime(when(bad1).then(serverError("bad thing")).delay(500, TimeUnit.MILLISECONDS));
+
+    Query good2 = makeQuery(22, "success", 153000987000L);
+    simulacron.prime(when(good2).then(noRows()));
+
+    Query bad2 = makeQuery(12, "fail2", 153000987000L);
+    simulacron.prime(when(bad2).then(serverError("bad thing")));
+
+    Query bad3 = makeQuery(2, "fail3", 153000987000L);
+    simulacron.prime(when(bad3).then(serverError("bad thing")));
+
+    conn.start(connectorProperties);
+
+    SinkRecord record1 = makeRecord(42, "the answer", 153000987L, 1234);
+    SinkRecord record2 = makeRecord(32, "fail", 153000987L, 1235);
+    SinkRecord record3 = makeRecord(22, "success", 153000987L, 1236);
+    SinkRecord record4 = makeRecord(12, "fail2", 153000987L, 1237);
+
+    // Make a bad record in a different partition.
+    SinkRecord record5 = makeRecord(1, 2, "fail3", 153000987L, 1238);
+    runTaskWithRecords(record1, record2, record3, record4, record5, record5);
+
+    // Verify that we get an error offset for the first record that failed in partition 0 (1235)
+    // even though its failure was discovered after 1237. Also, 1238 belongs to a different
+    // partition, so it should be included.
+    Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+    task.preCommit(currentOffsets);
+    assertThat(currentOffsets)
+        .containsOnly(
+            Assertions.entry(new TopicPartition("mytopic", 0), new OffsetAndMetadata(1235L)),
+            Assertions.entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(1238L)));
+
+    assertThat(logs.getAllMessagesAsString())
+        .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1237")
+        .contains(
+            "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
+    InstanceState instanceState =
+        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
+        .isEqualTo(3);
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(5);
+  }
+
+  @Test
   void success_offset_with_ttl() {
     SimulacronUtils.primeTables(simulacron, schema);
 

@@ -57,6 +57,8 @@ public class DseSinkTask extends SinkTask {
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
   private InstanceState instanceState;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
+  private Map<TopicPartition, Integer> numberOfRetries;
+  private static int FAILURE_THRESHOLD = 1;
   private TaskStateManager taskStateManager;
 
   @Override
@@ -69,6 +71,7 @@ public class DseSinkTask extends SinkTask {
     log.debug("DseSinkTask starting with props: {}", props);
     taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
+    numberOfRetries = new ConcurrentHashMap<>();
     instanceState = LifeCycleManager.startTask(this, props);
   }
 
@@ -263,21 +266,34 @@ public class DseSinkTask extends SinkTask {
 
     failCounter.run();
     TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
-    long currentOffset = Long.MAX_VALUE;
-    if (failureOffsets.containsKey(topicPartition)) {
-      currentOffset = failureOffsets.get(topicPartition).offset();
-    }
-    if (record.kafkaOffset() < currentOffset) {
-      failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
-      context.offset(topicPartition, record.kafkaOffset());
-    }
+
+    numberOfRetries.computeIfPresent(topicPartition, (topicPartition1, integer) -> integer + 1);
+
+    numberOfRetries.putIfAbsent(topicPartition, 1);
 
     String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";
 
-    log.warn(
-        "Error inserting/updating row for Kafka record {}: {}{}",
-        record,
-        e.getMessage(),
-        statementError);
+    if (numberOfRetries.get(topicPartition) <= FAILURE_THRESHOLD) {
+      long currentOffset = Long.MAX_VALUE;
+      if (failureOffsets.containsKey(topicPartition)) {
+        currentOffset = failureOffsets.get(topicPartition).offset();
+      }
+      if (record.kafkaOffset() < currentOffset) {
+        failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
+        context.offset(topicPartition, record.kafkaOffset());
+      }
+
+      log.warn(
+          "Error inserting/updating row for Kafka record {}: {}{}",
+          record,
+          e.getMessage(),
+          statementError);
+    } else {
+      log.warn(
+          "Ignoring error while inserting/updating row for Kafka record {}: {}{}",
+          record,
+          e.getMessage(),
+          statementError);
+    }
   }
 }
