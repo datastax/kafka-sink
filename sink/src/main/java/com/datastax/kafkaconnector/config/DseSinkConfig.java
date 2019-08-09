@@ -46,6 +46,7 @@ public class DseSinkConfig {
   static final String COMPRESSION_OPT = "compression";
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
+  static final String IGNORE_ERRORS = "ignoreErrors";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -114,7 +115,13 @@ public class DseSinkConfig {
               4,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "Number of connections that driver maintains within a connection pool to each node in local dc");
+              "Number of connections that driver maintains within a connection pool to each node in local dc")
+          .define(
+              IGNORE_ERRORS,
+              ConfigDef.Type.BOOLEAN,
+              false,
+              ConfigDef.Importance.HIGH,
+              "State if the connector should ignore events that occurred when processing the record.");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -225,6 +232,10 @@ public class DseSinkConfig {
 
   public int getConnectionPoolLocalSize() {
     return globalConfig.getInt(CONNECTION_POOL_LOCAL_SIZE);
+  }
+
+  public boolean getIgnoreErrors() {
+    return globalConfig.getBoolean(IGNORE_ERRORS);
   }
 
   public boolean getJmx() {
