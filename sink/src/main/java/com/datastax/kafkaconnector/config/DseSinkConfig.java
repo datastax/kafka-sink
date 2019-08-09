@@ -121,7 +121,7 @@ public class DseSinkConfig {
               ConfigDef.Type.BOOLEAN,
               false,
               ConfigDef.Importance.HIGH,
-              "Specifies if the connector should ignore events that occurred when processing the record.");
+              "Specifies if the connector should ignore errors that occurred when processing the record.");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -234,7 +234,7 @@ public class DseSinkConfig {
     return globalConfig.getInt(CONNECTION_POOL_LOCAL_SIZE);
   }
 
-  public boolean getIgnoreErrors() {
+  public boolean isIgnoreErrors() {
     return globalConfig.getBoolean(IGNORE_ERRORS);
   }
 

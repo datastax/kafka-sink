@@ -261,8 +261,7 @@ public class DseSinkTask extends SinkTask {
     // we perform these checks/updates in a synchronized block. Presumably failures
     // don't occur that often, so we don't have to be very fancy here.
 
-    if (!instanceState.getConfig().getIgnoreErrors()) {
-      failCounter.run();
+    if (!instanceState.getConfig().isIgnoreErrors()) {
       TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
       long currentOffset = Long.MAX_VALUE;
       if (failureOffsets.containsKey(topicPartition)) {
@@ -272,9 +271,9 @@ public class DseSinkTask extends SinkTask {
         failureOffsets.put(topicPartition, new OffsetAndMetadata(record.kafkaOffset()));
         context.offset(topicPartition, record.kafkaOffset());
       }
-    } else {
-      failCounter.run();
     }
+
+    failCounter.run();
     String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";
 
     log.warn(

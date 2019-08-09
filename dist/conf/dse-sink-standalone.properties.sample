@@ -32,7 +32,7 @@ topics=my_topic
 #jmx=true
 
 
-# Specifies if the connector should ignore events that occurred when processing the record.
+# Specifies if the connector should ignore errors that occurred when processing the record.
 # Default is false meaning that no errors are ignored.
 #ignoreErrors=false
 
