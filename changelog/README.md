@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.1.1 (in progress)
+- [bug] KAF-135: dse-reference.conf is not loaded because wrong config Loader is used
+
 ### 1.1.0
 - [improvement] KAF-115: Configure advanced.metrics.session.cql-requests.highest-latency according to request-timeout
 - [improvement] KAF-113: Support deleting rows in DSE when value is null in kafka record
