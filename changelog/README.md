@@ -2,6 +2,7 @@
 
 ### 1.1.1 (in progress)
 - [bug] KAF-135: dse-reference.conf is not loaded because wrong config Loader is used
+- [improvement] KAF-136: Upgrade DSE and OSS driver dependencies
 
 ### 1.1.0
 - [improvement] KAF-115: Configure advanced.metrics.session.cql-requests.highest-latency according to request-timeout
