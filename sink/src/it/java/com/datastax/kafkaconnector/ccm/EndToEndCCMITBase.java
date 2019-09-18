@@ -122,9 +122,13 @@ abstract class EndToEndCCMITBase {
   }
 
   void runTaskWithRecords(SinkRecord... records) {
+    initConnectorAndTask();
+    task.put(Arrays.asList(records));
+  }
+
+  void initConnectorAndTask() {
     List<Map<String, String>> taskProps = conn.taskConfigs(1);
     task.start(taskProps.get(0));
-    task.put(Arrays.asList(records));
   }
 
   Map<String, String> makeConnectorProperties(Map<String, String> extras) {
