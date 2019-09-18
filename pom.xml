@@ -43,7 +43,7 @@
     <caffeine.version>2.6.2</caffeine.version>
     <oss.driver.version>4.2.0</oss.driver.version>
     <driver.version>2.2.0</driver.version>
-    <dsbulk.version>2.0.2-kafka</dsbulk.version>
+    <dsbulk.version>2.0.3-kafka</dsbulk.version>
     <guava.version>25.0-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
