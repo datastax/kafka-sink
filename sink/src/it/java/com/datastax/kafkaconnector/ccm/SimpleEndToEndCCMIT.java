@@ -12,6 +12,7 @@ import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.api.core.data.geometry.LineString;
 import com.datastax.dse.driver.api.core.data.geometry.Point;
 import com.datastax.dse.driver.api.core.data.geometry.Polygon;
@@ -19,6 +20,7 @@ import com.datastax.dse.driver.api.core.data.time.DateRange;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultLineString;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPolygon;
+import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -1886,6 +1888,27 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
     assertThat(row.getLong(2)).isEqualTo(expectedTimestampValue.longValue());
+  }
+
+  /** Test for KAF-135 */
+  @Test
+  void should_load_settings_from_dse_reference_conf() {
+    // given (connector mapping need to be defined)
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double"));
+    initConnectorAndTask();
+
+    // when
+    InstanceState instanceState = task.getInstanceState();
+
+    // then setting from dse-reference.conf should be defined
+    assertThat(
+            instanceState
+                .getSession()
+                .getContext()
+                .getConfig()
+                .getDefaultProfile()
+                .getInt(DseDriverOption.CONTINUOUS_PAGING_PAGE_SIZE))
+        .isGreaterThan(0);
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {
