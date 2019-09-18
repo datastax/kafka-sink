@@ -58,7 +58,7 @@
     <max.ccm.clusters>2</max.ccm.clusters>
     <commons-exec.version>1.3</commons-exec.version>
     <awaitility.version>3.1.0</awaitility.version>
-    <netty.version>4.1.29.Final</netty.version>
+    <netty.version>4.1.39.Final</netty.version>
     <netty.tcnative.version>2.0.15.Final</netty.tcnative.version>
     <metrics.version>4.0.2</metrics.version>
     <lz4.version>1.3.0</lz4.version>
