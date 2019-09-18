@@ -31,6 +31,7 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.api.testinfra.utils.ConditionChecker;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
@@ -1741,13 +1742,17 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // then
-    List<Row> results =
-        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
-    assertThat(row.getInt(2)).isEqualTo(1);
+    ConditionChecker.checkThat(
+            () -> {
+              List<Row> results =
+                  session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+              assertThat(results.size()).isEqualTo(1);
+              Row row = results.get(0);
+              assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+              assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
+              assertThat(row.getInt(2)).isEqualTo(1);
+            })
+        .becomesTrue();
   }
 
   @Test
