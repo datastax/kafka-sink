@@ -12,6 +12,7 @@ import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.api.core.data.geometry.LineString;
 import com.datastax.dse.driver.api.core.data.geometry.Point;
 import com.datastax.dse.driver.api.core.data.geometry.Polygon;
@@ -19,6 +20,7 @@ import com.datastax.dse.driver.api.core.data.time.DateRange;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultLineString;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPolygon;
+import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -29,6 +31,7 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.api.testinfra.utils.ConditionChecker;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
@@ -1739,13 +1742,17 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // then
-    List<Row> results =
-        session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
-    assertThat(row.getInt(2)).isEqualTo(1);
+    ConditionChecker.checkThat(
+            () -> {
+              List<Row> results =
+                  session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
+              assertThat(results.size()).isEqualTo(1);
+              Row row = results.get(0);
+              assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+              assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
+              assertThat(row.getInt(2)).isEqualTo(1);
+            })
+        .becomesTrue();
   }
 
   @Test
@@ -1886,6 +1893,27 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
     assertThat(row.getLong(2)).isEqualTo(expectedTimestampValue.longValue());
+  }
+
+  /** Test for KAF-135 */
+  @Test
+  void should_load_settings_from_dse_reference_conf() {
+    // given (connector mapping need to be defined)
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double"));
+    initConnectorAndTask();
+
+    // when
+    InstanceState instanceState = task.getInstanceState();
+
+    // then setting from dse-reference.conf should be defined
+    assertThat(
+            instanceState
+                .getSession()
+                .getContext()
+                .getConfig()
+                .getDefaultProfile()
+                .getInt(DseDriverOption.CONTINUOUS_PAGING_PAGE_SIZE))
+        .isGreaterThan(0);
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {

@@ -184,7 +184,8 @@ public class DseSinkTask extends SinkTask {
         NO_OP, () -> LifeCycleManager.stopTask(this.instanceState, this));
   }
 
-  InstanceState getInstanceState() {
+  @VisibleForTesting
+  public InstanceState getInstanceState() {
     return instanceState;
   }
 

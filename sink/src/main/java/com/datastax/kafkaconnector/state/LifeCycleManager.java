@@ -29,6 +29,7 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.dse.driver.api.core.config.DseDriverConfigLoader;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
@@ -46,7 +47,6 @@ import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
@@ -525,7 +525,7 @@ public class LifeCycleManager {
         .forEach(builder::addContactPoint);
 
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DriverConfigLoader.programmaticBuilder();
+        DseDriverConfigLoader.programmaticBuilder();
     if (!config.getLocalDc().isEmpty()) {
       configLoaderBuilder.withString(
           DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
