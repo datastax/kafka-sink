@@ -112,7 +112,7 @@ public class InstanceState {
   }
 
   @NotNull
-  DseSinkConfig getConfig() {
+  public DseSinkConfig getConfig() {
     return config;
   }
 
