@@ -275,6 +275,12 @@
         <version>${snappy.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.10.0.pr3</version>
+      </dependency>
+
       <!--
       This is needed because dse driver 2.0.0-alpha1 uses it, but makes it an optional dep.
       Consider removing this when upgrading to the next version of the dse driver.
