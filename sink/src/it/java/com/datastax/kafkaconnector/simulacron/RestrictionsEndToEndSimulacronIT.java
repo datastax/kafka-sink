@@ -124,7 +124,8 @@ class RestrictionsEndToEndSimulacronIT {
     conn.start(connectorProperties);
     assertThatThrownBy(this::runTaskWithRecords)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("offending nodes: /127.0.");
+        .hasMessageContaining("offending nodes:")
+        .hasMessageContaining("127.0.");
   }
 
   @Test
