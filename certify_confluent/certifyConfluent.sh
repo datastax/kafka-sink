@@ -23,7 +23,7 @@ ctool destroy kct
 mkdir ${LOGS_OUTPUT_DIRECTORY}
 
 echo "smoke test confluent 5.2"
-ctool launch -p bionic -i i2.2xlarge kct 1
+ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
@@ -35,7 +35,7 @@ ctool destroy kct
 
 
 echo "smoke test confluent 5.1"
-ctool launch -p bionic -i i2.2xlarge kct 1
+ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
@@ -47,7 +47,7 @@ ctool destroy kct
 
 
 echo "smoke test confluent 5.0"
-ctool launch -p bionic -i i2.2xlarge kct 1
+ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
@@ -59,7 +59,7 @@ ctool destroy kct
 
 
 echo "smoke test confluent 4.1"
-ctool launch -p bionic -i i2.2xlarge kct 1
+ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
@@ -70,7 +70,7 @@ ctool scp -r kct 0 ${LOGS_OUTPUT_DIRECTORY}/certify_confluent_4.1.log /home/auto
 ctool destroy kct
 
 echo "smoke test confluent 4.0"
-ctool launch -p bionic -i i2.2xlarge kct 1
+ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
@@ -81,7 +81,7 @@ ctool scp -r kct 0 ${LOGS_OUTPUT_DIRECTORY}/certify_confluent_4.0.log /home/auto
 ctool destroy kct
 
 echo "smoke test confluent 3.3"
-ctool launch -p bionic -i i2.2xlarge kct 1
+ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
