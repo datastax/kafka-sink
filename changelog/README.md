@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.1.1 (in progress)
+### 1.1.1
 - [improvement] KAF-132: add ignoreErrors settings to prevent infinite loop of errors
 - [bug] KAF-135: dse-reference.conf is not loaded because wrong config Loader is used
 - [improvement] KAF-136: Upgrade DSE and OSS driver dependencies
