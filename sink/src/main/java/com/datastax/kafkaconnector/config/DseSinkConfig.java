@@ -47,6 +47,7 @@ public class DseSinkConfig {
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
   static final String IGNORE_ERRORS = "ignoreErrors";
+  public static final String SECURE_CONNECT_BUNDLE = "secureConnectBundle";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -121,7 +122,13 @@ public class DseSinkConfig {
               ConfigDef.Type.BOOLEAN,
               false,
               ConfigDef.Importance.HIGH,
-              "Specifies if the connector should ignore errors that occurred when processing the record.");
+              "Specifies if the connector should ignore errors that occurred when processing the record.")
+          .define(
+              SECURE_CONNECT_BUNDLE,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The location of the cloud secure bundle used to connect to Datastax Apache Cassandra as a service.");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -240,6 +247,10 @@ public class DseSinkConfig {
 
   public boolean getJmx() {
     return globalConfig.getBoolean(JMX_OPT);
+  }
+
+  public String getSecureConnectBundle() {
+    return globalConfig.getString(SECURE_CONNECT_BUNDLE);
   }
 
   public CompressionType getCompressionType() {

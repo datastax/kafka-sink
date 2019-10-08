@@ -8,10 +8,10 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.api.core.data.geometry.LineString;
 import com.datastax.dse.driver.api.core.data.geometry.Point;
@@ -20,6 +20,7 @@ import com.datastax.dse.driver.api.core.data.time.DateRange;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultLineString;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPolygon;
+import com.datastax.kafkaconnector.ConnectorSettingsProvider;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -61,15 +62,17 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@ExtendWith(CCMExtension.class)
 class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   private AttachmentPoint attachmentPoint;
 
   public SimpleEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session);
+    super(ConnectorSettingsProvider.newInstance(ccm), session);
     attachmentPoint =
         new AttachmentPoint() {
           @NotNull
@@ -143,9 +146,9 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     // uuid
     // varint
 
-    String withDateRange = hasDateRange ? "daterangecol=value.daterange, " : "";
+    String withDateRange = cs.hasDateRange() ? "daterangecol=value.daterange, " : "";
     String withGeotypes =
-        ccm.getClusterType() == DSE
+        cs.isDse()
             ? "pointcol=value.point, linestringcol=value.linestring, polygoncol=value.polygon, "
             : "";
 
@@ -324,7 +327,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     ByteBuffer blobcol = row.getByteBuffer("blobcol");
     assertThat(blobcol).isNotNull();
     assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
-    if (ccm.getClusterType() == DSE) {
+    if (cs.isDse()) {
       assertThat(row.get("pointcol", GenericType.of(Point.class)))
           .isEqualTo(new DefaultPoint(32.0, 64.0));
       assertThat(row.get("linestringcol", GenericType.of(LineString.class)))
@@ -339,7 +342,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                   new DefaultPoint(0, 25),
                   new DefaultPoint(0, 0)));
     }
-    if (hasDateRange) {
+    if (cs.hasDateRange()) {
       assertThat(row.get("daterangecol", GenericType.of(DateRange.class)))
           .isEqualTo(DateRange.parse("[* TO 2014-12-01]"));
     }

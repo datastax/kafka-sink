@@ -16,6 +16,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -193,6 +194,17 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getInstanceName()).isEqualTo("myinst");
+  }
+
+  @Test
+  void should_handle_secure_connect_bundle() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE, "/location/to/bundle")
+            .build();
+
+    DseSinkConfig d = new DseSinkConfig(props);
+    assertThat(d.getSecureConnectBundle()).isEqualTo("/location/to/bundle");
   }
 
   @Test

@@ -20,8 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
 import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMConfig;
 import com.datastax.dsbulk.commons.tests.driver.annotations.SessionConfig;
+import com.datastax.kafkaconnector.ConnectorSettingsProvider;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -31,12 +33,14 @@ import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 @SuppressWarnings("ConstantConditions")
 @CCMConfig(ssl = true)
+@ExtendWith(CCMExtension.class)
 class SslEndToEndCCMIT extends EndToEndCCMITBase {
   public SslEndToEndCCMIT(CCMCluster ccm, @SessionConfig(ssl = true) CqlSession session) {
-    super(ccm, session);
+    super(ConnectorSettingsProvider.newInstance(ccm), session);
   }
 
   @Test

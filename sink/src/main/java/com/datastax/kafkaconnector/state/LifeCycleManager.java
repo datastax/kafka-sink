@@ -15,6 +15,7 @@ import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
@@ -551,6 +552,9 @@ public class LifeCycleManager {
     if (config.getCompressionType() != DseSinkConfig.CompressionType.None) {
       configLoaderBuilder.withString(
           PROTOCOL_COMPRESSION, config.getCompressionType().getDriverCompressionType());
+    }
+    if (!config.getSecureConnectBundle().isEmpty()) {
+      configLoaderBuilder.withString(CLOUD_SECURE_CONNECT_BUNDLE, config.getSecureConnectBundle());
     }
 
     processAuthenticatorConfig(config, configLoaderBuilder);

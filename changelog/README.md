@@ -1,5 +1,8 @@
 ## Changelog
 
+### 2.0.0 (in progress)
+- [new feature] KAF-143: Add support for connecting with cloud using secureBundle
+
 ### 1.1.1
 - [improvement] KAF-132: add ignoreErrors settings to prevent infinite loop of errors
 - [bug] KAF-135: dse-reference.conf is not loaded because wrong config Loader is used
