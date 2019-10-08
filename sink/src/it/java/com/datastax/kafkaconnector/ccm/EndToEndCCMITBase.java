@@ -21,6 +21,7 @@ import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -153,7 +154,7 @@ abstract class EndToEndCCMITBase {
         "contactPoints",
         ccm.getInitialContactPoints()
             .stream()
-            .map(addr -> String.format("%s", addr.getHostAddress()))
+            .map(addr -> String.format("%s", ((InetSocketAddress) addr.resolve()).getHostString()))
             .collect(Collectors.joining(",")));
     props.put("port", String.format("%d", ccm.getBinaryPort()));
     props.put("loadBalancing.localDc", ccm.getDC(1));
