@@ -75,6 +75,22 @@ public class CCMITConnectorBase {
     return props;
   }
 
+  Map<String, String> makeCloudConnectorProperties(
+      String mappingString, String tableName, Map<String, String> extras, String topicName) {
+    Map<String, String> props = new HashMap<>();
+
+    props.put("name", "myinstance");
+
+    props.put("topics", topicName);
+    props.put(
+        String.format("topic.%s.%s.%s.mapping", topicName, keyspaceName, tableName), mappingString);
+
+    if (extras != null) {
+      props.putAll(extras);
+    }
+    return props;
+  }
+
   Map<String, String> makeConnectorProperties(Map<String, String> extras) {
     return makeConnectorProperties("bigintcol=value", extras);
   }

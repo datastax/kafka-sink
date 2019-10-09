@@ -464,6 +464,11 @@ public class LifeCycleManager {
                       .stream()
                       .map(
                           tableConfig -> {
+                            System.out.println(
+                                "session: "
+                                    + session.getKeyspace()
+                                    + " session.ks: "
+                                    + session.getMetadata().getKeyspaces());
                             TableMetadata table = getTableMetadata(session, tableConfig);
                             // Save off the primary key of the table, if we haven't done so
                             // already.

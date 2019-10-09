@@ -57,7 +57,8 @@ class ContactPointsValidatorTest {
         Arguments.of("127.0.0.1"),
         Arguments.of("127.0.0.1,127.0.0.2"),
         Arguments.of("2001:0db8:85a3:08d3:1319:8a2e:0370:7344"),
-        Arguments.of(tenIp4Addresses()));
+        Arguments.of(tenIp4Addresses()),
+        Arguments.of(""));
   }
 
   private static Stream<? extends Arguments> incorrectContactPoints() {

@@ -36,6 +36,8 @@ public class DseSinkConfig {
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
 
+  static final String SSL_OPT_PREFIX = "ssl.";
+
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
@@ -47,7 +49,7 @@ public class DseSinkConfig {
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
   static final String IGNORE_ERRORS = "ignoreErrors";
-  public static final String SECURE_CONNECT_BUNDLE = "secureConnectBundle";
+  public static final String SECURE_CONNECT_BUNDLE_OPT = "secureConnectBundle";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -124,7 +126,7 @@ public class DseSinkConfig {
               ConfigDef.Importance.HIGH,
               "Specifies if the connector should ignore errors that occurred when processing the record.")
           .define(
-              SECURE_CONNECT_BUNDLE,
+              SECURE_CONNECT_BUNDLE_OPT,
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
@@ -151,7 +153,7 @@ public class DseSinkConfig {
         Map<String, String> topicMap =
             topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
         topicMap.put(name, entry.getValue());
-      } else if (name.startsWith("ssl.")) {
+      } else if (name.startsWith(SSL_OPT_PREFIX)) {
         sslSettings.put(name, entry.getValue());
       } else if (name.startsWith("auth.")) {
         authSettings.put(name, entry.getValue());
@@ -188,6 +190,10 @@ public class DseSinkConfig {
       }
     }
 
+    // Verify that if cloudSecureBundle specified the other clashing properties (contactPoints, dc,
+    // ssl) are not set.
+    validateCloudSettings(sslSettings);
+
     // Verify that if contact-points are provided, local dc is also specified.
     List<String> contactPoints = getContactPoints();
     log.debug("contactPoints: {}", contactPoints);
@@ -196,6 +202,30 @@ public class DseSinkConfig {
           CONTACT_POINTS_OPT,
           contactPoints,
           String.format("When contact points is provided, %s must also be specified", DC_OPT));
+    }
+  }
+
+  private void validateCloudSettings(Map<String, String> sslSettings) {
+    boolean cloud = !getSecureConnectBundle().isEmpty();
+    if (cloud && !getContactPoints().isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "When secureConnectBundle parameter is specified you should not provide %s.",
+              CONTACT_POINTS_OPT));
+    }
+
+    if (cloud && !getLocalDc().isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "When secureConnectBundle parameter is specified you should not provide %s.",
+              DC_OPT));
+    }
+
+    if (cloud && !sslSettings.isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "When secureConnectBundle parameter is specified you should not provide any setting under %s.",
+              SSL_OPT_PREFIX));
     }
   }
 
@@ -250,7 +280,7 @@ public class DseSinkConfig {
   }
 
   public String getSecureConnectBundle() {
-    return globalConfig.getString(SECURE_CONNECT_BUNDLE);
+    return globalConfig.getString(SECURE_CONNECT_BUNDLE_OPT);
   }
 
   public CompressionType getCompressionType() {

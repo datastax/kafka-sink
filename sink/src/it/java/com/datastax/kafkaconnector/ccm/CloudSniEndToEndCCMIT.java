@@ -1,6 +1,6 @@
 package com.datastax.kafkaconnector.ccm;
 
-import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.kafkaconnector.cloud.SNIProxyServer;
@@ -36,9 +36,8 @@ public class CloudSniEndToEndCCMIT extends CCMITConnectorBase {
   @BeforeAll
   void createTables() {
     session.execute(
-        SimpleStatement.builder(
-                "CREATE TABLE IF NOT EXISTS types (" + "bigintCol bigint PRIMARY KEY)")
-            .setTimeout(Duration.ofSeconds(10))
+        SimpleStatement.builder("CREATE TABLE IF NOT EXISTS types (bigintCol bigint PRIMARY KEY)")
+            .setTimeout(Duration.ofSeconds(30))
             .build());
   }
 
@@ -51,10 +50,10 @@ public class CloudSniEndToEndCCMIT extends CCMITConnectorBase {
   void should_connect_to_cloud_using() throws MalformedURLException {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
-            .put(SECURE_CONNECT_BUNDLE, proxy.getSecureBundlePath().toUri().toURL().toString())
+            .put(SECURE_CONNECT_BUNDLE_OPT, proxy.getSecureBundlePath().toUri().toURL().toString())
             .build();
 
-    conn.start(makeConnectorProperties(extras));
+    conn.start(makeCloudConnectorProperties("bigintcol=value", "types", extras, "mytopic"));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
