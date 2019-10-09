@@ -39,12 +39,6 @@ public class DefaultSNIProxyServer implements SNIProxyServer {
 
   private static final String PROXY_PATH = "com.datastax.kafkaconnector.cloud.PROXY_PATH";
 
-  static {
-    System.setProperty(
-        "com.datastax.kafkaconnector.cloud.PROXY_PATH",
-        "/Users/tomaszlelek/IntelliJ_workspace/sni_single_endpoint");
-  }
-
   private final Path proxyPath;
 
   private volatile boolean running = false;

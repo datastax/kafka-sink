@@ -82,10 +82,13 @@ public class SNIProxyServerExtension extends RemoteClusterExtension {
             .build();
     sessionFactory.configureSession(session);
     System.out.println(
-        "session: "
+        "createSession.session: "
             + session.getKeyspace()
             + " session.ks: "
-            + session.getMetadata().getKeyspaces());
+            + session.getMetadata().getKeyspaces()
+            + " session.contactPoints"
+            + session.getMetadata().getNodes().values()
+    );
     return session;
   }
 
