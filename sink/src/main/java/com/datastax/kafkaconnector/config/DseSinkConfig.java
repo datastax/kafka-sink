@@ -162,6 +162,8 @@ public class DseSinkConfig {
       }
     }
 
+    boolean cloud = !getSecureConnectBundle().isEmpty();
+
     // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
@@ -169,7 +171,8 @@ public class DseSinkConfig {
     authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
     topicSettings.forEach(
-        (name, topicConfigMap) -> topicConfigs.put(name, new TopicConfig(name, topicConfigMap)));
+        (name, topicConfigMap) ->
+            topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
 
     // Verify that the compression-type setting is valid.
     getCompressionType();
@@ -192,7 +195,7 @@ public class DseSinkConfig {
 
     // Verify that if cloudSecureBundle specified the other clashing properties (contactPoints, dc,
     // ssl) are not set.
-    validateCloudSettings(sslSettings);
+    validateCloudSettings(cloud, sslSettings);
 
     // Verify that if contact-points are provided, local dc is also specified.
     List<String> contactPoints = getContactPoints();
@@ -205,8 +208,7 @@ public class DseSinkConfig {
     }
   }
 
-  private void validateCloudSettings(Map<String, String> sslSettings) {
-    boolean cloud = !getSecureConnectBundle().isEmpty();
+  private void validateCloudSettings(boolean cloud, Map<String, String> sslSettings) {
     if (cloud && !getContactPoints().isEmpty()) {
       throw new ConfigException(
           String.format(

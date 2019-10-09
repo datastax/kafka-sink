@@ -66,7 +66,9 @@ class InstanceStateTest {
     TopicState topicState = new TopicState(null);
     topicState.initializeMetrics(metricRegistry);
     topicState.createRecordMapper(
-        new TableConfigBuilder("t1", "ks", "tb").addSimpleSetting(MAPPING_OPT, "v=key.v").build(),
+        new TableConfigBuilder("t1", "ks", "tb", false)
+            .addSimpleSetting(MAPPING_OPT, "v=key.v")
+            .build(),
         ImmutableList.of(),
         null,
         null);

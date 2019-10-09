@@ -15,6 +15,7 @@ import com.datastax.kafkaconnector.util.TimeUnitConverter;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
+import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.google.common.base.Splitter;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,9 +29,12 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Table-specific connector configuration. */
 public class TableConfig extends AbstractConfig {
+  private static final Logger log = LoggerFactory.getLogger(TableConfig.class);
   public static final String MAPPING_OPT = "mapping";
   public static final String TTL_OPT = "ttl";
   public static final String TTL_TIME_UNIT_OPT = "ttlTimeUnit";
@@ -57,7 +61,8 @@ public class TableConfig extends AbstractConfig {
       @NotNull String topicName,
       @NotNull String keyspace,
       @NotNull String table,
-      @NotNull Map<String, String> settings) {
+      @NotNull Map<String, String> settings,
+      boolean cloud) {
     super(makeTableConfigDef(topicName, keyspace, table), settings, false);
 
     this.topicName = topicName;
@@ -68,7 +73,8 @@ public class TableConfig extends AbstractConfig {
     String clOptName = getTableSettingPath(topicName, keyspace, table, CL_OPT);
     String clString = getString(clOptName);
     try {
-      consistencyLevel = DefaultConsistencyLevel.valueOf(clString.toUpperCase());
+      consistencyLevel =
+          convertToCloudCLIfNeeded(cloud, DefaultConsistencyLevel.valueOf(clString.toUpperCase()));
     } catch (IllegalArgumentException e) {
       // Must be a non-existing enum value.
       throw new ConfigException(
@@ -91,6 +97,22 @@ public class TableConfig extends AbstractConfig {
     nullToUnset = getBoolean(getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT));
     deletesEnabled =
         getBoolean(getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT));
+  }
+
+  private ConsistencyLevel convertToCloudCLIfNeeded(boolean cloud, ConsistencyLevel cl) {
+    if (cloud && !isCloudCompatible(cl)) {
+      log.info(
+          "Cloud deployments reject consistency level {} when writing; forcing LOCAL_QUORUM", cl);
+      return DefaultConsistencyLevel.LOCAL_QUORUM;
+    }
+    return cl;
+  }
+
+  private boolean isCloudCompatible(ConsistencyLevel cl) {
+    int protocolCode = cl.getProtocolCode();
+    return protocolCode != ProtocolConstants.ConsistencyLevel.ANY
+        && protocolCode != ProtocolConstants.ConsistencyLevel.ONE
+        && protocolCode != ProtocolConstants.ConsistencyLevel.LOCAL_ONE;
   }
 
   /**
@@ -312,11 +334,13 @@ public class TableConfig extends AbstractConfig {
     private final String keyspace;
     private final String table;
     private final Map<String, String> settings;
+    private final boolean cloud;
 
-    Builder(String topic, String keyspace, String table) {
+    Builder(String topic, String keyspace, String table, boolean cloud) {
       this.topic = topic;
       this.keyspace = keyspace;
       this.table = table;
+      this.cloud = cloud;
       settings = new HashMap<>();
     }
 
@@ -325,7 +349,7 @@ public class TableConfig extends AbstractConfig {
     }
 
     public TableConfig build() {
-      return new TableConfig(topic, keyspace, table, settings);
+      return new TableConfig(topic, keyspace, table, settings, cloud);
     }
   }
 }
