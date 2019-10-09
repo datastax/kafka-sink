@@ -25,15 +25,15 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.junit.jupiter.api.AfterEach;
 
-public class CCMITConnectorBase {
+public class ITConnectorBase {
   private final List<EndPoint> contactPoints;
   private final int binaryPort;
   private final String localDc;
   String keyspaceName;
-  DseSinkConnector conn = new DseSinkConnector();
+  protected DseSinkConnector conn = new DseSinkConnector();
   DseSinkTask task = new DseSinkTask();
 
-  public CCMITConnectorBase(
+  public ITConnectorBase(
       List<EndPoint> contactPoints, int binaryPort, String localDc, CqlSession session) {
     this.contactPoints = contactPoints;
     this.binaryPort = binaryPort;
@@ -50,7 +50,7 @@ public class CCMITConnectorBase {
     conn.stop();
   }
 
-  void runTaskWithRecords(SinkRecord... records) {
+  protected void runTaskWithRecords(SinkRecord... records) {
     initConnectorAndTask();
     task.put(Arrays.asList(records));
   }
@@ -83,7 +83,7 @@ public class CCMITConnectorBase {
     return props;
   }
 
-  Map<String, String> makeCloudConnectorProperties(
+  protected Map<String, String> makeCloudConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras, String topicName) {
     Map<String, String> props = new HashMap<>();
 

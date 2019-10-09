@@ -6,13 +6,12 @@
  *   and will post the amended terms at
  *   https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
  */
-package com.datastax.kafkaconnector.ccm;
+package com.datastax.kafkaconnector.cloud;
 
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.kafkaconnector.cloud.SNIProxyServer;
-import com.datastax.kafkaconnector.cloud.SNIProxyServerExtension;
+import com.datastax.kafkaconnector.ccm.ITConnectorBase;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
@@ -24,18 +23,20 @@ import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith({SNIProxyServerExtension.class})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CloudSniEndToEndCCMIT extends CCMITConnectorBase {
+@Tag("medium")
+public class CloudSniEndToEndIT extends ITConnectorBase {
 
   private final SNIProxyServer proxy;
   private CqlSession session;
 
-  public CloudSniEndToEndCCMIT(SNIProxyServer proxy, CqlSession session) {
+  public CloudSniEndToEndIT(SNIProxyServer proxy, CqlSession session) {
     super(proxy.getContactPoints(), proxy.getPort(), proxy.getLocalDCName(), session);
     this.proxy = proxy;
     this.session = session;

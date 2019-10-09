@@ -19,7 +19,7 @@
   <root level="${log.root.level:-OFF}">
     <appender-ref ref="STDOUT"/>
   </root>
-  <logger name="com.datastax.kafkaconnector.cloud" level="TRACE"/>
+  <logger name="com.datastax.kafkaconnector.cloud" level="DEBUG"/>
 
 
 </configuration>

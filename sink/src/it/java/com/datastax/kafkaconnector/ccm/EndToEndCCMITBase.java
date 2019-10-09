@@ -28,7 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Tag("medium")
 @CCMRequirements(compatibleTypes = {DSE, DDAC})
-abstract class EndToEndCCMITBase extends CCMITConnectorBase {
+abstract class EndToEndCCMITBase extends ITConnectorBase {
   final boolean hasDateRange;
   final CCMCluster ccm;
   final CqlSession session;

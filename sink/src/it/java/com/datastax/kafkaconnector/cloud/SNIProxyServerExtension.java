@@ -81,14 +81,6 @@ public class SNIProxyServerExtension extends RemoteClusterExtension {
             .withCloudSecureConnectBundle(proxy.getSecureBundlePath())
             .build();
     sessionFactory.configureSession(session);
-    System.out.println(
-        "createSession.session: "
-            + session.getKeyspace()
-            + " session.ks: "
-            + session.getMetadata().getKeyspaces()
-            + " session.contactPoints"
-            + session.getMetadata().getNodes().values()
-    );
     return session;
   }
 
