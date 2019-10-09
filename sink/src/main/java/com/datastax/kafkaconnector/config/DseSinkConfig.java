@@ -162,14 +162,13 @@ public class DseSinkConfig {
       }
     }
 
-    boolean cloud = !getSecureConnectBundle().isEmpty();
-
     // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
     sslConfig = new SslConfig(sslSettings);
     authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
+    boolean cloud = !getSecureConnectBundle().isEmpty();
     topicSettings.forEach(
         (name, topicConfigMap) ->
             topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
