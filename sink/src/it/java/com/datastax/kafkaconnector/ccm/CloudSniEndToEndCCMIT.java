@@ -3,29 +3,48 @@ package com.datastax.kafkaconnector.ccm;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.kafkaconnector.ConnectorSettingsProvider;
 import com.datastax.kafkaconnector.cloud.SNIProxyServer;
 import com.datastax.kafkaconnector.cloud.SNIProxyServerExtension;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.google.common.collect.ImmutableMap;
 import java.net.MalformedURLException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith({SNIProxyServerExtension.class})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CloudSniEndToEndCCMIT extends EndToEndCCMITBase {
+public class CloudSniEndToEndCCMIT extends CCMITConnectorBase {
 
   private final SNIProxyServer proxy;
+  private CqlSession session;
 
   public CloudSniEndToEndCCMIT(SNIProxyServer proxy, CqlSession session) {
-    super(ConnectorSettingsProvider.newInstance(proxy), session);
+    super(proxy.getContactPoints(), proxy.getPort(), proxy.getLocalDCName(), session);
     this.proxy = proxy;
+    this.session = session;
+  }
+
+  @BeforeAll
+  void createTables() {
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS types (" + "bigintCol bigint PRIMARY KEY)")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
+  }
+
+  @BeforeEach
+  void truncateTable() {
+    session.execute("TRUNCATE types");
   }
 
   @Test
