@@ -12,6 +12,7 @@ import static org.mockito.Mockito.mock;
 
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
@@ -84,7 +85,11 @@ public class ITConnectorBase {
   }
 
   protected Map<String, String> makeCloudConnectorProperties(
-      String mappingString, String tableName, Map<String, String> extras, String topicName) {
+      String mappingString,
+      String tableName,
+      Map<String, String> extras,
+      String topicName,
+      ConsistencyLevel cl) {
     Map<String, String> props = new HashMap<>();
 
     props.put("name", "myinstance");
@@ -92,6 +97,9 @@ public class ITConnectorBase {
     props.put("topics", topicName);
     props.put(
         String.format("topic.%s.%s.%s.mapping", topicName, keyspaceName, tableName), mappingString);
+    props.put(
+        String.format("topic.%s.%s.%s.consistencyLevel", topicName, keyspaceName, tableName),
+        cl.name());
 
     if (extras != null) {
       props.putAll(extras);
