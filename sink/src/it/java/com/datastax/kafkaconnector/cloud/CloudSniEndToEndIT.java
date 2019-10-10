@@ -83,7 +83,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
 
     // then
     assertThat(logs.getLoggedMessages())
-        .doesNotContain(
+        .contains(
             String.format(
                 "Cloud deployments reject consistency level %s when writing; forcing LOCAL_QUORUM",
                 cl));
