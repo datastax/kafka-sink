@@ -50,7 +50,7 @@ public class DseSinkConfig {
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
   static final String IGNORE_ERRORS = "ignoreErrors";
-  public static final String SECURE_CONNECT_BUNDLE_OPT = "secureConnectBundle";
+  public static final String SECURE_CONNECT_BUNDLE_OPT = "cloud.secureConnectBundle";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -218,22 +218,22 @@ public class DseSinkConfig {
     if (cloud && !getContactPoints().isEmpty()) {
       throw new ConfigException(
           String.format(
-              "When secureConnectBundle parameter is specified you should not provide %s.",
-              CONTACT_POINTS_OPT));
+              "When %s parameter is specified you should not provide %s.",
+              SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
     }
 
     if (cloud && !getLocalDc().isEmpty()) {
       throw new ConfigException(
           String.format(
-              "When secureConnectBundle parameter is specified you should not provide %s.",
-              DC_OPT));
+              "When %s parameter is specified you should not provide %s.",
+              SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
     }
 
     if (cloud && !sslSettings.isEmpty()) {
       throw new ConfigException(
           String.format(
-              "When secureConnectBundle parameter is specified you should not provide any setting under %s.",
-              SSL_OPT_PREFIX));
+              "When %s parameter is specified you should not provide any setting under %s.",
+              SECURE_CONNECT_BUNDLE_OPT, SSL_OPT_PREFIX));
     }
   }
 

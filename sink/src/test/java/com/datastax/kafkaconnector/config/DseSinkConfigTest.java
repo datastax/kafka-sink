@@ -221,8 +221,8 @@ class DseSinkConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
-                "When secureConnectBundle parameter is specified you should not provide %s.",
-                CONTACT_POINTS_OPT));
+                "When %s parameter is specified you should not provide %s.",
+                SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
   }
 
   @Test
@@ -237,8 +237,8 @@ class DseSinkConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
-                "When secureConnectBundle parameter is specified you should not provide %s.",
-                DC_OPT));
+                "When %s parameter is specified you should not provide %s.",
+                SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
   }
 
   @Test
@@ -253,8 +253,8 @@ class DseSinkConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
-                "When secureConnectBundle parameter is specified you should not provide any setting under %s.",
-                SSL_OPT_PREFIX));
+                "When %s parameter is specified you should not provide any setting under %s.",
+                SECURE_CONNECT_BUNDLE_OPT, SSL_OPT_PREFIX));
   }
 
   @Test
