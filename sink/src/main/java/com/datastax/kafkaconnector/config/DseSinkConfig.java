@@ -136,7 +136,10 @@ public class DseSinkConfig {
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
+
+  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private Optional<SslConfig> sslConfig = Optional.empty();
+
   private final AuthenticatorConfig authConfig;
 
   public DseSinkConfig(Map<String, String> settings) {
