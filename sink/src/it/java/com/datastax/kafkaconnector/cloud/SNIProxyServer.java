@@ -39,4 +39,8 @@ public interface SNIProxyServer extends Closeable {
   String getLocalDCName();
 
   int getPort();
+
+  String getUsername();
+
+  String getPassword();
 }

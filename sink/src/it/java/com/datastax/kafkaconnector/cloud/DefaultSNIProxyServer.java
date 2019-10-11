@@ -111,6 +111,16 @@ public class DefaultSNIProxyServer implements SNIProxyServer {
   }
 
   @Override
+  public String getUsername() {
+    return "cassandra";
+  }
+
+  @Override
+  public String getPassword() {
+    return "cassandra";
+  }
+
+  @Override
   public Path getSecureBundlePath() {
     // Bundles currently available as of 2019-09:
     // creds-v1-invalid-ca.zip
@@ -118,7 +128,7 @@ public class DefaultSNIProxyServer implements SNIProxyServer {
     // creds-v1-wo-cert.zip
     // creds-v1-wo-creds.zip
     // creds-v1.zip
-    return proxyPath.resolve("certs/bundles/creds-v1.zip");
+    return proxyPath.resolve("certs/bundles/creds-v1-wo-creds.zip");
   }
 
   private String execute(CommandLine cli) {

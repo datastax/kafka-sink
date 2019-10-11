@@ -8,6 +8,8 @@
  */
 package com.datastax.kafkaconnector.cloud;
 
+import static com.datastax.kafkaconnector.config.AuthenticatorConfig.PASSWORD_OPT;
+import static com.datastax.kafkaconnector.config.AuthenticatorConfig.USERNAME_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
@@ -106,6 +108,8 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(SECURE_CONNECT_BUNDLE_OPT, proxy.getSecureBundlePath().toUri().toURL().toString())
+            .put(USERNAME_OPT, proxy.getUsername())
+            .put(PASSWORD_OPT, proxy.getPassword())
             .build();
 
     conn.start(makeCloudConnectorProperties("bigintcol=value", "types", extras, "mytopic", cl));
