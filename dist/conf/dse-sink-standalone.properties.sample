@@ -10,7 +10,7 @@ topics=my_topic
 # The loadBalancing.localDc, contactPoints or any config under ssl prefix cannot be
 # set together with cloud.secureConnectBundle.
 # In such a case the ConfigException will be thrown.
-#cloud.secureConnectBundle = ""
+#cloud.secureConnectBundle = "/path/to/secure-connect-db.zip"
 
 # Comma-separated list of DSE cluster contact points. Used by the DataStax Driver to discover
 # DSE cluster topology. Defaults to empty, meaning localhost.
