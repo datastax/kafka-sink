@@ -13,26 +13,33 @@ import com.datastax.dse.driver.internal.core.context.DseDriverContext;
 import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
+import com.datastax.oss.driver.internal.core.ssl.JdkSslHandlerFactory;
 import com.datastax.oss.driver.internal.core.ssl.SslHandlerFactory;
 import java.util.Optional;
 
 /** Specialization of DseDriverContext that allows the connector to use OpenSSL. */
 public class DriverContext extends DseDriverContext {
-  private final SslConfig sslConfig;
+  private final Optional<SslConfig> sslConfig;
 
   DriverContext(
       DriverConfigLoader configLoader,
       ProgrammaticArguments programmaticArguments,
       DseProgrammaticArguments dseProgrammaticArguments,
-      SslConfig sslConfig) {
+      Optional<SslConfig> sslConfig) {
     super(configLoader, programmaticArguments, dseProgrammaticArguments);
     this.sslConfig = sslConfig;
   }
 
   @Override
   protected Optional<SslHandlerFactory> buildSslHandlerFactory() {
-    return Optional.of(
-        new OpenSslHandlerFactory(
-            sslConfig.getSslContext(), sslConfig.requireHostnameValidation()));
+    // If a JDK-based factory was provided through the public API, wrap it;
+    // this can only happen in kafka-connector if a secure connect bundle was provided.
+    if (getSslEngineFactory().isPresent()) {
+      return getSslEngineFactory().map(JdkSslHandlerFactory::new);
+    } else {
+      return Optional.of(
+          new OpenSslHandlerFactory(
+              sslConfig.get().getSslContext(), sslConfig.get().requireHostnameValidation()));
+    }
   }
 }

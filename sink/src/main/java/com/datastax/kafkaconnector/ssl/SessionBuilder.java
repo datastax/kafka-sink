@@ -14,12 +14,13 @@ import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
+import java.util.Optional;
 
 /** Session builder specialization that hooks in OpenSSL when that ssl provider is chosen. */
 public class SessionBuilder extends DseSessionBuilder {
-  private final SslConfig sslConfig;
+  private final Optional<SslConfig> sslConfig;
 
-  public SessionBuilder(SslConfig sslConfig) {
+  public SessionBuilder(Optional<SslConfig> sslConfig) {
     this.sslConfig = sslConfig;
   }
 
@@ -30,7 +31,7 @@ public class SessionBuilder extends DseSessionBuilder {
     // that we also need.
     DriverContext baseContext = super.buildContext(configLoader, programmaticArguments);
 
-    if (sslConfig.getProvider() != SslConfig.Provider.OpenSSL) {
+    if (sslConfig.map(s -> s.getProvider() != SslConfig.Provider.OpenSSL).orElse(false)) {
       // We're not using OpenSSL so the normal driver context is fine to use.
       return baseContext;
     }

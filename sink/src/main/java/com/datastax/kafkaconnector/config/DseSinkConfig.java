@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -135,7 +136,7 @@ public class DseSinkConfig {
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
-  private final SslConfig sslConfig;
+  private Optional<SslConfig> sslConfig = Optional.empty();
   private final AuthenticatorConfig authConfig;
 
   public DseSinkConfig(Map<String, String> settings) {
@@ -165,10 +166,13 @@ public class DseSinkConfig {
     // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
-    sslConfig = new SslConfig(sslSettings);
+
+    if (!isCloud()) {
+      sslConfig = Optional.of(new SslConfig(sslSettings));
+    }
     authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
-    boolean cloud = !getSecureConnectBundle().isEmpty();
+    boolean cloud = isCloud();
     topicSettings.forEach(
         (name, topicConfigMap) ->
             topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
@@ -280,6 +284,10 @@ public class DseSinkConfig {
     return globalConfig.getBoolean(JMX_OPT);
   }
 
+  public boolean isCloud() {
+    return !getSecureConnectBundle().isEmpty();
+  }
+
   public String getSecureConnectBundle() {
     return globalConfig.getString(SECURE_CONNECT_BUNDLE_OPT);
   }
@@ -309,7 +317,7 @@ public class DseSinkConfig {
     return authConfig;
   }
 
-  public SslConfig getSslConfig() {
+  public Optional<SslConfig> getSslConfig() {
     return sslConfig;
   }
 
@@ -343,7 +351,7 @@ public class DseSinkConfig {
         getJmx(),
         getCompressionType(),
         Splitter.on("\n")
-            .splitToList(sslConfig.toString())
+            .splitToList(sslConfig.map(SslConfig::toString).orElse("sslConfig not present"))
             .stream()
             .map(line -> "        " + line)
             .collect(Collectors.joining("\n")),

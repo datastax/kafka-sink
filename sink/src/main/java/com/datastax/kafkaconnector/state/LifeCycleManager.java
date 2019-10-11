@@ -514,7 +514,7 @@ public class LifeCycleManager {
   @NotNull
   static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
-    SslConfig sslConfig = config.getSslConfig();
+    Optional<SslConfig> sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
@@ -553,12 +553,14 @@ public class LifeCycleManager {
       configLoaderBuilder.withString(
           PROTOCOL_COMPRESSION, config.getCompressionType().getDriverCompressionType());
     }
-    if (!config.getSecureConnectBundle().isEmpty()) {
+    if (config.isCloud()) {
       configLoaderBuilder.withString(CLOUD_SECURE_CONNECT_BUNDLE, config.getSecureConnectBundle());
     }
 
     processAuthenticatorConfig(config, configLoaderBuilder);
-    processSslConfig(sslConfig, configLoaderBuilder);
+    if (!config.isCloud()) {
+      sslConfig.ifPresent(s -> processSslConfig(s, configLoaderBuilder));
+    }
     builder.withConfigLoader(configLoaderBuilder.build());
 
     return builder.build();
