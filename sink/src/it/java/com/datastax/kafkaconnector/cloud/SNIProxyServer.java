@@ -34,6 +34,8 @@ public interface SNIProxyServer extends Closeable {
 
   Path getSecureBundlePath();
 
+  Path getSecureBundleWithoutUsernamePassword();
+
   List<EndPoint> getContactPoints();
 
   String getLocalDCName();

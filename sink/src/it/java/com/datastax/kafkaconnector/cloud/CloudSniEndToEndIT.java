@@ -81,7 +81,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     DefaultConsistencyLevel cl = DefaultConsistencyLevel.ONE;
 
     // when
-    performInsert(cl);
+    performInsert(cl, parametersWithSecureBundle());
 
     // then
     assertThat(logs.getLoggedMessages())
@@ -97,21 +97,45 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     DefaultConsistencyLevel cl = DefaultConsistencyLevel.LOCAL_QUORUM;
 
     // when
-    performInsert(cl);
+    performInsert(cl, parametersWithSecureBundle());
 
     // then
     assertThat(logs.getLoggedMessages())
         .doesNotContain("Cloud deployments reject consistency level");
   }
 
-  private void performInsert(ConsistencyLevel cl) throws MalformedURLException {
-    Map<String, String> extras =
-        ImmutableMap.<String, String>builder()
-            .put(SECURE_CONNECT_BUNDLE_OPT, proxy.getSecureBundlePath().toUri().toURL().toString())
-            .put(USERNAME_OPT, proxy.getUsername())
-            .put(PASSWORD_OPT, proxy.getPassword())
-            .build();
+  @Test
+  void should_connect_and_insert_to_cloud_overriding_wrong_cl_secure_bundle_without_password()
+      throws MalformedURLException {
+    // given
+    DefaultConsistencyLevel cl = DefaultConsistencyLevel.ONE;
 
+    // when
+    performInsert(cl, parametersWithSecureBundleUsernameAndPassword());
+
+    // then
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "Cloud deployments reject consistency level %s when writing; forcing LOCAL_QUORUM",
+                cl));
+  }
+
+  @Test
+  void should_connect_and_insert_to_cloud_using_correct_cl_secure_bundle_without_password()
+      throws MalformedURLException {
+    // given
+    DefaultConsistencyLevel cl = DefaultConsistencyLevel.LOCAL_QUORUM;
+
+    // when
+    performInsert(cl, parametersWithSecureBundleUsernameAndPassword());
+
+    // then
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain("Cloud deployments reject consistency level");
+  }
+
+  private void performInsert(ConsistencyLevel cl, Map<String, String> extras) {
     conn.start(makeCloudConnectorProperties("bigintcol=value", "types", extras, "mytopic", cl));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
@@ -122,5 +146,22 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(5725368L);
+  }
+
+  private Map<String, String> parametersWithSecureBundle() throws MalformedURLException {
+    return ImmutableMap.<String, String>builder()
+        .put(SECURE_CONNECT_BUNDLE_OPT, proxy.getSecureBundlePath().toUri().toURL().toString())
+        .build();
+  }
+
+  private Map<String, String> parametersWithSecureBundleUsernameAndPassword()
+      throws MalformedURLException {
+    return ImmutableMap.<String, String>builder()
+        .put(
+            SECURE_CONNECT_BUNDLE_OPT,
+            proxy.getSecureBundleWithoutUsernamePassword().toUri().toURL().toString())
+        .put(USERNAME_OPT, proxy.getUsername())
+        .put(PASSWORD_OPT, proxy.getPassword())
+        .build();
   }
 }

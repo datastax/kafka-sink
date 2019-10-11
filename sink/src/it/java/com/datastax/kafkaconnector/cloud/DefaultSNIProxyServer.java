@@ -128,6 +128,11 @@ public class DefaultSNIProxyServer implements SNIProxyServer {
     // creds-v1-wo-cert.zip
     // creds-v1-wo-creds.zip
     // creds-v1.zip
+    return proxyPath.resolve("certs/bundles/creds-v1.zip");
+  }
+
+  @Override
+  public Path getSecureBundleWithoutUsernamePassword() {
     return proxyPath.resolve("certs/bundles/creds-v1-wo-creds.zip");
   }
 
