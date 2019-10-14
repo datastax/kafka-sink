@@ -17,6 +17,7 @@ TOPIC_NAME="avro-stream"
 
 CONFLUENT_VERSION=$1
 DSE_CONNECTOR_VERSION=$2
+IS_CLOUD=$3
 
 wait_for_port () {
   SVCNAME=$1
@@ -266,11 +267,18 @@ start_distributed_worker () {
 }
 
 start_connector () {
-	echo
+    echo
+    echo "----------------------------------------"
+    echo "---    STARTING DATASTAX CONNECTOR   ---"
 	echo "----------------------------------------"
-	echo "---    STARTING DATASTAX CONNECTOR   ---"
-	echo "----------------------------------------"
-	curl -X POST -H "Content-Type: application/json" -d @kafka-examples/producers/src/main/java/avro/dse-sink-avro.json "http://localhost:8083/connectors"
+
+    if [[ "$IS_CLOUD" = "false" ]]
+    then
+        curl -X POST -H "Content-Type: application/json" -d @kafka-examples/producers/src/main/java/avro/dse-sink-avro.json "http://localhost:8083/connectors"
+    else
+        curl -X POST -H "Content-Type: application/json" -d @/home/automaton/dse-sink-avro-cloud.json "http://localhost:8083/connectors"
+    fi
+
 }
 
 start_producer () {
