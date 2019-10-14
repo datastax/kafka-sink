@@ -272,7 +272,7 @@ start_connector () {
     echo "---    STARTING DATASTAX CONNECTOR   ---"
 	echo "----------------------------------------"
 
-    if [[ "$IS_CLOUD" = "false" ]]
+    if [ "$IS_CLOUD" = "false" ]
     then
         curl -X POST -H "Content-Type: application/json" -d @kafka-examples/producers/src/main/java/avro/dse-sink-avro.json "http://localhost:8083/connectors"
     else
