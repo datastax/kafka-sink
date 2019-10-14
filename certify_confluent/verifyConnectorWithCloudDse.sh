@@ -20,7 +20,7 @@ KAFKA_SINK_REPO_LOCATION=/your-local-location/kafka-sink
 DSE_CONNECTOR_VERSION=1.2.0-SNAPSHOT
 LOGS_OUTPUT_DIRECTORY=/tmp/certify-confluent-tests
 CTOOL_ENV=ctool-env
-CLOUD_SECURE_BUNDLE_LOCATION=/Users/tomaszlelek/Downloads/secure-connect-db1.zip
+CLOUD_SECURE_BUNDLE_LOCATION=/your-location/secure-connect-db1.zip
 CLOUD_SECURE_BUNDLE_FILE_NAME="secure-connect-db1.zip"
 
 pyenv activate ${CTOOL_ENV}
