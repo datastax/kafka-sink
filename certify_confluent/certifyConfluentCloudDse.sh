@@ -32,7 +32,7 @@ ctool destroy kct
 mkdir ${LOGS_OUTPUT_DIRECTORY}
 
 sed -i "s/CLOUD_USERNAME/$CLOUD_USERNAME/g" dse-sink-avro-cloud.json
-sed -i "s/CLOUD_USERNAME/$CLOUD_USERNAME/g" dse-sink-avro-cloud.json
+sed -i "s/CLOUD_PASSWORD/$CLOUD_PASSWORD/g" dse-sink-avro-cloud.json
 
 echo "smoke test confluent 5.2"
 ctool launch kct 1
