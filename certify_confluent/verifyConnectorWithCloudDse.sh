@@ -11,10 +11,9 @@
 # Set CTOOL_ENV to name of the virtual-env inside of which you have ctool setup.
 # Set CLOUD_SECURE_BUNDLE_LOCATION to your secure-connect.zip bundle with cloud credentials
 # SET CLOUD_SECURE_BUNDLE_FILE_NAME to name of your secure-connect.zip
-# Set CLOUD_USERNAME to username of your apollo constellation db
-# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db
-# Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db
-# Execute all CLQs from the cloud/create_avro_table_udt.cql file on your cloud instance
+# Set CLOUD_USERNAME to username of your apollo constellation db in the certifyConfluentVersion.sh
+# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db in the certifyConfluentVersion.sh
+# Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db in the certifyConfluentVersion.sh
 
 CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.2.0-SNAPSHOT.jar
 KAFKA_SINK_REPO_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink
@@ -23,18 +22,11 @@ LOGS_OUTPUT_DIRECTORY=/tmp/certify-confluent-tests
 CTOOL_ENV=ctool-env
 CLOUD_SECURE_BUNDLE_LOCATION=/Users/tomaszlelek/Downloads/secure-connect-db1.zip
 CLOUD_SECURE_BUNDLE_FILE_NAME="secure-connect-db1.zip"
-CLOUD_USERNAME=user
-CLOUD_PASSWORD=password
-CLOUD_KEYSPACE=ks1
 
 pyenv activate ${CTOOL_ENV}
 ctool destroy kct
 
 mkdir ${LOGS_OUTPUT_DIRECTORY}
-
-sed -i "s/CLOUD_USERNAME/$CLOUD_USERNAME/g" cloud/dse-sink-avro-cloud.json
-sed -i "s/CLOUD_PASSWORD/$CLOUD_PASSWORD/g" cloud/dse-sink-avro-cloud.json
-sed -i "s/CLOUD_KEYSPACE/$CLOUD_KEYSPACE/g" cloud/dse-sink-avro-cloud.json
 
 echo "test confluent 5.2 with dse cloud"
 ctool launch kct 1

@@ -16,7 +16,7 @@ TOTAL_RECORDS=1000
 TOPIC_NAME="avro-stream"
 
 
-# If running against DataStax Cloud:
+# If running with DataStax Cloud:
 # Set CLOUD_USERNAME to username of your apollo constellation db
 # Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db
 # Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db
@@ -288,7 +288,10 @@ start_connector () {
     then
         curl -X POST -H "Content-Type: application/json" -d @kafka-examples/producers/src/main/java/avro/dse-sink-avro.json "http://localhost:8083/connectors"
     else
-        curl -X POST -H "Content-Type: application/json" -d @/home/automaton/dse-sink-avro-cloud.json "http://localhost:8083/connectors"
+        sed -i "s/CLOUD_USERNAME/$CLOUD_USERNAME/g" /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json
+        sed -i "s/CLOUD_PASSWORD/$CLOUD_PASSWORD/g" /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json
+        sed -i "s/CLOUD_KEYSPACE/$CLOUD_KEYSPACE/g" /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json
+        curl -X POST -H "Content-Type: application/json" -d @/home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json "http://localhost:8083/connectors"
     fi
 
 }
