@@ -15,8 +15,8 @@
 # Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db in the certifyConfluentVersion.sh
 # Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db in the certifyConfluentVersion.sh
 
-CONNECTOR_JAR_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink/dist/target/kafka-connect-dse-1.2.0-SNAPSHOT.jar
-KAFKA_SINK_REPO_LOCATION=/Users/tomaszlelek/IntelliJ_workspace/kafka-sink
+CONNECTOR_JAR_LOCATION=path-to-connector-jar-on-your-local-system
+KAFKA_SINK_REPO_LOCATION=/your-local-location/kafka-sink
 DSE_CONNECTOR_VERSION=1.2.0-SNAPSHOT
 LOGS_OUTPUT_DIRECTORY=/tmp/certify-confluent-tests
 CTOOL_ENV=ctool-env
