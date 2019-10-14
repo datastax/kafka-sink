@@ -170,12 +170,13 @@ public class DseSinkConfig {
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
 
-    if (!isCloud()) {
+    boolean cloud = isCloud();
+
+    if (!cloud) {
       sslConfig = Optional.of(new SslConfig(sslSettings));
     }
     authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
-    boolean cloud = isCloud();
     topicSettings.forEach(
         (name, topicConfigMap) ->
             topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
@@ -199,9 +200,12 @@ public class DseSinkConfig {
       }
     }
 
-    // Verify that if cloudSecureBundle specified the other clashing properties (contactPoints, dc,
-    // ssl) are not set.
-    validateCloudSettings(cloud, sslSettings);
+    if (cloud) {
+      // Verify that if cloudSecureBundle specified the other clashing properties (contactPoints,
+      // dc,
+      // ssl) are not set.
+      validateCloudSettings(sslSettings);
+    }
 
     // Verify that if contact-points are provided, local dc is also specified.
     List<String> contactPoints = getContactPoints();
@@ -214,22 +218,22 @@ public class DseSinkConfig {
     }
   }
 
-  private void validateCloudSettings(boolean cloud, Map<String, String> sslSettings) {
-    if (cloud && !getContactPoints().isEmpty()) {
+  private void validateCloudSettings(Map<String, String> sslSettings) {
+    if (!getContactPoints().isEmpty()) {
       throw new ConfigException(
           String.format(
               "When %s parameter is specified you should not provide %s.",
               SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
     }
 
-    if (cloud && !getLocalDc().isEmpty()) {
+    if (!getLocalDc().isEmpty()) {
       throw new ConfigException(
           String.format(
               "When %s parameter is specified you should not provide %s.",
               SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
     }
 
-    if (cloud && !sslSettings.isEmpty()) {
+    if (!sslSettings.isEmpty()) {
       throw new ConfigException(
           String.format(
               "When %s parameter is specified you should not provide any setting under %s.",
@@ -333,7 +337,7 @@ public class DseSinkConfig {
     return String.format(
         "Global configuration:%n"
             + "        contactPoints: %s%n"
-            + "        port: %d%n"
+            + "        port: %s%n"
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "        queryExecutionTimeout: %d%n"
@@ -345,7 +349,7 @@ public class DseSinkConfig {
             + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s",
         getContactPoints(),
-        getPort(),
+        getPortToString(),
         getLocalDc(),
         getMaxConcurrentRequests(),
         getQueryExecutionTimeout(),
@@ -374,6 +378,13 @@ public class DseSinkConfig {
                         .map(line -> "        " + line)
                         .collect(Collectors.joining("\n")))
             .collect(Collectors.joining("\n")));
+  }
+
+  private String getPortToString() {
+    if (isCloud()) {
+      return String.format("%s will be ignored because you are using cloud", PORT_OPT);
+    }
+    return String.valueOf(getPort());
   }
 
   public enum CompressionType {

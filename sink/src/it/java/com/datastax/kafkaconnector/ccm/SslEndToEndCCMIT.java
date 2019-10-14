@@ -30,10 +30,12 @@ import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("ConstantConditions")
 @CCMConfig(ssl = true)
+@Tag("medium")
 class SslEndToEndCCMIT extends EndToEndCCMITBase {
   public SslEndToEndCCMIT(CCMCluster ccm, @SessionConfig(ssl = true) CqlSession session) {
     super(ccm, session);

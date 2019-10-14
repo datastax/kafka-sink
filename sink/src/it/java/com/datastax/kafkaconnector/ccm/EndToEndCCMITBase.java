@@ -20,13 +20,9 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CCMExtension.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@Tag("medium")
 @CCMRequirements(compatibleTypes = {DSE, DDAC})
 abstract class EndToEndCCMITBase extends ITConnectorBase {
   final boolean hasDateRange;

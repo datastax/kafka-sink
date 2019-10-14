@@ -42,8 +42,8 @@ public class DriverContext extends DseDriverContext {
           new OpenSslHandlerFactory(
               sslConfig.get().getSslContext(), sslConfig.get().requireHostnameValidation()));
     } else {
-      throw new IllegalArgumentException(
-          "The sslConfig and secure bundle was not provided to configure SslHandlerFactory");
+      throw new IllegalStateException(
+          "Neither sslConfig nor secure bundle was provided to configure SslHandlerFactory");
     }
   }
 }

@@ -25,7 +25,9 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.TestInstance;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ITConnectorBase {
   private final List<EndPoint> contactPoints;
   private final int binaryPort;

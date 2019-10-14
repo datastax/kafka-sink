@@ -1,6 +1,6 @@
 ## Changelog
 
-### 2.0.0 (in progress)
+### 1.2.0 (in progress)
 - [new feature] KAF-143: Add support for connecting with cloud using secureBundle
 
 ### 1.1.1
