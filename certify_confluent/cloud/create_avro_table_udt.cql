@@ -1,4 +1,5 @@
 // On cloud there must be no keyspace created and all statements must use implicit keyspace
+TRUNCATE avro_udt_table;
 
 CREATE type if not exists segment0_udt (
 segment0_0 text,
