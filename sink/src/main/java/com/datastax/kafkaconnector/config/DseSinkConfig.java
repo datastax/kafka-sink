@@ -200,9 +200,8 @@ public class DseSinkConfig {
     }
 
     if (cloud) {
-      // Verify that if cloudSecureBundle specified the other clashing properties (contactPoints,
-      // dc,
-      // ssl) are not set.
+      // Verify that if cloudSecureBundle specified the
+      // other clashing properties (contactPoints, dc, ssl) are not set.
       validateCloudSettings(sslSettings);
     }
 

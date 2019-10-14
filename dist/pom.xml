@@ -47,7 +47,8 @@
     <dependency>
         <groupId>com.datastax.oss</groupId>
         <artifactId>java-driver-shaded-guava</artifactId>
-    </dependency></dependencies>
+    </dependency>
+  </dependencies>
 
   <build>
 
