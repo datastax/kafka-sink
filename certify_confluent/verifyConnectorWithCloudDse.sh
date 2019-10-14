@@ -36,15 +36,19 @@ sed -i "s/CLOUD_USERNAME/$CLOUD_USERNAME/g" cloud/dse-sink-avro-cloud.json
 sed -i "s/CLOUD_PASSWORD/$CLOUD_PASSWORD/g" cloud/dse-sink-avro-cloud.json
 sed -i "s/CLOUD_KEYSPACE/$CLOUD_KEYSPACE/g" cloud/dse-sink-avro-cloud.json
 
-echo "smoke test confluent 5.2"
+echo "test confluent 5.2 with dse cloud"
 ctool launch kct 1
-ctool run kct all "sudo apt-get install -y maven"
+ctool run kct all "sudo apt update --assume-yes; sudo apt install maven --assume-yes; sudo apt-get install unzip --assume-yes"
 ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool scp -R kct 0 ${CLOUD_SECURE_BUNDLE_LOCATION} /home/automaton
 ctool scp -R kct 0 cloud/dse-sink-avro-cloud.json /home/automaton
 ctool run --sudo kct "mv /home/automaton/${CLOUD_SECURE_BUNDLE_FILE_NAME} /home/automaton/secure-bundle.zip"
+ctool run --sudo kct "unzip /home/automaton/secure-bundle.zip -d /home/automaton/secure-bundle"
+ctool run --sudo kct "chmod 777 /home/automaton/secure-bundle/cert"
+ctool run --sudo kct "chmod 777 /home/automaton/secure-bundle/ca.crt"
+ctool run --sudo kct "chmod 777 /home/automaton/secure-bundle/key"
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "5.2" "${DSE_CONNECTOR_VERSION}" "true" &> certify_confluent_5.2_cloud.log"
 ctool scp -r kct 0 ${LOGS_OUTPUT_DIRECTORY}/certify_confluent_5.2_cloud.log /home/automaton/certify_confluent_5.2_cloud.log
