@@ -12,7 +12,7 @@
 # Set CLOUD_SECURE_BUNDLE_LOCATION to your secure-connect.zip bundle with cloud credentials
 # SET CLOUD_SECURE_BUNDLE_FILE_NAME to name of your secure-connect.zip
 # Set CLOUD_USERNAME to username of your apollo constellation db in the certifyConfluentVersion.sh
-# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db in the certifyConfluentVersion.sh
+# Set CLOUD_PASSWORD to password of your apollo constellation db in the certifyConfluentVersion.sh
 # Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db in the certifyConfluentVersion.sh
 
 CONNECTOR_JAR_LOCATION=path-to-connector-jar-on-your-local-system
