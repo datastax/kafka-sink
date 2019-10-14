@@ -51,7 +51,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
       SNIProxyServer proxy,
       CqlSession session,
       @LogCapture(level = INFO, value = TableConfig.class) LogInterceptor logs) {
-    super(proxy.getContactPoints(), proxy.getPort(), proxy.getLocalDCName(), session);
+    super(proxy.getContactPoints(), null, proxy.getLocalDCName(), session);
     this.proxy = proxy;
     this.session = session;
     this.logs = logs;

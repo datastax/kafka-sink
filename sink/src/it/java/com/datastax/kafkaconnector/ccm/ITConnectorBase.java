@@ -24,20 +24,24 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
+import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.TestInstance;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ITConnectorBase {
   private final List<EndPoint> contactPoints;
-  private final int binaryPort;
+  @Nullable private final Integer binaryPort;
   private final String localDc;
   String keyspaceName;
   protected DseSinkConnector conn = new DseSinkConnector();
   DseSinkTask task = new DseSinkTask();
 
   public ITConnectorBase(
-      List<EndPoint> contactPoints, int binaryPort, String localDc, CqlSession session) {
+      List<EndPoint> contactPoints,
+      @Nullable Integer binaryPort,
+      String localDc,
+      CqlSession session) {
     this.contactPoints = contactPoints;
     this.binaryPort = binaryPort;
     this.localDc = localDc;
@@ -74,7 +78,9 @@ public class ITConnectorBase {
             .stream()
             .map(addr -> String.format("%s", ((InetSocketAddress) addr.resolve()).getHostString()))
             .collect(Collectors.joining(",")));
-    props.put("port", String.format("%d", binaryPort));
+    if (binaryPort != null) {
+      props.put("port", String.format("%d", binaryPort));
+    }
     props.put("loadBalancing.localDc", localDc);
     props.put("topics", topicName);
     props.put(

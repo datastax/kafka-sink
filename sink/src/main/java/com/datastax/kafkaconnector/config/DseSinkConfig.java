@@ -12,11 +12,11 @@ import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.google.common.base.Splitter;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -137,8 +137,7 @@ public class DseSinkConfig {
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  private Optional<SslConfig> sslConfig = Optional.empty();
+  @Nullable private SslConfig sslConfig;
 
   private final AuthenticatorConfig authConfig;
 
@@ -173,7 +172,7 @@ public class DseSinkConfig {
     boolean cloud = isCloud();
 
     if (!cloud) {
-      sslConfig = Optional.of(new SslConfig(sslSettings));
+      sslConfig = new SslConfig(sslSettings);
     }
     authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
@@ -324,7 +323,8 @@ public class DseSinkConfig {
     return authConfig;
   }
 
-  public Optional<SslConfig> getSslConfig() {
+  @Nullable
+  public SslConfig getSslConfig() {
     return sslConfig;
   }
 
@@ -357,11 +357,7 @@ public class DseSinkConfig {
         getConnectionPoolLocalSize(),
         getJmx(),
         getCompressionType(),
-        Splitter.on("\n")
-            .splitToList(sslConfig.map(SslConfig::toString).orElse("sslConfig not present"))
-            .stream()
-            .map(line -> "        " + line)
-            .collect(Collectors.joining("\n")),
+        getSslConfigToString(),
         Splitter.on("\n")
             .splitToList(authConfig.toString())
             .stream()
@@ -378,6 +374,18 @@ public class DseSinkConfig {
                         .map(line -> "        " + line)
                         .collect(Collectors.joining("\n")))
             .collect(Collectors.joining("\n")));
+  }
+
+  private String getSslConfigToString() {
+    if (sslConfig != null) {
+      return Splitter.on("\n")
+          .splitToList(sslConfig.toString())
+          .stream()
+          .map(line -> "        " + line)
+          .collect(Collectors.joining("\n"));
+    } else {
+      return "SslConfig not present";
+    }
   }
 
   private String getPortToString() {

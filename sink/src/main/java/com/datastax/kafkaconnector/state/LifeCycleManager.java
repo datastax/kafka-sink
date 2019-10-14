@@ -514,7 +514,7 @@ public class LifeCycleManager {
   @NotNull
   static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
-    Optional<SslConfig> sslConfig = config.getSslConfig();
+    SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
@@ -558,8 +558,8 @@ public class LifeCycleManager {
     }
 
     processAuthenticatorConfig(config, configLoaderBuilder);
-    if (!config.isCloud()) {
-      sslConfig.ifPresent(s -> processSslConfig(s, configLoaderBuilder));
+    if (sslConfig != null) {
+      processSslConfig(sslConfig, configLoaderBuilder);
     }
     builder.withConfigLoader(configLoaderBuilder.build());
 
