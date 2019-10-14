@@ -316,6 +316,7 @@ create_dse_schema () {
 	$DSE_HOME/bin/cqlsh -f kafka-examples/producers/src/main/java/avro/create_avro_table_udt.cql
 }
 
+# todo adapt to dsbulk cloud: https://datastax.jira.com/browse/KAF-149
 verify_rows_in_dse () {
 	echo
 	echo "----------------------------------------"
