@@ -14,8 +14,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * An abstraction around a Cassandra or DSE cluster managed by the <a
- * href="https://github.com/pcmanus/ccm">CCM tool</a>.
+ * An abstraction around a Cassandra or DSE cluster that provides a way to connect with the cluster
+ * via SNI proxy</a>.
  */
 public interface SNIProxyServer extends Closeable {
 

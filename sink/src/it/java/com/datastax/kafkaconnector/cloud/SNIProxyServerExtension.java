@@ -24,7 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A manager for {@link SNIProxyServer CCM} clusters that helps testing with JUnit 5 and Cassandra.
+ * An extension for {@link SNIProxyServer CCM} clusters that helps testing with JUnit 5 and
+ * Cassandra.
  */
 public class SNIProxyServerExtension extends RemoteClusterExtension {
 
