@@ -5,12 +5,23 @@ tasks.max=1
 # Topics to subscribe to, comma-delimited.
 topics=my_topic
 
+# The location of the cloud secure bundle used to connect to Datastax Apache Cassandra as a service.
+# If you are connecting to the cloud, these parameters need to be provided.
+# The loadBalancing.localDc, contactPoints or any config under ssl prefix cannot be
+# set together with cloud.secureConnectBundle.
+# In such a case a ConfigException will be thrown
+#cloud.secureConnectBundle = "/path/to/secure-connect-db.zip"
+
 # Comma-separated list of DSE cluster contact points. Used by the DataStax Driver to discover
 # DSE cluster topology. Defaults to empty, meaning localhost.
+# This setting cannot be provided if `cloud.secureConnectBundle` is provided, since this
+# information is part of the bundle's data.
 #contactPoints=[]
 
 # DSE data center name to which the DataStax Driver connects. Required if contactPoints
 # is specified.
+# This setting cannot be provided if `cloud.secureConnectBundle` is provided, since this
+# information is part of the bundle's data.
 #loadBalancing.localDc=
 
 # Native transport port to connect to on DSE nodes; defaults to 9042.
@@ -63,6 +74,8 @@ topics=my_topic
 #auth.gssapi.service=dse
 
 ### SSL Settings ###
+# This entire section cannot be provided if `cloud.secureConnectBundle` is provided, since this
+# information is part of the bundle's data.
 
 # SSL provider to use, if any. Valid choices: None, JDK, OpenSSL.
 # Defaults to None.

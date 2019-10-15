@@ -15,8 +15,8 @@ public class TableConfigBuilder extends TableConfig.Builder {
   private final String keyspace;
   private final String table;
 
-  public TableConfigBuilder(String topic, String keyspace, String table) {
-    super(topic, keyspace, table);
+  public TableConfigBuilder(String topic, String keyspace, String table, boolean cloud) {
+    super(topic, keyspace, table, cloud);
     this.topic = topic;
     this.keyspace = keyspace;
     this.table = table;

@@ -16,6 +16,9 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.SSL_OPT_PREFIX;
+import static com.datastax.kafkaconnector.config.SslConfig.PROVIDER_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -193,6 +196,65 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getInstanceName()).isEqualTo("myinst");
+  }
+
+  @Test
+  void should_handle_secure_connect_bundle() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
+            .build();
+
+    DseSinkConfig d = new DseSinkConfig(props);
+    assertThat(d.getSecureConnectBundle()).isEqualTo("/location/to/bundle");
+  }
+
+  @Test
+  void should_throw_when_secure_connect_bundle_and_contact_points_provided() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
+            .put(CONTACT_POINTS_OPT, "127.0.0.1")
+            .build();
+
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "When %s parameter is specified you should not provide %s.",
+                SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
+  }
+
+  @Test
+  void should_throw_when_secure_connect_bundle_and_local_dc_provided() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
+            .put(DC_OPT, "dc1")
+            .build();
+
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "When %s parameter is specified you should not provide %s.",
+                SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
+  }
+
+  @Test
+  void should_throw_when_secure_connect_bundle_and_ssl_setting_provided() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
+            .put(PROVIDER_OPT, "JDK")
+            .build();
+
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "When %s parameter is specified you should not provide any setting under %s.",
+                SECURE_CONNECT_BUNDLE_OPT, SSL_OPT_PREFIX));
   }
 
   @Test

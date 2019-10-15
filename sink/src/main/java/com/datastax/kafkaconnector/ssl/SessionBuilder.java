@@ -14,12 +14,13 @@ import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
+import org.jetbrains.annotations.Nullable;
 
 /** Session builder specialization that hooks in OpenSSL when that ssl provider is chosen. */
 public class SessionBuilder extends DseSessionBuilder {
-  private final SslConfig sslConfig;
+  @Nullable private final SslConfig sslConfig;
 
-  public SessionBuilder(SslConfig sslConfig) {
+  public SessionBuilder(@Nullable SslConfig sslConfig) {
     this.sslConfig = sslConfig;
   }
 
@@ -30,7 +31,8 @@ public class SessionBuilder extends DseSessionBuilder {
     // that we also need.
     DriverContext baseContext = super.buildContext(configLoader, programmaticArguments);
 
-    if (sslConfig.getProvider() != SslConfig.Provider.OpenSSL) {
+    // If sslConfig is not provided we need to setup custom driver context for cloud
+    if (sslConfig != null && sslConfig.getProvider() != SslConfig.Provider.OpenSSL) {
       // We're not using OpenSSL so the normal driver context is fine to use.
       return baseContext;
     }

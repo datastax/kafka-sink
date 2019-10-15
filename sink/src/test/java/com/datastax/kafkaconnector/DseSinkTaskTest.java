@@ -59,7 +59,7 @@ class DseSinkTaskTest {
     settings.put("topic.mytopic.ks.mytable2.mapping", "c2=value");
     settings.put("topic.mytopic.ks.mytable2.consistencyLevel", "QUORUM");
 
-    TopicConfig topicConfig = new TopicConfig("mytopic", settings);
+    TopicConfig topicConfig = new TopicConfig("mytopic", settings, false);
     when(instanceState.getTopicConfig("mytopic")).thenReturn(topicConfig);
     List<TableConfig> tableConfigs = new ArrayList<>(topicConfig.getTableConfigs());
     assertThat(tableConfigs.size()).isEqualTo(2);

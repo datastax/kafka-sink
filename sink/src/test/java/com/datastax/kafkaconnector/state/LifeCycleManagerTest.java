@@ -346,7 +346,7 @@ class LifeCycleManagerTest {
 
   private static TableConfigBuilder constructBaseProperties(
       String keyspaceName, String tableName, String mapping, int ttl) {
-    return new TableConfigBuilder("mytopic", keyspaceName, tableName)
+    return new TableConfigBuilder("mytopic", keyspaceName, tableName, false)
         .addSimpleSetting(MAPPING_OPT, mapping)
         .addSimpleSetting(TTL_OPT, String.valueOf(ttl));
   }

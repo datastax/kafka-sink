@@ -15,8 +15,18 @@ DSE_HOME=/tmp/dse
 TOTAL_RECORDS=1000
 TOPIC_NAME="avro-stream"
 
+
+# If running with DataStax Cloud:
+# Set CLOUD_USERNAME to username of your apollo constellation db
+# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db
+# Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db
+CLOUD_USERNAME=user
+CLOUD_PASSWORD=password
+CLOUD_KEYSPACE=ks1
+
 CONFLUENT_VERSION=$1
 DSE_CONNECTOR_VERSION=$2
+IS_CLOUD=$3
 
 wait_for_port () {
   SVCNAME=$1
@@ -242,14 +252,17 @@ start_confluent () {
 }
 
 start_dse () {
-	echo
-	echo "----------------------------------------"
-	echo "---   STARTING DATASTAX ENTERPRISE   ---"
-	echo "----------------------------------------"
-	$DSE_HOME/bin/dse cassandra >> $DSE_HOME/logs/startup.log 2>&1 &
+  if [ "$IS_CLOUD" = "false" ]
+  then
+	    echo
+	    echo "----------------------------------------"
+	    echo "---   STARTING DATASTAX ENTERPRISE   ---"
+	    echo "----------------------------------------"
+	    $DSE_HOME/bin/dse cassandra >> $DSE_HOME/logs/startup.log 2>&1 &
 
-	# Wait for DSE to be up.
-	wait_for_port dse 9042
+	    # Wait for DSE to be up.
+	    wait_for_port dse 9042
+  fi
 }
 
 start_distributed_worker () {
@@ -266,11 +279,21 @@ start_distributed_worker () {
 }
 
 start_connector () {
-	echo
+    echo
+    echo "----------------------------------------"
+    echo "---    STARTING DATASTAX CONNECTOR   ---"
 	echo "----------------------------------------"
-	echo "---    STARTING DATASTAX CONNECTOR   ---"
-	echo "----------------------------------------"
-	curl -X POST -H "Content-Type: application/json" -d @kafka-examples/producers/src/main/java/avro/dse-sink-avro.json "http://localhost:8083/connectors"
+
+    if [ "$IS_CLOUD" = "false" ]
+    then
+        curl -X POST -H "Content-Type: application/json" -d @kafka-examples/producers/src/main/java/avro/dse-sink-avro.json "http://localhost:8083/connectors"
+    else
+        sed -i "s/CLOUD_USERNAME/$CLOUD_USERNAME/g" /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json
+        sed -i "s/CLOUD_PASSWORD/$CLOUD_PASSWORD/g" /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json
+        sed -i "s/CLOUD_KEYSPACE/$CLOUD_KEYSPACE/g" /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json
+        curl -X POST -H "Content-Type: application/json" -d @/home/automaton/kafka-examples/producers/src/main/java/avro/cloud/dse-sink-avro-cloud.json "http://localhost:8083/connectors"
+    fi
+
 }
 
 start_producer () {
@@ -298,27 +321,42 @@ verify_records_in_kafka () {
 }
 
 create_dse_schema () {
-	echo
-	echo "----------------------------------------"
-	echo "---       CREATING DSE SCHEMA        ---"
-	echo "----------------------------------------"
-	echo
-	echo `cat kafka-examples/producers/src/main/java/avro/create_avro_table_udt.cql`
+    if [ "$IS_CLOUD" = "false" ]
+    then
+	   echo
+	   echo "----------------------------------------"
+	   echo "---       CREATING DSE SCHEMA        ---"
+	   echo "----------------------------------------"
+	   echo
+	   echo `cat kafka-examples/producers/src/main/java/avro/create_avro_table_udt.cql`
 
-	$DSE_HOME/bin/cqlsh -f kafka-examples/producers/src/main/java/avro/create_avro_table_udt.cql
+	   $DSE_HOME/bin/cqlsh -f kafka-examples/producers/src/main/java/avro/create_avro_table_udt.cql
+	else
+	   cd /home/automaton/secure-bundle
+	   $DSE_HOME/bin/cqlsh --cqlshrc="cqlshrc" --username ${CLOUD_USERNAME} --password ${CLOUD_PASSWORD} -k ${CLOUD_KEYSPACE} -f /home/automaton/kafka-examples/producers/src/main/java/avro/cloud/create_avro_table_udt.cql
+	   cd ~
+	fi
 }
 
+# todo adapt to dsbulk cloud: https://datastax.jira.com/browse/KAF-149
 verify_rows_in_dse () {
-	echo
-	echo "----------------------------------------"
-	echo "---      VERIYING ROWS IN DSE        ---"
-	echo "----------------------------------------"
+    if [ "$IS_CLOUD" = "false" ]
+    then
+	    echo
+	    echo "----------------------------------------"
+	    echo "---      VERIYING ROWS IN DSE        ---"
+	    echo "----------------------------------------"
 
-	$DSE_HOME/bin/cqlsh -e "select * from kafka_examples.avro_udt_table limit 5;"
+	    $DSE_HOME/bin/cqlsh -e "select * from kafka_examples.avro_udt_table limit 5;"
 
-	echo "Counting rows in DSE using -- $DSE_HOME/bin/dsbulk count -k kafka_examples -t avro_udt_table --"
+    	echo "Counting rows in DSE using -- $DSE_HOME/bin/dsbulk count -k kafka_examples -t avro_udt_table --"
 
-	$DSE_HOME/bin/dsbulk count -k kafka_examples -t avro_udt_table
+    	$DSE_HOME/bin/dsbulk count -k kafka_examples -t avro_udt_table
+	else
+	    cd /home/automaton/secure-bundle
+        echo `$DSE_HOME/bin/cqlsh --cqlshrc="cqlshrc" --username ${CLOUD_USERNAME} --password ${CLOUD_PASSWORD} -e "select count(*) from ${CLOUD_KEYSPACE}.avro_udt_table"`
+        cd ~
+	fi
 }
 
 # check that all needed options are set

@@ -32,13 +32,13 @@ class TableConfigTest {
   @BeforeEach
   void setup() {
     configBuilder =
-        new TableConfigBuilder("mytopic", "myks", "mytable")
+        new TableConfigBuilder("mytopic", "myks", "mytable", false)
             .addSimpleSetting(MAPPING_OPT, "c1=value.f1");
   }
 
   @Test
   void should_error_missing_mapping() {
-    assertThatThrownBy(() -> new TableConfigBuilder("mytopic", "myks", "mytable").build())
+    assertThatThrownBy(() -> new TableConfigBuilder("mytopic", "myks", "mytable", false).build())
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Missing required configuration \"topic.mytopic.myks.mytable.mapping\"");

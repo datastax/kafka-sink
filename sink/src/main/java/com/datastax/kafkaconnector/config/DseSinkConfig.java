@@ -12,6 +12,7 @@ import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.google.common.base.Splitter;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,8 @@ public class DseSinkConfig {
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
 
+  static final String SSL_OPT_PREFIX = "ssl.";
+
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
@@ -47,6 +50,7 @@ public class DseSinkConfig {
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
   static final String IGNORE_ERRORS = "ignoreErrors";
+  public static final String SECURE_CONNECT_BUNDLE_OPT = "cloud.secureConnectBundle";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -121,12 +125,20 @@ public class DseSinkConfig {
               ConfigDef.Type.BOOLEAN,
               false,
               ConfigDef.Importance.HIGH,
-              "Specifies if the connector should ignore errors that occurred when processing the record.");
+              "Specifies if the connector should ignore errors that occurred when processing the record.")
+          .define(
+              SECURE_CONNECT_BUNDLE_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The location of the cloud secure bundle used to connect to Datastax Apache Cassandra as a service.");
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
-  private final SslConfig sslConfig;
+
+  @Nullable private SslConfig sslConfig;
+
   private final AuthenticatorConfig authConfig;
 
   public DseSinkConfig(Map<String, String> settings) {
@@ -144,7 +156,7 @@ public class DseSinkConfig {
         Map<String, String> topicMap =
             topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
         topicMap.put(name, entry.getValue());
-      } else if (name.startsWith("ssl.")) {
+      } else if (name.startsWith(SSL_OPT_PREFIX)) {
         sslSettings.put(name, entry.getValue());
       } else if (name.startsWith("auth.")) {
         authSettings.put(name, entry.getValue());
@@ -156,11 +168,17 @@ public class DseSinkConfig {
     // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
-    sslConfig = new SslConfig(sslSettings);
+
+    boolean cloud = isCloud();
+
+    if (!cloud) {
+      sslConfig = new SslConfig(sslSettings);
+    }
     authConfig = new AuthenticatorConfig(authSettings);
     topicConfigs = new HashMap<>();
     topicSettings.forEach(
-        (name, topicConfigMap) -> topicConfigs.put(name, new TopicConfig(name, topicConfigMap)));
+        (name, topicConfigMap) ->
+            topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
 
     // Verify that the compression-type setting is valid.
     getCompressionType();
@@ -181,6 +199,12 @@ public class DseSinkConfig {
       }
     }
 
+    if (cloud) {
+      // Verify that if cloudSecureBundle specified the
+      // other clashing properties (contactPoints, dc, ssl) are not set.
+      validateCloudSettings(sslSettings);
+    }
+
     // Verify that if contact-points are provided, local dc is also specified.
     List<String> contactPoints = getContactPoints();
     log.debug("contactPoints: {}", contactPoints);
@@ -189,6 +213,29 @@ public class DseSinkConfig {
           CONTACT_POINTS_OPT,
           contactPoints,
           String.format("When contact points is provided, %s must also be specified", DC_OPT));
+    }
+  }
+
+  private void validateCloudSettings(Map<String, String> sslSettings) {
+    if (!getContactPoints().isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "When %s parameter is specified you should not provide %s.",
+              SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
+    }
+
+    if (!getLocalDc().isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "When %s parameter is specified you should not provide %s.",
+              SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
+    }
+
+    if (!sslSettings.isEmpty()) {
+      throw new ConfigException(
+          String.format(
+              "When %s parameter is specified you should not provide any setting under %s.",
+              SECURE_CONNECT_BUNDLE_OPT, SSL_OPT_PREFIX));
     }
   }
 
@@ -242,6 +289,14 @@ public class DseSinkConfig {
     return globalConfig.getBoolean(JMX_OPT);
   }
 
+  public boolean isCloud() {
+    return !getSecureConnectBundle().isEmpty();
+  }
+
+  public String getSecureConnectBundle() {
+    return globalConfig.getString(SECURE_CONNECT_BUNDLE_OPT);
+  }
+
   public CompressionType getCompressionType() {
     String typeString = globalConfig.getString(COMPRESSION_OPT);
     try {
@@ -267,6 +322,7 @@ public class DseSinkConfig {
     return authConfig;
   }
 
+  @Nullable
   public SslConfig getSslConfig() {
     return sslConfig;
   }
@@ -280,7 +336,7 @@ public class DseSinkConfig {
     return String.format(
         "Global configuration:%n"
             + "        contactPoints: %s%n"
-            + "        port: %d%n"
+            + "        port: %s%n"
             + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "        queryExecutionTimeout: %d%n"
@@ -292,7 +348,7 @@ public class DseSinkConfig {
             + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s",
         getContactPoints(),
-        getPort(),
+        getPortToString(),
         getLocalDc(),
         getMaxConcurrentRequests(),
         getQueryExecutionTimeout(),
@@ -300,11 +356,7 @@ public class DseSinkConfig {
         getConnectionPoolLocalSize(),
         getJmx(),
         getCompressionType(),
-        Splitter.on("\n")
-            .splitToList(sslConfig.toString())
-            .stream()
-            .map(line -> "        " + line)
-            .collect(Collectors.joining("\n")),
+        getSslConfigToString(),
         Splitter.on("\n")
             .splitToList(authConfig.toString())
             .stream()
@@ -321,6 +373,25 @@ public class DseSinkConfig {
                         .map(line -> "        " + line)
                         .collect(Collectors.joining("\n")))
             .collect(Collectors.joining("\n")));
+  }
+
+  private String getSslConfigToString() {
+    if (sslConfig != null) {
+      return Splitter.on("\n")
+          .splitToList(sslConfig.toString())
+          .stream()
+          .map(line -> "        " + line)
+          .collect(Collectors.joining("\n"));
+    } else {
+      return "SslConfig not present";
+    }
+  }
+
+  private String getPortToString() {
+    if (isCloud()) {
+      return String.format("%s will be ignored because you are using cloud", PORT_OPT);
+    }
+    return String.valueOf(getPort());
   }
 
   public enum CompressionType {

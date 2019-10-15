@@ -29,7 +29,7 @@ class MetricsJmxReporterTest {
     // given
 
     TableConfig tableConfig =
-        new TableConfigBuilder("task_1", "ks_1", "table_1")
+        new TableConfigBuilder("task_1", "ks_1", "table_1", false)
             .addSimpleSetting("mapping", "key=key")
             .build();
 

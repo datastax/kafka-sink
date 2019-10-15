@@ -43,7 +43,7 @@ public class TopicConfig extends AbstractConfig {
     return String.format("topic.%s.%s", topicName, setting);
   }
 
-  public TopicConfig(String topicName, Map<String, String> settings) {
+  public TopicConfig(String topicName, Map<String, String> settings, boolean cloud) {
     super(makeTopicConfigDef(topicName), settings, false);
 
     Map<String, TableConfig.Builder> tableConfigBuilders = new LinkedHashMap<>();
@@ -65,7 +65,8 @@ public class TopicConfig extends AbstractConfig {
                         new TableConfig.Builder(
                             topicName,
                             tableKsSettingMatcher.group(1),
-                            tableKsSettingMatcher.group(2)));
+                            tableKsSettingMatcher.group(2),
+                            cloud));
             builder.addSetting(name, value);
           }
         });
