@@ -56,6 +56,8 @@ import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.header.ConnectHeaders;
+import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
@@ -1911,6 +1913,29 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 .getDefaultProfile()
                 .getInt(DseDriverOption.CONTINUOUS_PAGING_PAGE_SIZE))
         .isGreaterThan(0);
+  }
+
+  /** Test for KAF-142 */
+  @Test
+  void should_use_values_from_header_in_mapping() {
+    // given
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, doublecol=header.double"));
+
+    // when
+    Schema schema = SchemaBuilder.float64().build();
+    Headers headers = new ConnectHeaders().add("double", 42D, schema);
+    String json = "{\"bigint\": 1234567}";
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, json, 1234L, 1L, TimestampType.CREATE_TIME, headers);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results = session.execute("SELECT bigintcol, doublecol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {

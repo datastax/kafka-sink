@@ -18,11 +18,15 @@ public class KeyValueRecordMetadata implements RecordMetadata {
 
   private final RecordMetadata keyMetadata;
   private final RecordMetadata valueMetadata;
+  private RecordMetadata headersMetadata;
 
   public KeyValueRecordMetadata(
-      @Nullable RecordMetadata keyMetadata, @Nullable RecordMetadata valueMetadata) {
+      @Nullable RecordMetadata keyMetadata,
+      @Nullable RecordMetadata valueMetadata,
+      @Nullable RecordMetadata headersMetadata) {
     this.keyMetadata = keyMetadata;
     this.valueMetadata = valueMetadata;
+    this.headersMetadata = headersMetadata;
   }
 
   @Override
@@ -31,8 +35,12 @@ public class KeyValueRecordMetadata implements RecordMetadata {
       return keyMetadata != null ? keyMetadata.getFieldType(field.substring(4), cqlType) : null;
     } else if (field.startsWith("value.")) {
       return valueMetadata != null ? valueMetadata.getFieldType(field.substring(6), cqlType) : null;
+    } else if (field.startsWith("header.")) {
+      return headersMetadata != null
+          ? headersMetadata.getFieldType(field.substring(7), cqlType)
+          : null;
     } else {
-      assert false : "field name must start with 'key.' or 'value.'.";
+      assert false : "field name must start with 'key.', 'value.' or 'header.'.";
     }
     return null;
   }

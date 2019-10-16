@@ -12,6 +12,7 @@ import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.metadata.InnerDataAndMetadata;
 import com.datastax.kafkaconnector.metadata.MetadataCreator;
+import com.datastax.kafkaconnector.record.HeadersDataMetadata;
 import com.datastax.kafkaconnector.record.KeyValueRecord;
 import com.datastax.kafkaconnector.record.KeyValueRecordMetadata;
 import com.datastax.kafkaconnector.record.RecordAndStatement;
@@ -43,6 +44,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
+import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
@@ -210,9 +212,11 @@ public class DseSinkTask extends SinkTask {
         try {
           InnerDataAndMetadata key = MetadataCreator.makeMeta(record.key());
           InnerDataAndMetadata value = MetadataCreator.makeMeta(record.value());
+          Headers headers = record.headers();
 
           KeyValueRecord keyValueRecord =
-              new KeyValueRecord(key.getInnerData(), value.getInnerData(), record.timestamp());
+              new KeyValueRecord(
+                  key.getInnerData(), value.getInnerData(), record.timestamp(), headers);
           RecordMapper mapper = instanceState.getRecordMapper(tableConfig);
           boundStatementsQueue.offer(
               new RecordAndStatement(
@@ -221,7 +225,9 @@ public class DseSinkTask extends SinkTask {
                   mapper
                       .map(
                           new KeyValueRecordMetadata(
-                              key.getInnerMetadata(), value.getInnerMetadata()),
+                              key.getInnerMetadata(),
+                              value.getInnerMetadata(),
+                              new HeadersDataMetadata(headers)),
                           keyValueRecord)
                       .setConsistencyLevel(tableConfig.getConsistencyLevel())));
         } catch (IOException ex) {

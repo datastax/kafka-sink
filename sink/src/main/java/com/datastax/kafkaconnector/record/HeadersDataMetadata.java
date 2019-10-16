@@ -12,24 +12,26 @@ import static com.datastax.kafkaconnector.record.StructDataMetadataSupport.getGe
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.header.Header;
+import org.apache.kafka.connect.header.Headers;
 import org.jetbrains.annotations.NotNull;
 
 /** Metadata associated with a {@link StructData}. */
-public class StructDataMetadata implements RecordMetadata {
-  private final Schema schema;
+public class HeadersDataMetadata implements RecordMetadata {
+  private final Headers headers;
 
-  public StructDataMetadata(@NotNull Schema schema) {
-    this.schema = schema;
+  public HeadersDataMetadata(Headers headers) {
+    this.headers = headers;
   }
 
   @Override
   public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
-    if (field.equals(RawData.FIELD_NAME)) {
-      return GenericType.of(Struct.class);
+    for (Header h : headers) {
+      if (h.key().equals(field)) {
+        return getGenericType(h.schema());
+      }
     }
-    Schema fieldType = schema.field(field).schema();
-    return getGenericType(fieldType);
+    throw new IllegalArgumentException(
+        "The field: " + field + " is not present in the record headers: " + headers);
   }
 }
