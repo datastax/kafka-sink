@@ -13,7 +13,6 @@ import static com.datastax.kafkaconnector.config.AuthenticatorConfig.USERNAME_OP
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
@@ -150,7 +149,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
   void should_insert_using_secure_bundle_from_http(@Wiremock WireMockServer server)
       throws IOException {
     // given
-    stubFor(
+    server.stubFor(
         any(urlEqualTo("secure-bundle.zip"))
             .willReturn(
                 aResponse()
