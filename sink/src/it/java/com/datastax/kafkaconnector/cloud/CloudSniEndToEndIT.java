@@ -13,10 +13,11 @@ import static com.datastax.kafkaconnector.config.AuthenticatorConfig.USERNAME_OP
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
+import static ru.lanwen.wiremock.ext.WiremockResolver.*;
 
 import com.datastax.dsbulk.commons.tests.logging.LogCapture;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
@@ -28,7 +29,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -38,16 +39,17 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
+import ru.lanwen.wiremock.ext.WiremockResolver;
 
 @ExtendWith(LogInterceptingExtension.class)
 @ExtendWith({SNIProxyServerExtension.class})
+@ExtendWith(WiremockResolver.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Tag("medium")
 public class CloudSniEndToEndIT extends ITConnectorBase {
@@ -55,9 +57,6 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
   private final SNIProxyServer proxy;
   private CqlSession session;
   private LogInterceptor logs;
-
-  @Rule
-  WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort().dynamicHttpsPort());
 
   public CloudSniEndToEndIT(
       SNIProxyServer proxy,
@@ -148,18 +147,18 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
   }
 
   @Test
-  void should_insert_using_secure_bundle_from_http() throws IOException {
+  void should_insert_using_secure_bundle_from_http(@Wiremock WireMockServer server)
+      throws IOException {
     // given
-    wireMockRule.stubFor(
-        any(urlEqualTo("secure-bundle"))
+    stubFor(
+        any(urlEqualTo("secure-bundle.zip"))
             .willReturn(
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/octet-stream")
                     .withBody(Files.readAllBytes(proxy.getSecureBundlePath()))));
 
-    URL configFile =
-        new URL(String.format("http://localhost:%d%s", wireMockRule.port(), "secure-bundle"));
+    URL configFile = new URL(String.format("%s/%s", server.baseUrl(), "secure-bundle.zip"));
 
     // when
     performInsert(
