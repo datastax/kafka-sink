@@ -51,6 +51,8 @@
     <junit-platform.version>1.3.0-M1</junit-platform.version>
     <assertj.version>3.10.0</assertj.version>
     <mockito.version>2.18.3</mockito.version>
+    <wiremock.version>2.25.0</wiremock.version>
+    <wiremock-junit.version>1.3.1</wiremock-junit.version>
     <surefire.version>2.22.0</surefire.version>
     <antlr4.version>4.7.1</antlr4.version>
     <simulacron.version>0.8.11</simulacron.version>
@@ -171,6 +173,21 @@
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+
+      <dependency>
+        <groupId>com.github.tomakehurst</groupId>
+        <artifactId>wiremock</artifactId>
+        <version>${wiremock.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>ru.lanwen.wiremock</groupId>
+        <artifactId>wiremock-junit5</artifactId>
+        <version>${wiremock-junit.version}</version>
         <scope>test</scope>
       </dependency>
 

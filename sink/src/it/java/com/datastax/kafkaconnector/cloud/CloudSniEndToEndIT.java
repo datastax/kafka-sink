@@ -11,8 +11,12 @@ package com.datastax.kafkaconnector.cloud;
 import static com.datastax.kafkaconnector.config.AuthenticatorConfig.PASSWORD_OPT;
 import static com.datastax.kafkaconnector.config.AuthenticatorConfig.USERNAME_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.any;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
+import static ru.lanwen.wiremock.ext.WiremockResolver.*;
 
 import com.datastax.dsbulk.commons.tests.logging.LogCapture;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
@@ -24,8 +28,12 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.github.tomakehurst.wiremock.WireMockServer;
 import com.google.common.collect.ImmutableMap;
+import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +44,11 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
+import ru.lanwen.wiremock.ext.WiremockResolver;
 
 @ExtendWith(LogInterceptingExtension.class)
 @ExtendWith({SNIProxyServerExtension.class})
+@ExtendWith(WiremockResolver.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Tag("medium")
 public class CloudSniEndToEndIT extends ITConnectorBase {
@@ -135,6 +145,30 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
         .doesNotContain("Cloud deployments reject consistency level");
   }
 
+  @Test
+  void should_insert_using_secure_bundle_from_http(@Wiremock WireMockServer server)
+      throws IOException {
+    // given
+    server.stubFor(
+        any(urlPathEqualTo("/secure-bundle.zip"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/octet-stream")
+                    .withBody(Files.readAllBytes(proxy.getSecureBundlePath()))));
+
+    URL configFile = new URL(String.format("%s/%s", server.baseUrl(), "secure-bundle.zip"));
+
+    // when
+    performInsert(
+        DefaultConsistencyLevel.LOCAL_QUORUM,
+        parametersWithSecureBundle(configFile.toExternalForm()));
+
+    // then
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain("Cloud deployments reject consistency level");
+  }
+
   private void performInsert(ConsistencyLevel cl, Map<String, String> extras) {
     conn.start(makeCloudConnectorProperties("bigintcol=value", "types", extras, "mytopic", cl));
 
@@ -148,10 +182,14 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(5725368L);
   }
 
-  private Map<String, String> parametersWithSecureBundle() throws MalformedURLException {
+  private Map<String, String> parametersWithSecureBundle(String secureBundlePath) {
     return ImmutableMap.<String, String>builder()
-        .put(SECURE_CONNECT_BUNDLE_OPT, proxy.getSecureBundlePath().toUri().toURL().toString())
+        .put(SECURE_CONNECT_BUNDLE_OPT, secureBundlePath)
         .build();
+  }
+
+  private Map<String, String> parametersWithSecureBundle() throws MalformedURLException {
+    return parametersWithSecureBundle(proxy.getSecureBundlePath().toUri().toURL().toString());
   }
 
   private Map<String, String> parametersWithSecureBundleUsernameAndPassword()
