@@ -1919,23 +1919,126 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   @Test
   void should_use_values_from_header_in_mapping() {
     // given
-    conn.start(makeConnectorProperties("bigintcol=value.bigint, doublecol=header.double"));
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=header.bigint,"
+                + "doublecol=header.double,"
+                + "textcol=header.text,"
+                + "booleancol=header.boolean,"
+                + "tinyintcol=header.tinyint,"
+                + "blobcol=header.blob,"
+                + "floatcol=header.float,"
+                + "intcol=header.int,"
+                + "smallintcol=header.smallint,"
+                + "mapcol=header.map,"
+                + "mapnestedcol=header.mapnested,"
+                + "listcol=header.list,"
+                + "listnestedcol=header.listnested,"
+                + "setcol=header.set,"
+                + "setnestedcol=header.setnested,"
+                + "booleanudtcol=header.booleanudt"));
 
-    // when
-    Schema schema = SchemaBuilder.float64().build();
-    Headers headers = new ConnectHeaders().add("double", 42D, schema);
+    Long baseValue = 1234567L;
+    byte[] blobValue = new byte[] {12, 22, 32};
+    Map<String, Integer> mapValue =
+        ImmutableMap.<String, Integer>builder().put("sub1", 37).put("sub2", 96).build();
+    Map<String, Map<Integer, String>> nestedMapValue =
+        ImmutableMap.<String, Map<Integer, String>>builder()
+            .put(
+                "sub1",
+                ImmutableMap.<Integer, String>builder()
+                    .put(37, "sub1sub1")
+                    .put(96, "sub1sub2")
+                    .build())
+            .put(
+                "sub2",
+                ImmutableMap.<Integer, String>builder()
+                    .put(47, "sub2sub1")
+                    .put(90, "sub2sub2")
+                    .build())
+            .build();
+    List<Integer> listValue = Arrays.asList(37, 96, 90);
+
+    List<Integer> list2 = Arrays.asList(3, 2);
+    List<List<Integer>> nestedListValue = Arrays.asList(listValue, list2);
+    Map<String, Boolean> booleanUdtValue =
+        ImmutableMap.<String, Boolean>builder().put("udtmem1", true).put("udtmem2", false).build();
+
+    Headers headers =
+        new ConnectHeaders()
+            .add("bigint", baseValue, SchemaBuilder.int64().build())
+            .add("double", baseValue.doubleValue(), SchemaBuilder.float64().build())
+            .addString("text", "value")
+            .addBoolean("boolean", false)
+            .addByte("tinyint", baseValue.byteValue())
+            .add("blob", ByteBuffer.wrap(blobValue), Schema.BYTES_SCHEMA)
+            .addFloat("float", baseValue.floatValue())
+            .addInt("int", baseValue.intValue())
+            .addShort("smallint", baseValue.shortValue())
+            .addMap(
+                "map",
+                mapValue,
+                SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build())
+            .add(
+                "mapnested",
+                nestedMapValue,
+                SchemaBuilder.map(
+                        Schema.STRING_SCHEMA,
+                        SchemaBuilder.map(Schema.INT32_SCHEMA, Schema.STRING_SCHEMA).build())
+                    .build())
+            .addList("list", listValue, SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .add(
+                "listnested",
+                nestedListValue,
+                SchemaBuilder.array(SchemaBuilder.array(Schema.INT32_SCHEMA).build()).build())
+            .add("set", listValue, SchemaBuilder.array(Schema.INT32_SCHEMA).build())
+            .add(
+                "setnested",
+                nestedListValue,
+                SchemaBuilder.array(SchemaBuilder.array(Schema.INT32_SCHEMA).build()).build())
+            .add(
+                "booleanudt",
+                booleanUdtValue,
+                SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build());
+
     String json = "{\"bigint\": 1234567}";
     SinkRecord record =
         new SinkRecord(
             "mytopic", 0, null, null, null, json, 1234L, 1L, TimestampType.CREATE_TIME, headers);
+
+    // when
     runTaskWithRecords(record);
 
     // then
-    List<Row> results = session.execute("SELECT bigintcol, doublecol FROM types").all();
+    List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-    assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(baseValue.longValue());
+    assertThat(row.getDouble("doublecol")).isEqualTo(baseValue.doubleValue());
+    assertThat(row.getString("textcol")).isEqualTo("value");
+    assertThat(row.getBoolean("booleancol")).isEqualTo(false);
+    assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
+    ByteBuffer blobcol = row.getByteBuffer("blobcol");
+    assertThat(blobcol).isNotNull();
+    assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
+    assertThat(row.getFloat("floatcol")).isEqualTo(baseValue.floatValue());
+    assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
+    assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
+    assertThat(row.getMap("mapcol", String.class, Integer.class)).isEqualTo(mapValue);
+    assertThat(row.getMap("mapnestedcol", String.class, Map.class)).isEqualTo(nestedMapValue);
+    assertThat(row.getList("listcol", Integer.class)).isEqualTo(listValue);
+    assertThat(row.getList("listnestedcol", Set.class))
+        .isEqualTo(
+            new ArrayList<Set>(Arrays.asList(new HashSet<>(listValue), new HashSet<>(list2))));
+    assertThat(row.getSet("setcol", Integer.class)).isEqualTo(new HashSet<>(listValue));
+    assertThat(row.getSet("setnestedcol", List.class)).isEqualTo(new HashSet<>(nestedListValue));
+    UserDefinedType booleanUdt =
+        new UserDefinedTypeBuilder(keyspaceName, "mybooleanudt")
+            .withField("udtmem1", DataTypes.BOOLEAN)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    booleanUdt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "false"));
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {

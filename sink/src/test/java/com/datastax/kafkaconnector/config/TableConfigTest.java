@@ -118,7 +118,7 @@ class TableConfigTest {
         .hasMessageStartingWith(
             "Invalid value 'c1=f1' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
         .hasMessageContaining(
-            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.'.");
+            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
   }
 
   @Test
@@ -145,6 +145,14 @@ class TableConfigTest {
         .isEqualTo(TimeUnit.SECONDS); // default timeUnit for ttl for backward compatibility
     assertThat(config.getTimestampTimeUnit())
         .isEqualTo(TimeUnit.MICROSECONDS); // default timeUnit for ttl for backward compatibility
+  }
+
+  @Test
+  void should_parse_mapping_that_contains_only_header() {
+    TableConfig config = configBuilder.addSimpleSetting(MAPPING_OPT, "a=header.a").build();
+
+    assertThat(config.getMapping())
+        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("header.a"));
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")
