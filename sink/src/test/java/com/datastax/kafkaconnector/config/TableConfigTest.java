@@ -149,11 +149,19 @@ class TableConfigTest {
   }
 
   @Test
-  void should_parse_mapping_that_contains_only_header() {
+  void should_parse_mapping_that_contains_only_header_value() {
     TableConfig config = configBuilder.addSimpleSetting(MAPPING_OPT, "a=header.a").build();
 
     assertThat(config.getMapping())
         .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("header.a"));
+  }
+
+  @Test
+  void should_not_allow_to_have_mapping_that_contains_only_header() {
+    assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "a=header").build())
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")

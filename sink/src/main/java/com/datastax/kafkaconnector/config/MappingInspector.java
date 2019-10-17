@@ -101,7 +101,7 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
       errors.add(String.format("Mapping already defined for column '%s'", column.asInternal()));
     }
     String fieldString = field.asInternal();
-    if (fieldString.equals("value") || fieldString.equals("key") || fieldString.equals("header")) {
+    if (fieldString.equals("value") || fieldString.equals("key")) {
       field = CqlIdentifier.fromInternal(fieldString + '.' + RawData.FIELD_NAME);
     } else if (!fieldString.startsWith("key.")
         && !fieldString.startsWith("value.")
