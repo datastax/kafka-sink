@@ -2041,6 +2041,69 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "false"));
   }
 
+  /** Test for KAF-142 */
+  @Test
+  void should_use_header_values_as_ttl_and_timestamp() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=header.bigint, doublecol=header.double, __ttl=header.ttlcolumn, __timestamp = header.timestampcolumn",
+            ImmutableMap.of(
+                String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
+                "MILLISECONDS")));
+
+    Headers headers =
+        new ConnectHeaders()
+            .add("bigint", 100000L, SchemaBuilder.int64().build())
+            .addLong("ttlcolumn", 1234567L)
+            .addLong("timestampcolumn", 2345678L)
+            .addDouble("double", 100L);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, null, 1234L, 1L, TimestampType.CREATE_TIME, headers);
+
+    // when
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results =
+        session
+            .execute("SELECT bigintcol, doublecol, ttl(doublecol), writetime(doublecol) FROM types")
+            .all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(100000L);
+    assertThat(row.getDouble("doublecol")).isEqualTo(100);
+    assertThat(row.getInt(2)).isEqualTo(1234567);
+    assertThat(row.getLong(3)).isEqualTo(2345678000L);
+  }
+
+  @Test
+  void should_use_delete_when_header_values_are_null() {
+    // First insert a row...
+    session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
+    List<Row> results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    conn.start(
+        makeConnectorProperties("my_pk=header.my_pk, my_value=header.my_value", "pk_value", null));
+
+    Headers headers =
+        new ConnectHeaders()
+            .add("my_pk", 1234567L, Schema.INT64_SCHEMA)
+            .add("my_value", null, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, null, 1234L, 1L, TimestampType.CREATE_TIME, headers);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM pk_value").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
   private static Stream<? extends Arguments> ttlColProvider() {
     Supplier<SchemaBuilder> schemaBuilder =
         () ->

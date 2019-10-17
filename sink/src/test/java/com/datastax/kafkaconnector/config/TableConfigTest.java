@@ -112,7 +112,7 @@ class TableConfigTest {
             "Invalid value 'c1=value.f1, c1=value.f2' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
         .hasMessageContaining("Mapping already defined for column 'c1'");
 
-    // Mapping a field whose name doesn't start with "key." or "value."
+    // Mapping a field whose name doesn't start with "key." or "value." or "header."
     assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "c1=f1").build())
         .isInstanceOf(ConfigException.class)
         .hasMessageStartingWith(
