@@ -2079,7 +2079,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void should_use_delete_when_header_values_are_null() {
+  void should_delete_when_header_values_are_null() {
     // First insert a row...
     session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
     List<Row> results = session.execute("SELECT * FROM pk_value").all();

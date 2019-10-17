@@ -1020,6 +1020,9 @@ class RecordMapperTest {
   }
 
   private static Stream<? extends Arguments> correctMappingProvider() {
+    // kafka records
+    // DSE column definitions
+    // mapping
     return Stream.of(
         Arguments.of(
             ImmutableSet.of("f1", "f2"),
@@ -1038,10 +1041,26 @@ class RecordMapperTest {
                 CqlIdentifier.fromInternal("PK"),
                 CqlIdentifier.fromInternal("key.id"),
                 CqlIdentifier.fromInternal("from_value"),
-                CqlIdentifier.fromInternal("value.some_value"))));
+                CqlIdentifier.fromInternal("value.some_value"))),
+        Arguments.of(
+            ImmutableSet.of("header.f1", "value.f1", "key.f1"),
+            ImmutableList.of(
+                createColumnDefinition("from_header"),
+                createColumnDefinition("from_value"),
+                createColumnDefinition("from_key")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("from_header"),
+                CqlIdentifier.fromInternal("header.f1"),
+                CqlIdentifier.fromInternal("from_value"),
+                CqlIdentifier.fromInternal("value.f1"),
+                CqlIdentifier.fromInternal("from_key"),
+                CqlIdentifier.fromInternal("key.f1"))));
   }
 
   private static Stream<? extends Arguments> faultyMappingProvider() {
+    // kafka records
+    // DSE column definitions
+    // mapping
     return Stream.of(
         Arguments.of(
             ImmutableSet.of("f1", "f2"),
@@ -1055,7 +1074,12 @@ class RecordMapperTest {
                 CqlIdentifier.fromInternal("PK"),
                 CqlIdentifier.fromInternal("key.id"),
                 CqlIdentifier.fromInternal("from_value"),
-                CqlIdentifier.fromInternal("value.some_value"))));
+                CqlIdentifier.fromInternal("value.some_value"))),
+        Arguments.of(
+            ImmutableSet.of("header.f1"),
+            ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("header"))));
   }
 
   @NotNull

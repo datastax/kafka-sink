@@ -128,7 +128,7 @@ class TableConfigTest {
             .addSimpleSetting(
                 MAPPING_OPT,
                 "a=key.b, first = value.good, \"jack\"=\"value.bill\",third=key.great, c1=key, "
-                    + "\"This has spaces, \"\", and commas\" = \"value.me, \"\" too\", d1=value")
+                    + "\"This has spaces, \"\", and commas\" = \"value.me, \"\" too\", d1=value, e1=header.e")
             .build();
 
     assertThat(config.getMapping())
@@ -139,6 +139,7 @@ class TableConfigTest {
         .containsEntry(CqlIdentifier.fromInternal("d1"), CqlIdentifier.fromInternal("value.__self"))
         .containsEntry(CqlIdentifier.fromInternal("jack"), CqlIdentifier.fromInternal("value.bill"))
         .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("key.b"))
+        .containsEntry(CqlIdentifier.fromInternal("e1"), CqlIdentifier.fromInternal("header.e"))
         .containsEntry(
             CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("value.good"));
     assertThat(config.getTtlTimeUnit())
