@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector.record;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
@@ -96,5 +97,13 @@ class KeyValueRecordTest {
     assertThat(record.getFieldValue("value.not_exist")).isNull();
     assertThat(record.getFieldValue("header.h1")).isEqualTo("hv1");
     assertThat(record.getFieldValue("header.not_exists")).isNull();
+  }
+
+  @Test
+  void should_throw_if_get_field_value_with_not_known_prefix() {
+    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    assertThatThrownBy(() -> record.getFieldValue("non_existing_prefix"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("field name must start with 'key.', 'value.' or 'header.'.");
   }
 }
