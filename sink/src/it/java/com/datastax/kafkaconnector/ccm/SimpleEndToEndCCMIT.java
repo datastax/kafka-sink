@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.ccm;
 
 import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
@@ -52,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -632,6 +634,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(Bytes.getArray(blobcol)).isEqualTo(bytes);
   }
 
+  // this
   @Test
   void raw_list_value_from_json() {
     conn.start(makeConnectorProperties("bigintcol=key, listcol=value"));
@@ -2102,6 +2105,25 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     // Verify that the record was deleted from DSE.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
+  void should_fail_when_insert_header_without_specific_field() {
+    conn.start(makeConnectorProperties("bigintcol=key, udtcol=header"));
+
+    Headers headers =
+        new ConnectHeaders()
+            .add("my_pk", 1234567L, Schema.INT64_SCHEMA)
+            .add("my_value", null, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, null, 1234L, 1L, TimestampType.CREATE_TIME, headers);
+
+    assertThatThrownBy(() -> runTaskWithRecords(record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {
