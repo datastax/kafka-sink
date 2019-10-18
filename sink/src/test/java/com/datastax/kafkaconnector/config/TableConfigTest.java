@@ -112,13 +112,13 @@ class TableConfigTest {
             "Invalid value 'c1=value.f1, c1=value.f2' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
         .hasMessageContaining("Mapping already defined for column 'c1'");
 
-    // Mapping a field whose name doesn't start with "key." or "value."
+    // Mapping a field whose name doesn't start with "key." or "value." or "header."
     assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "c1=f1").build())
         .isInstanceOf(ConfigException.class)
         .hasMessageStartingWith(
             "Invalid value 'c1=f1' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
         .hasMessageContaining(
-            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.'.");
+            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
   }
 
   @Test
@@ -128,7 +128,7 @@ class TableConfigTest {
             .addSimpleSetting(
                 MAPPING_OPT,
                 "a=key.b, first = value.good, \"jack\"=\"value.bill\",third=key.great, c1=key, "
-                    + "\"This has spaces, \"\", and commas\" = \"value.me, \"\" too\", d1=value")
+                    + "\"This has spaces, \"\", and commas\" = \"value.me, \"\" too\", d1=value, e1=header.e")
             .build();
 
     assertThat(config.getMapping())
@@ -139,12 +139,29 @@ class TableConfigTest {
         .containsEntry(CqlIdentifier.fromInternal("d1"), CqlIdentifier.fromInternal("value.__self"))
         .containsEntry(CqlIdentifier.fromInternal("jack"), CqlIdentifier.fromInternal("value.bill"))
         .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("key.b"))
+        .containsEntry(CqlIdentifier.fromInternal("e1"), CqlIdentifier.fromInternal("header.e"))
         .containsEntry(
             CqlIdentifier.fromInternal("first"), CqlIdentifier.fromInternal("value.good"));
     assertThat(config.getTtlTimeUnit())
         .isEqualTo(TimeUnit.SECONDS); // default timeUnit for ttl for backward compatibility
     assertThat(config.getTimestampTimeUnit())
         .isEqualTo(TimeUnit.MICROSECONDS); // default timeUnit for ttl for backward compatibility
+  }
+
+  @Test
+  void should_parse_mapping_that_contains_only_header_value() {
+    TableConfig config = configBuilder.addSimpleSetting(MAPPING_OPT, "a=header.a").build();
+
+    assertThat(config.getMapping())
+        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("header.a"));
+  }
+
+  @Test
+  void should_not_allow_to_have_mapping_that_contains_only_header() {
+    assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "a=header").build())
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")

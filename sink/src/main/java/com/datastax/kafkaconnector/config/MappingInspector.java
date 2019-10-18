@@ -103,10 +103,12 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
     String fieldString = field.asInternal();
     if (fieldString.equals("value") || fieldString.equals("key")) {
       field = CqlIdentifier.fromInternal(fieldString + '.' + RawData.FIELD_NAME);
-    } else if (!fieldString.startsWith("key.") && !fieldString.startsWith("value.")) {
+    } else if (!fieldString.startsWith("key.")
+        && !fieldString.startsWith("value.")
+        && !fieldString.startsWith("header.")) {
       errors.add(
           String.format(
-              "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.'.",
+              "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.",
               fieldString));
     }
     mapping.put(column, field);

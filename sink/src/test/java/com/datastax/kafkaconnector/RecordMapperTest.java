@@ -716,6 +716,50 @@ class RecordMapperTest {
                 + "Please remove it from the mapping.");
   }
 
+  @Test
+  void should_return_unmappable_statement_when_missing_field_header() {
+    when(mapping.fieldToColumns(CqlIdentifier.fromInternal("header.a")))
+        .thenReturn(Collections.singleton(C1));
+    when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("header.a"));
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            true,
+            false,
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Required field 'header.a' (mapped to column col1) was missing from record. "
+                + "Please remove it from the mapping.");
+  }
+
+  @Test
+  void should_return_unmappable_statement_when_extra_field_header() {
+    when(record.fields()).thenReturn(set(F1, F2, F3, "header.a"));
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            false,
+            false,
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Extraneous field 'header.a' was found in record. "
+                + "Please declare it explicitly in the mapping.");
+  }
+
   @ParameterizedTest(name = "[{index}] fieldToTransform={0}, exceptionFieldName={1}")
   @MethodSource("fieldNameProvider")
   void should_throw_when_transform_value_that_is_not_number(
@@ -976,6 +1020,9 @@ class RecordMapperTest {
   }
 
   private static Stream<? extends Arguments> correctMappingProvider() {
+    // kafka records
+    // DSE column definitions
+    // mapping
     return Stream.of(
         Arguments.of(
             ImmutableSet.of("f1", "f2"),
@@ -994,10 +1041,26 @@ class RecordMapperTest {
                 CqlIdentifier.fromInternal("PK"),
                 CqlIdentifier.fromInternal("key.id"),
                 CqlIdentifier.fromInternal("from_value"),
-                CqlIdentifier.fromInternal("value.some_value"))));
+                CqlIdentifier.fromInternal("value.some_value"))),
+        Arguments.of(
+            ImmutableSet.of("header.f1", "value.f1", "key.f1"),
+            ImmutableList.of(
+                createColumnDefinition("from_header"),
+                createColumnDefinition("from_value"),
+                createColumnDefinition("from_key")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("from_header"),
+                CqlIdentifier.fromInternal("header.f1"),
+                CqlIdentifier.fromInternal("from_value"),
+                CqlIdentifier.fromInternal("value.f1"),
+                CqlIdentifier.fromInternal("from_key"),
+                CqlIdentifier.fromInternal("key.f1"))));
   }
 
   private static Stream<? extends Arguments> faultyMappingProvider() {
+    // kafka records
+    // DSE column definitions
+    // mapping
     return Stream.of(
         Arguments.of(
             ImmutableSet.of("f1", "f2"),
@@ -1011,7 +1074,12 @@ class RecordMapperTest {
                 CqlIdentifier.fromInternal("PK"),
                 CqlIdentifier.fromInternal("key.id"),
                 CqlIdentifier.fromInternal("from_value"),
-                CqlIdentifier.fromInternal("value.some_value"))));
+                CqlIdentifier.fromInternal("value.some_value"))),
+        Arguments.of(
+            ImmutableSet.of("header.f1"),
+            ImmutableList.of(createColumnDefinition("PK"), createColumnDefinition("from_value")),
+            ImmutableMap.of(
+                CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("header"))));
   }
 
   @NotNull
