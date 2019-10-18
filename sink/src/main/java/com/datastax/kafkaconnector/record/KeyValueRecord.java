@@ -65,9 +65,9 @@ public class KeyValueRecord implements Record {
     } else if (field.startsWith("header.")) {
       return headers != null ? findHeaderValue(field.substring(7), headers) : null;
     } else {
-      assert false : "field name must start with 'key.', 'value.' or 'header.'.";
+      throw new IllegalArgumentException(
+          "field name must start with 'key.', 'value.' or 'header.'.");
     }
-    return null;
   }
 
   @Nullable

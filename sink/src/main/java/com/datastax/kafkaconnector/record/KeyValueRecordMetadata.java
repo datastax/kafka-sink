@@ -40,8 +40,8 @@ public class KeyValueRecordMetadata implements RecordMetadata {
           ? headersMetadata.getFieldType(field.substring(7), cqlType)
           : null;
     } else {
-      assert false : "field name must start with 'key.', 'value.' or 'header.'.";
+      throw new IllegalArgumentException(
+          "field name must start with 'key.', 'value.' or 'header.'.");
     }
-    return null;
   }
 }
