@@ -1920,6 +1920,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   /** Test for KAF-142 */
   @Test
   void should_use_values_from_header_in_mapping() {
+    // values used in this test are random and irrelevant for the test
     // given
     conn.start(
         makeConnectorProperties(
