@@ -634,7 +634,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(Bytes.getArray(blobcol)).isEqualTo(bytes);
   }
 
-  // this
   @Test
   void raw_list_value_from_json() {
     conn.start(makeConnectorProperties("bigintcol=key, listcol=value"));
