@@ -2108,17 +2108,21 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void should_fail_when_insert_header_without_specific_field() {
+  void should_fail_when_using_header_without_specific_field_in_a_mapping() {
     conn.start(makeConnectorProperties("bigintcol=key, udtcol=header"));
-
-    Headers headers =
-        new ConnectHeaders()
-            .add("my_pk", 1234567L, Schema.INT64_SCHEMA)
-            .add("my_value", null, Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
     SinkRecord record =
         new SinkRecord(
-            "mytopic", 0, null, null, null, null, 1234L, 1L, TimestampType.CREATE_TIME, headers);
+            "mytopic",
+            0,
+            null,
+            null,
+            null,
+            null,
+            1234L,
+            1L,
+            TimestampType.CREATE_TIME,
+            new ConnectHeaders());
 
     assertThatThrownBy(() -> runTaskWithRecords(record))
         .isInstanceOf(ConfigException.class)
