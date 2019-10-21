@@ -17,7 +17,6 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
-import com.datastax.oss.driver.internal.core.type.codec.registry.DefaultCodecRegistry;
 import com.typesafe.config.ConfigFactory;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -72,6 +71,6 @@ class StructToUDTCodecTest {
     LoaderConfig config = new DefaultLoaderConfig(ConfigFactory.load().getConfig("kafka.codec"));
     CodecSettings settings = new CodecSettings(config);
     settings.init();
-    return settings.createCodecRegistry(new DefaultCodecRegistry("test"));
+    return settings.createCodecRegistry();
   }
 }

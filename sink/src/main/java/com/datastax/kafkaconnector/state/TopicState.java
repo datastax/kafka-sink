@@ -19,7 +19,7 @@ import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.google.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

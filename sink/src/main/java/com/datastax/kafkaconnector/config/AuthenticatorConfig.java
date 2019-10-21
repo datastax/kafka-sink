@@ -12,7 +12,7 @@ import static com.datastax.kafkaconnector.config.ConfigUtil.assertAccessibleFile
 import static com.datastax.kafkaconnector.config.ConfigUtil.configToString;
 import static com.datastax.kafkaconnector.config.ConfigUtil.getFilePath;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Path;

@@ -12,8 +12,8 @@ import static com.datastax.dsbulk.commons.internal.utils.StringUtils.quoteJMXIfN
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Splitter;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import java.util.Iterator;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;

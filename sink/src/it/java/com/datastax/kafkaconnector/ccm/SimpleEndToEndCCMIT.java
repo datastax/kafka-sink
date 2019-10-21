@@ -35,8 +35,8 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import com.google.common.collect.ImmutableMap;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Duration;
@@ -1049,14 +1049,49 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void timezone_and_locale() {
+  void timezone_and_locale_UNITS_SINCE_EPOCH() {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.key, "
                 + "datecol=value.vdate, "
                 + "timecol=value.vtime, "
-                + "timestampcol=value.vtimestamp, "
                 + "secondscol=value.vseconds",
+            ImmutableMap.<String, String>builder()
+                .put("topic.mytopic.codec.timeZone", "Europe/Paris")
+                .put("topic.mytopic.codec.locale", "fr_FR")
+                .put("topic.mytopic.codec.date", "cccc, d MMMM uuuu")
+                .put("topic.mytopic.codec.time", "HHmmssSSS")
+                .put("topic.mytopic.codec.timestamp", "UNITS_SINCE_EPOCH")
+                .put("topic.mytopic.codec.unit", "SECONDS")
+                .build()));
+
+    String value =
+        "{\n"
+            + "  \"key\": 4376,\n"
+            + "  \"vdate\": \"vendredi, 9 mars 2018\",\n"
+            + "  \"vtime\": 171232584,\n"
+            + "  \"vseconds\": 1520611952\n"
+            + "}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT datecol, timecol, secondscol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLocalDate("datecol")).isEqualTo(LocalDate.of(2018, 3, 9));
+    assertThat(row.getLocalTime("timecol")).isEqualTo(LocalTime.of(17, 12, 32, 584_000_000));
+    assertThat(row.getInstant("secondscol")).isEqualTo(Instant.parse("2018-03-09T16:12:32Z"));
+  }
+
+  @Test
+  void timezone_and_locale_ISO_ZONED_DATE_TIME() {
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=value.key, "
+                + "datecol=value.vdate, "
+                + "timecol=value.vtime, "
+                + "timestampcol=value.vtimestamp",
             ImmutableMap.<String, String>builder()
                 .put("topic.mytopic.codec.timeZone", "Europe/Paris")
                 .put("topic.mytopic.codec.locale", "fr_FR")
@@ -1071,21 +1106,18 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             + "  \"key\": 4376,\n"
             + "  \"vdate\": \"vendredi, 9 mars 2018\",\n"
             + "  \"vtime\": 171232584,\n"
-            + "  \"vtimestamp\": \"2018-03-09T17:12:32.584+01:00[Europe/Paris]\",\n"
-            + "  \"vseconds\": 1520611952\n"
+            + "  \"vtimestamp\": \"2018-03-09T17:12:32.584+01:00[Europe/Paris]\"\n"
             + "}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
-    List<Row> results =
-        session.execute("SELECT datecol, timecol, timestampcol, secondscol FROM types").all();
+    List<Row> results = session.execute("SELECT datecol, timecol, timestampcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLocalDate("datecol")).isEqualTo(LocalDate.of(2018, 3, 9));
     assertThat(row.getLocalTime("timecol")).isEqualTo(LocalTime.of(17, 12, 32, 584_000_000));
     assertThat(row.getInstant("timestampcol")).isEqualTo(Instant.parse("2018-03-09T16:12:32.584Z"));
-    assertThat(row.getInstant("secondscol")).isEqualTo(Instant.parse("2018-03-09T16:12:32Z"));
   }
 
   @Test

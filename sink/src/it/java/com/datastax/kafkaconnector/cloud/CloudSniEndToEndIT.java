@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
 import static ru.lanwen.wiremock.ext.WiremockResolver.*;
 
+import com.datastax.dsbulk.commons.tests.cloud.SNIProxyServer;
+import com.datastax.dsbulk.commons.tests.cloud.SNIProxyServerExtension;
 import com.datastax.dsbulk.commons.tests.logging.LogCapture;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
@@ -28,8 +30,8 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -61,7 +63,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
       SNIProxyServer proxy,
       CqlSession session,
       @LogCapture(level = INFO, value = TableConfig.class) LogInterceptor logs) {
-    super(proxy.getContactPoints(), null, proxy.getLocalDCName(), session);
+    super(proxy.getContactPoints(), null, proxy.getLocalDatacenter(), session);
     this.proxy = proxy;
     this.session = session;
     this.logs = logs;
@@ -121,7 +123,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     DefaultConsistencyLevel cl = DefaultConsistencyLevel.ONE;
 
     // when
-    performInsert(cl, parametersWithSecureBundleUsernameAndPassword());
+    performInsert(cl, parametersWithSecureBundle());
 
     // then
     assertThat(logs.getLoggedMessages())
@@ -138,7 +140,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     DefaultConsistencyLevel cl = DefaultConsistencyLevel.LOCAL_QUORUM;
 
     // when
-    performInsert(cl, parametersWithSecureBundleUsernameAndPassword());
+    performInsert(cl, parametersWithSecureBundle());
 
     // then
     assertThat(logs.getLoggedMessages())
@@ -183,23 +185,15 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
   }
 
   private Map<String, String> parametersWithSecureBundle(String secureBundlePath) {
+
     return ImmutableMap.<String, String>builder()
         .put(SECURE_CONNECT_BUNDLE_OPT, secureBundlePath)
+        .put(USERNAME_OPT, "cassandra")
+        .put(PASSWORD_OPT, "cassandra")
         .build();
   }
 
   private Map<String, String> parametersWithSecureBundle() throws MalformedURLException {
     return parametersWithSecureBundle(proxy.getSecureBundlePath().toUri().toURL().toString());
-  }
-
-  private Map<String, String> parametersWithSecureBundleUsernameAndPassword()
-      throws MalformedURLException {
-    return ImmutableMap.<String, String>builder()
-        .put(
-            SECURE_CONNECT_BUNDLE_OPT,
-            proxy.getSecureBundleWithoutUsernamePassword().toUri().toURL().toString())
-        .put(USERNAME_OPT, proxy.getUsername())
-        .put(PASSWORD_OPT, proxy.getPassword())
-        .build();
   }
 }

@@ -17,7 +17,7 @@ import static com.datastax.kafkaconnector.config.AuthenticatorConfig.USERNAME_OP
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Map;
