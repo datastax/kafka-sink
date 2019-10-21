@@ -20,7 +20,7 @@ import com.datastax.dsbulk.commons.tests.driver.annotations.SessionConfig;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;

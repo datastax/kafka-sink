@@ -11,7 +11,7 @@ package com.datastax.kafkaconnector.record;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Set;
 import org.apache.kafka.connect.header.ConnectHeaders;

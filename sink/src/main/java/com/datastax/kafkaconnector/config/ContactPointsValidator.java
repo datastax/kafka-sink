@@ -9,7 +9,7 @@
 package com.datastax.kafkaconnector.config;
 
 import com.datastax.oss.driver.shaded.guava.common.net.InetAddresses;
-import com.google.common.net.InternetDomainName;
+import com.datastax.oss.driver.shaded.guava.common.net.InternetDomainName;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

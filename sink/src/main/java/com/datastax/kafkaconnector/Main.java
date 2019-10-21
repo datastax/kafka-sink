@@ -8,7 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;

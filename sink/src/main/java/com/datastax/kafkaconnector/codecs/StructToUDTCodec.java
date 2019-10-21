@@ -14,7 +14,6 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,7 +28,7 @@ public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
 
   @SuppressWarnings("unchecked")
   StructToUDTCodec(KafkaCodecRegistry codecRegistry, UserDefinedType cqlType) {
-    super((TypeCodec<UdtValue>) codecRegistry.codecFor(cqlType), Struct.class);
+    super(codecRegistry.codecFor(cqlType), Struct.class);
 
     this.codecRegistry = codecRegistry;
     definition = cqlType;
