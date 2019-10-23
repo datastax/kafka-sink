@@ -210,6 +210,37 @@
         <groupId>com.datastax.dse</groupId>
         <artifactId>dsbulk-commons</artifactId>
         <version>${dsbulk.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>com.github.luben</groupId>
+            <artifactId>zstd-jni</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.tukaani</groupId>
+            <artifactId>xz</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.brotli</groupId>
+            <artifactId>dec</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
@@ -218,6 +249,37 @@
         <version>${dsbulk.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
+        <exclusions>
+          <exclusion>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>com.github.luben</groupId>
+            <artifactId>zstd-jni</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.tukaani</groupId>
+            <artifactId>xz</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.brotli</groupId>
+            <artifactId>dec</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
