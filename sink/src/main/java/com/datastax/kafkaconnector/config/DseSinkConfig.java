@@ -11,7 +11,7 @@ package com.datastax.kafkaconnector.config;
 import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.kafkaconnector.util.StringUtil;
-import com.google.common.base.Splitter;
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;

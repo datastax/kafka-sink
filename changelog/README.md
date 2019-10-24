@@ -2,6 +2,9 @@
 
 ### 1.2.0 (in progress)
 - [new feature] KAF-143: Add support for connecting with cloud using secureBundle
+- [new feature] KAF-142: Add ability to extract fields from headers in kafka record and use them in mapping
+- [improvement] KAF-148: Switch from using dsbulk kafka_ft branch to 1.x branch
+- [task] KAF-151: Evaluate impacts of DAT-449
 - [improvement] KAF-80: Ability to keep contact points unresolved
 
 ### 1.1.1

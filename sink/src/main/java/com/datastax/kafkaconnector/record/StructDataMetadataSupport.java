@@ -9,7 +9,7 @@
 package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.jetbrains.annotations.NotNull;

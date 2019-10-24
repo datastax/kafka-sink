@@ -57,8 +57,8 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import com.google.common.annotations.VisibleForTesting;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.net.InetSocketAddress;
@@ -454,8 +454,7 @@ public class LifeCycleManager {
                           new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
                               .withFallback(kafkaConfig.getConfig("codec")));
                   codecSettings.init();
-                  KafkaCodecRegistry codecRegistry =
-                      codecSettings.createCodecRegistry(session.getContext().getCodecRegistry());
+                  KafkaCodecRegistry codecRegistry = codecSettings.createCodecRegistry();
                   TopicState topicState = new TopicState(codecRegistry);
                   topicStates.put(topicConfig.getTopicName(), topicState);
 

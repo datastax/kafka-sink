@@ -8,7 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
-import com.google.common.base.Splitter;
+import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.Arrays;

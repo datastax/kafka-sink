@@ -8,55 +8,31 @@
  */
 package com.datastax.kafkaconnector.codecs;
 
-import com.datastax.dsbulk.commons.codecs.util.CqlTemporalFormat;
-import com.datastax.dsbulk.commons.codecs.util.ExactNumberFormat;
+import com.datastax.dsbulk.commons.codecs.json.JsonCodecUtils;
+import com.datastax.dsbulk.commons.codecs.util.CodecUtils;
 import com.datastax.dsbulk.commons.codecs.util.OverflowStrategy;
-import com.datastax.dsbulk.commons.codecs.util.SimpleTemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.TimeUUIDGenerator;
-import com.datastax.dsbulk.commons.codecs.util.ToStringNumberFormat;
-import com.datastax.dsbulk.commons.codecs.util.ZonedTemporalFormat;
 import com.datastax.dsbulk.commons.config.BulkConfigurationException;
 import com.datastax.dsbulk.commons.config.LoaderConfig;
 import com.datastax.dsbulk.commons.internal.config.ConfigUtils;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
-import com.fasterxml.jackson.core.JsonParser;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.typesafe.config.ConfigException;
 import io.netty.util.concurrent.FastThreadLocal;
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.chrono.IsoChronology;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.ResolverStyle;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /** Copied from dsbulk. Convenient for initializing the {@link KafkaCodecRegistry}. */
 public class CodecSettings {
-
-  /**
-   * A {@link JsonNodeFactory} that preserves {@link BigDecimal} scales, used to generate Json
-   * nodes.
-   */
-  private static final JsonNodeFactory JSON_NODE_FACTORY =
-      JsonNodeFactory.withExactBigDecimals(true);
-
-  private static final String CQL_TIMESTAMP = "CQL_TIMESTAMP";
   private static final String LOCALE = "locale";
   private static final String NULL_STRINGS = "nullStrings";
   private static final String BOOLEAN_STRINGS = "booleanStrings";
@@ -98,7 +74,7 @@ public class CodecSettings {
   public void init() {
     try {
 
-      Locale locale = parseLocale(config.getString(LOCALE));
+      Locale locale = CodecUtils.parseLocale(config.getString(LOCALE));
 
       // strings
       nullStrings = ImmutableList.copyOf(config.getStringList(NULL_STRINGS));
@@ -108,7 +84,8 @@ public class CodecSettings {
       overflowStrategy = config.getEnum(OverflowStrategy.class, OVERFLOW_STRATEGY);
       boolean formatNumbers = config.getBoolean(FORMAT_NUMERIC_OUTPUT);
       numberFormat =
-          getNumberFormatThreadLocal(config.getString(NUMBER), locale, roundingMode, formatNumbers);
+          CodecUtils.getNumberFormatThreadLocal(
+              config.getString(NUMBER), locale, roundingMode, formatNumbers);
 
       // temporal
       timeZone = ZoneId.of(config.getString(TIME_ZONE));
@@ -122,9 +99,16 @@ public class CodecSettings {
                 "Expecting codec.%s to be in ISO_ZONED_DATE_TIME format but got '%s'",
                 NUMERIC_TIMESTAMP_EPOCH, epochStr));
       }
-      localDateFormat = getTemporalFormat(config.getString(DATE), null, locale);
-      localTimeFormat = getTemporalFormat(config.getString(TIME), null, locale);
-      timestampFormat = getTemporalFormat(config.getString(TIMESTAMP), timeZone, locale);
+
+      localDateFormat =
+          CodecUtils.getTemporalFormat(
+              config.getString(DATE), timeZone, locale, timeUnit, epoch, numberFormat, false);
+      localTimeFormat =
+          CodecUtils.getTemporalFormat(
+              config.getString(TIME), timeZone, locale, timeUnit, epoch, numberFormat, false);
+      timestampFormat =
+          CodecUtils.getTemporalFormat(
+              config.getString(TIMESTAMP), timeZone, locale, timeUnit, epoch, numberFormat, true);
 
       // boolean
       booleanNumbers =
@@ -138,23 +122,22 @@ public class CodecSettings {
             "Invalid boolean numbers list, expecting two elements, got " + booleanNumbers);
       }
       List<String> booleanStrings = config.getStringList(BOOLEAN_STRINGS);
-      booleanInputWords = getBooleanInputWords(booleanStrings);
-      booleanOutputWords = getBooleanOutputWords(booleanStrings);
+      booleanInputWords = CodecUtils.getBooleanInputWords(booleanStrings);
+      booleanOutputWords = CodecUtils.getBooleanOutputWords(booleanStrings);
 
       // UUID
       generator = config.getEnum(TimeUUIDGenerator.class, TIME_UUID_GENERATOR);
 
       // json
-      objectMapper = getObjectMapper();
+      objectMapper = JsonCodecUtils.getObjectMapper();
 
     } catch (ConfigException e) {
       throw ConfigUtils.configExceptionToBulkConfigurationException(e, "codec");
     }
   }
 
-  public KafkaCodecRegistry createCodecRegistry(CodecRegistry codecRegistry) {
+  public KafkaCodecRegistry createCodecRegistry() {
     return new KafkaCodecRegistry(
-        codecRegistry,
         nullStrings,
         booleanInputWords,
         booleanOutputWords,
@@ -170,128 +153,5 @@ public class CodecSettings {
         epoch,
         generator,
         objectMapper);
-  }
-
-  private static Locale parseLocale(String s) {
-    StringTokenizer tokenizer = new StringTokenizer(s, "_");
-    String language = tokenizer.nextToken();
-    if (tokenizer.hasMoreTokens()) {
-      String country = tokenizer.nextToken();
-      if (tokenizer.hasMoreTokens()) {
-        String variant = tokenizer.nextToken();
-        return new Locale(language, country, variant);
-      } else {
-        return new Locale(language, country);
-      }
-    } else {
-      return new Locale(language);
-    }
-  }
-
-  private static FastThreadLocal<NumberFormat> getNumberFormatThreadLocal(
-      String pattern, Locale locale, RoundingMode roundingMode, boolean formatNumbers) {
-    return new FastThreadLocal<NumberFormat>() {
-      @Override
-      protected NumberFormat initialValue() {
-        return getNumberFormat(pattern, locale, roundingMode, formatNumbers);
-      }
-    };
-  }
-
-  private static NumberFormat getNumberFormat(
-      String pattern, Locale locale, RoundingMode roundingMode, boolean formatNumbers) {
-    DecimalFormatSymbols symbols = DecimalFormatSymbols.getInstance(locale);
-    // manually set the NaN and Infinity symbols; the default ones are not parseable:
-    // 'REPLACEMENT CHARACTER' (U+FFFD) and 'INFINITY' (U+221E)
-    symbols.setNaN("NaN");
-    symbols.setInfinity("Infinity");
-    DecimalFormat format = new DecimalFormat(pattern, symbols);
-    // Always parse floating point numbers as BigDecimals to preserve maximum precision
-    format.setParseBigDecimal(true);
-    // Used only when formatting
-    format.setRoundingMode(roundingMode);
-    if (roundingMode == RoundingMode.UNNECESSARY) {
-      // if user selects unnecessary, print as many fraction digits as necessary
-      format.setMaximumFractionDigits(Integer.MAX_VALUE);
-    }
-    if (!formatNumbers) {
-      return new ToStringNumberFormat(format);
-    } else {
-      return new ExactNumberFormat(format);
-    }
-  }
-
-  private static TemporalFormat getTemporalFormat(String pattern, ZoneId timeZone, Locale locale) {
-    if (pattern.equals(CQL_TIMESTAMP)) {
-      return new CqlTemporalFormat(timeZone);
-    } else {
-      DateTimeFormatterBuilder builder =
-          new DateTimeFormatterBuilder().parseStrict().parseCaseInsensitive();
-      try {
-        // first, assume it is a predefined format
-        Field field = DateTimeFormatter.class.getDeclaredField(pattern);
-        DateTimeFormatter formatter = (DateTimeFormatter) field.get(null);
-        builder = builder.append(formatter);
-      } catch (NoSuchFieldException | IllegalAccessException ignored) {
-        // if that fails, assume it's a pattern
-        builder = builder.appendPattern(pattern);
-      }
-      DateTimeFormatter format =
-          builder
-              .toFormatter(locale)
-              // STRICT fails sometimes, e.g. when extracting the Year field from a YearOfEra field
-              // (i.e., does not convert between "uuuu" and "yyyy")
-              .withResolverStyle(ResolverStyle.SMART)
-              .withChronology(IsoChronology.INSTANCE);
-      if (timeZone == null) {
-        return new SimpleTemporalFormat(format);
-      } else {
-        return new ZonedTemporalFormat(format, timeZone);
-      }
-    }
-  }
-
-  /**
-   * The object mapper to use for converting Json nodes to and from Java types in Json codecs.
-   *
-   * <p>This is not the object mapper used by the Json connector to read and write Json files.
-   *
-   * @return The object mapper to use for converting Json nodes to and from Java types in Json
-   *     codecs.
-   */
-  private static ObjectMapper getObjectMapper() {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.setNodeFactory(JSON_NODE_FACTORY);
-    // create a somewhat lenient mapper that recognizes a slightly relaxed Json syntax when parsing
-    objectMapper.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-    objectMapper.configure(JsonParser.Feature.ALLOW_MISSING_VALUES, true);
-    objectMapper.configure(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS, true);
-    objectMapper.configure(JsonParser.Feature.ALLOW_SINGLE_QUOTES, true);
-    return objectMapper;
-  }
-
-  private static Map<String, Boolean> getBooleanInputWords(List<String> list) {
-    ImmutableMap.Builder<String, Boolean> builder = ImmutableMap.builder();
-    list.stream()
-        .map(str -> new StringTokenizer(str, ":"))
-        .forEach(
-            tokenizer -> {
-              if (tokenizer.countTokens() != 2) {
-                throw new BulkConfigurationException(
-                    "Expecting codec.booleanStrings to contain a list of true:false pairs, got "
-                        + list);
-              }
-              builder.put(tokenizer.nextToken().toLowerCase(), true);
-              builder.put(tokenizer.nextToken().toLowerCase(), false);
-            });
-    return builder.build();
-  }
-
-  private static Map<Boolean, String> getBooleanOutputWords(List<String> list) {
-    StringTokenizer tokenizer = new StringTokenizer(list.get(0), ":");
-    ImmutableMap.Builder<Boolean, String> builder = ImmutableMap.builder();
-    builder.put(true, tokenizer.nextToken().toLowerCase());
-    builder.put(false, tokenizer.nextToken().toLowerCase());
-    return builder.build();
   }
 }

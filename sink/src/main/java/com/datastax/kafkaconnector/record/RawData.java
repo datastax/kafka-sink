@@ -10,7 +10,7 @@ package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import com.google.common.collect.ImmutableSet;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;

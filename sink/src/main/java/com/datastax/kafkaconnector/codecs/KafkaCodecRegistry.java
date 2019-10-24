@@ -15,9 +15,9 @@ import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.TimeUUIDGenerator;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import io.netty.util.concurrent.FastThreadLocal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,7 +33,6 @@ import org.jetbrains.annotations.NotNull;
 /** Converting codec registry that handles processing Kafka {@link Struct} objects. */
 public class KafkaCodecRegistry extends ExtendedCodecRegistry {
   KafkaCodecRegistry(
-      CodecRegistry codecRegistry,
       List<String> nullStrings,
       Map<String, Boolean> booleanInputWords,
       Map<Boolean, String> booleanOutputWords,
@@ -50,7 +49,6 @@ public class KafkaCodecRegistry extends ExtendedCodecRegistry {
       TimeUUIDGenerator generator,
       ObjectMapper objectMapper) {
     super(
-        codecRegistry,
         nullStrings,
         booleanInputWords,
         booleanOutputWords,
@@ -65,10 +63,13 @@ public class KafkaCodecRegistry extends ExtendedCodecRegistry {
         timeUnit,
         epoch,
         generator,
-        objectMapper);
+        objectMapper,
+        false,
+        false);
   }
 
   @Override
+  @Nullable
   protected ConvertingCodec<?, ?> maybeCreateConvertingCodec(
       @NotNull DataType cqlType, @NotNull GenericType<?> javaType) {
     if (cqlType instanceof UserDefinedType && javaType.equals(GenericType.of(Struct.class))) {
