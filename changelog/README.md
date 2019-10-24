@@ -2,6 +2,7 @@
 
 ### 1.2.0 (in progress)
 - [new feature] KAF-143: Add support for connecting with cloud using secureBundle
+- [improvement] KAF-80: Ability to keep contact points unresolved
 
 ### 1.1.1
 - [improvement] KAF-132: add ignoreErrors settings to prevent infinite loop of errors
