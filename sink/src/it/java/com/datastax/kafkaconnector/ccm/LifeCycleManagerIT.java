@@ -76,7 +76,7 @@ public class LifeCycleManagerIT {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
-      // and endPoint uses unresolved DNS address
+      // and endPoint uses IP address
       EndPoint endPoint = session.getMetadata().getNodes().values().iterator().next().getEndPoint();
       assertThat(endPoint.toString())
           .isEqualTo(String.format("%s:%d", contactPointIp, ccm.getBinaryPort()));
