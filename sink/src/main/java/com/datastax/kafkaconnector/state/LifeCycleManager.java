@@ -512,7 +512,7 @@ public class LifeCycleManager {
    */
   @VisibleForTesting
   @NotNull
-  static DseSession buildDseSession(DseSinkConfig config) {
+  public static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
@@ -522,7 +522,7 @@ public class LifeCycleManager {
     config
         .getContactPoints()
         .stream()
-        .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
+        .map(hostStr -> InetSocketAddress.createUnresolved(hostStr, config.getPort()))
         .forEach(builder::addContactPoint);
 
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
