@@ -8,7 +8,9 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
+import static com.datastax.kafkaconnector.config.SslConfig.HOSTNAME_VALIDATION_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
@@ -37,14 +39,19 @@ public class LifeCycleManagerIT {
   }
 
   @Test
-  void should_build_dse_session_with_unresolved_contact_points() {
+  void should_build_dse_session_with_unresolved_contact_points_when_hostname_validation_disabled() {
     // given
     String contactPointDns = "localhost";
     Map<String, String> config =
         ImmutableMap.of(
-            "contactPoints", contactPointDns,
-            "loadBalancing.localDc", ccm.getDC(1),
-            "port", String.valueOf(ccm.getBinaryPort()));
+            "contactPoints",
+            contactPointDns,
+            "loadBalancing.localDc",
+            ccm.getDC(1),
+            "port",
+            String.valueOf(ccm.getBinaryPort()),
+            HOSTNAME_VALIDATION_OPT,
+            "false");
     DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
 
     // when
@@ -57,20 +64,26 @@ public class LifeCycleManagerIT {
       EndPoint endPoint = getEndPoint(session);
       assertThat(endPoint.toString())
           .isEqualTo(String.format("%s:%d", contactPointDns, ccm.getBinaryPort()));
-      assertTrue(((InetSocketAddress) getEndPoint(session).resolve()).isUnresolved());
+      assertTrue(((InetSocketAddress) endPoint.resolve()).isUnresolved());
     }
   }
 
   @Test
-  void should_build_dse_session_using_contact_points_with_ip() {
+  void
+      should_build_dse_session_with_unresolved_contact_points_with_ip_when_hostname_validation_disabled() {
     // given
     String contactPointIp =
         ((InetSocketAddress) ccm.getInitialContactPoints().get(0).resolve()).getHostString();
     Map<String, String> config =
         ImmutableMap.of(
-            "contactPoints", contactPointIp,
-            "loadBalancing.localDc", ccm.getDC(1),
-            "port", String.valueOf(ccm.getBinaryPort()));
+            "contactPoints",
+            contactPointIp,
+            "loadBalancing.localDc",
+            ccm.getDC(1),
+            "port",
+            String.valueOf(ccm.getBinaryPort()),
+            HOSTNAME_VALIDATION_OPT,
+            "false");
     DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
 
     // when
@@ -79,11 +92,68 @@ public class LifeCycleManagerIT {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
-      // and endPoint uses IP address
+      // and endPoint uses unresolved IP address
       EndPoint endPoint = getEndPoint(session);
       assertThat(endPoint.toString())
           .isEqualTo(String.format("%s:%d", contactPointIp, ccm.getBinaryPort()));
-      assertTrue(((InetSocketAddress) getEndPoint(session).resolve()).isUnresolved());
+      assertTrue(((InetSocketAddress) endPoint.resolve()).isUnresolved());
+    }
+  }
+
+  @Test
+  void should_build_dse_session_with_resolved_contact_points_when_hostname_validation_enabled() {
+    // given
+    String contactPointDns = "localhost";
+    Map<String, String> config =
+        ImmutableMap.of(
+            "contactPoints",
+            contactPointDns,
+            "loadBalancing.localDc",
+            ccm.getDC(1),
+            "port",
+            String.valueOf(ccm.getBinaryPort()),
+            HOSTNAME_VALIDATION_OPT,
+            "true");
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+
+    // when
+    ResultSet set;
+    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+      // then
+      set = session.execute("select * from system.local");
+      assertThat(set).isNotNull();
+      // and endPoint uses resolved DNS address
+      assertFalse(((InetSocketAddress) getEndPoint(session).resolve()).isUnresolved());
+    }
+  }
+
+  @Test
+  void
+      should_build_dse_session_with_resolved_contact_points_with_ip_when_hostname_validation_enabled() {
+    // given
+    String contactPointIp =
+        ((InetSocketAddress) ccm.getInitialContactPoints().get(0).resolve()).getHostString();
+    Map<String, String> config =
+        ImmutableMap.of(
+            "contactPoints",
+            contactPointIp,
+            "loadBalancing.localDc",
+            ccm.getDC(1),
+            "port",
+            String.valueOf(ccm.getBinaryPort()),
+            HOSTNAME_VALIDATION_OPT,
+            "true");
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+
+    // when
+    ResultSet set;
+    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+      // then
+      set = session.execute("select * from system.local");
+      assertThat(set).isNotNull();
+      // and endPoint uses resolved IP address
+      EndPoint endPoint = getEndPoint(session);
+      assertFalse(((InetSocketAddress) endPoint.resolve()).isUnresolved());
     }
   }
 

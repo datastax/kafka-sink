@@ -518,11 +518,20 @@ public class LifeCycleManager {
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
-    config
-        .getContactPoints()
-        .stream()
-        .map(hostStr -> InetSocketAddress.createUnresolved(hostStr, config.getPort()))
-        .forEach(builder::addContactPoint);
+    if (sslConfig.requireHostnameValidation()) {
+      // if requireHostnameValidation then InetSocketAddress must be resolved
+      config
+          .getContactPoints()
+          .stream()
+          .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
+          .forEach(builder::addContactPoint);
+    } else {
+      config
+          .getContactPoints()
+          .stream()
+          .map(hostStr -> InetSocketAddress.createUnresolved(hostStr, config.getPort()))
+          .forEach(builder::addContactPoint);
+    }
 
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
         DseDriverConfigLoader.programmaticBuilder();
