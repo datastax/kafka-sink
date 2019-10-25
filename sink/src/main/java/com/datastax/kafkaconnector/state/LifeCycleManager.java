@@ -511,18 +511,27 @@ public class LifeCycleManager {
    */
   @VisibleForTesting
   @NotNull
-  static DseSession buildDseSession(DseSinkConfig config) {
+  public static DseSession buildDseSession(DseSinkConfig config) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
-    config
-        .getContactPoints()
-        .stream()
-        .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
-        .forEach(builder::addContactPoint);
+    if (sslConfig != null && sslConfig.requireHostnameValidation()) {
+      // if requireHostnameValidation then InetSocketAddress must be resolved
+      config
+          .getContactPoints()
+          .stream()
+          .map(hostStr -> new InetSocketAddress(hostStr, config.getPort()))
+          .forEach(builder::addContactPoint);
+    } else {
+      config
+          .getContactPoints()
+          .stream()
+          .map(hostStr -> InetSocketAddress.createUnresolved(hostStr, config.getPort()))
+          .forEach(builder::addContactPoint);
+    }
 
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
         DseDriverConfigLoader.programmaticBuilder();

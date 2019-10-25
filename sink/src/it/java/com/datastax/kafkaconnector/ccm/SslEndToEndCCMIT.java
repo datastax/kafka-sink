@@ -42,7 +42,7 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void raw_bigint_value() {
+  void raw_bigint_value_without_hostname_validation() {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(PROVIDER_OPT, "JDK")
@@ -84,7 +84,7 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void raw_bigint_value_with_openssl() {
+  void raw_bigint_value_with_openssl_without_hostname_validation() {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(PROVIDER_OPT, "OpenSSL")
