@@ -1647,7 +1647,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   /** Test for KAF-107. */
   @Test
-  void should_insert_record_with_ttl_provided_via_mapping() {
+  void should_insert_record_with_ttl_provided_via_mapping() throws InterruptedException {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol"));
@@ -1659,8 +1659,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
             .field("double", Schema.FLOAT64_SCHEMA)
             .field("ttlcol", Schema.INT64_SCHEMA)
             .build();
+    Number ttlValue = 1_000_000L;
     Struct value =
-        new Struct(schema).put("bigint", 1234567L).put("double", 42.0).put("ttlcol", 12314L);
+        new Struct(schema)
+            .put("bigint", 1234567L)
+            .put("double", 42.0)
+            .put("ttlcol", ttlValue.longValue());
 
     SinkRecord record =
         new SinkRecord(
@@ -1674,14 +1678,14 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getInt(2)).isEqualTo(12314L);
+    assertTtl(row.getInt(2), ttlValue);
   }
 
   /** Test for KAF-107. */
   @ParameterizedTest(name = "[{index}] schema={0}, ttlValue={1}, expectedTtlValue={2}")
   @MethodSource("ttlColProvider")
   void should_insert_record_with_ttl_provided_via_mapping_and_validate_ttl_of_table(
-      Schema schema, Number ttlValue, Integer expectedTtlValue) {
+      Schema schema, Number ttlValue, Number expectedTtlValue) {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
@@ -1704,7 +1708,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getInt(2)).isEqualTo(expectedTtlValue);
+    assertTtl(row.getInt(2), expectedTtlValue);
   }
 
   @Test
@@ -1718,7 +1722,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 "MILLISECONDS")));
 
     // when
-    String json = "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000}";
+    String json = "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000000}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
     runTaskWithRecords(record);
 
@@ -1729,11 +1733,12 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getInt(2)).isEqualTo(1);
+    assertTtl(row.getInt(2), 1000);
   }
 
   @Test
-  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns() {
+  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns()
+      throws InterruptedException {
     // given
     conn.start(
         makeConnectorProperties(
@@ -1746,7 +1751,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
     // when
     String json =
-        "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000, \"timestampcol\": 1000}";
+        "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000000, \"timestampcol\": 1000}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
     runTaskWithRecords(record);
 
@@ -1759,7 +1764,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(42.0);
-    assertThat(row.getInt(2)).isEqualTo(1);
+    assertTtl(row.getInt(2), 1000);
     assertThat(row.getLong(3)).isEqualTo(1000L);
   }
 
@@ -1774,7 +1779,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 "MILLISECONDS")));
 
     // when
-    String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
+    String json = "{\"bigint\": 1234567, \"double\": 1000000.0}";
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
     runTaskWithRecords(record);
 
@@ -1784,8 +1789,8 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-    assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
-    assertThat(row.getInt(2)).isEqualTo(1);
+    assertThat(row.getDouble("doublecol")).isEqualTo(1000000.0);
+    assertTtl(row.getInt(2), 1000);
   }
 
   @Test
@@ -1809,7 +1814,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.getDouble("doublecol")).isEqualTo(1000.0);
-    assertThat(row.getInt(2)).isEqualTo(100);
+    assertTtl(row.getInt(2), 100);
   }
 
   /** Test for KAF-46. */
@@ -2086,10 +2091,11 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
                 "MILLISECONDS")));
 
+    long ttlValue = 1_000_000;
     Headers headers =
         new ConnectHeaders()
             .add("bigint", 100000L, SchemaBuilder.int64().build())
-            .addLong("ttlcolumn", 1234567L)
+            .addLong("ttlcolumn", ttlValue)
             .addLong("timestampcolumn", 2345678L)
             .addDouble("double", 100L);
 
@@ -2109,7 +2115,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(100000L);
     assertThat(row.getDouble("doublecol")).isEqualTo(100);
-    assertThat(row.getInt(2)).isEqualTo(1234567);
+    assertTtl(row.getInt(2), ttlValue);
     assertThat(row.getLong(3)).isEqualTo(2345678000L);
   }
 
@@ -2171,13 +2177,19 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                 .field("double", Schema.FLOAT64_SCHEMA);
 
     return Stream.of(
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT64_SCHEMA).build(), 1000L, 1),
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT32_SCHEMA).build(), 1000, 1),
         Arguments.of(
-            schemaBuilder.get().field("ttlcol", Schema.INT16_SCHEMA).build(), (short) 1000, 1),
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT32_SCHEMA).build(), 1000F, 1),
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.FLOAT64_SCHEMA).build(), 1000D, 1),
-        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT32_SCHEMA).build(), -1000, 0));
+            schemaBuilder.get().field("ttlcol", Schema.INT64_SCHEMA).build(), 1_000_000L, 1_000),
+        Arguments.of(
+            schemaBuilder.get().field("ttlcol", Schema.INT32_SCHEMA).build(), 1_000_000, 1_000),
+        Arguments.of(
+            schemaBuilder.get().field("ttlcol", Schema.INT16_SCHEMA).build(),
+            (short) 1_000_000,
+            (short) 1_000),
+        Arguments.of(
+            schemaBuilder.get().field("ttlcol", Schema.FLOAT32_SCHEMA).build(), 1_000_000F, 1_000),
+        Arguments.of(
+            schemaBuilder.get().field("ttlcol", Schema.FLOAT64_SCHEMA).build(), 1_000_000D, 1_000),
+        Arguments.of(schemaBuilder.get().field("ttlcol", Schema.INT32_SCHEMA).build(), -1_000, 0));
   }
 
   private static Stream<? extends Arguments> timestampColProvider() {
@@ -2217,5 +2229,15 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
     return makeConnectorProperties(mappingString, null);
+  }
+
+  private void assertTtl(int ttlValue, Number expectedTtlValue) {
+    if (expectedTtlValue.equals(0)) {
+      assertThat(ttlValue).isEqualTo(expectedTtlValue.intValue());
+    } else {
+      // actual ttl value can be less that or equal to expectedTtlValue because some time may elapse
+      // between the moment the record was inserted and retrieved from db.
+      assertThat(ttlValue).isLessThanOrEqualTo(expectedTtlValue.intValue()).isGreaterThan(0);
+    }
   }
 }
