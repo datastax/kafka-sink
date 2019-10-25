@@ -518,7 +518,7 @@ public class LifeCycleManager {
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
-    if (sslConfig.requireHostnameValidation()) {
+    if (sslConfig != null && sslConfig.requireHostnameValidation()) {
       // if requireHostnameValidation then InetSocketAddress must be resolved
       config
           .getContactPoints()
