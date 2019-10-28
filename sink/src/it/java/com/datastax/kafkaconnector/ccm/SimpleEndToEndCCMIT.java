@@ -1647,7 +1647,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
 
   /** Test for KAF-107. */
   @Test
-  void should_insert_record_with_ttl_provided_via_mapping() throws InterruptedException {
+  void should_insert_record_with_ttl_provided_via_mapping() {
     conn.start(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol"));
