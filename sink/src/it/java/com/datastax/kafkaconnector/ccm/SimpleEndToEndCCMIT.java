@@ -1737,8 +1737,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns()
-      throws InterruptedException {
+  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns() {
     // given
     conn.start(
         makeConnectorProperties(
