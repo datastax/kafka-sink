@@ -16,11 +16,11 @@ pyenv activate ${CTOOL_ENV}
 echo "starting connector type: $CONNECTOR_TYPE"
 
 # start Graphite Instance
-ctool launch -p bionic -i i2.2xlarge kc-perf 1
+ctool launch kc-perf 1
 ctool perf_monitoring --install-only graphite -s /home/automaton/perf_monitoring kc-perf
 
 
-ctool launch -p bionic -i m3.2xlarge kc-brokers 3
+ctool launch kc-brokers 3
 ctool run kc-brokers all "curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz"
 ctool run kc-brokers all "mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1"
 
@@ -77,7 +77,7 @@ ctool run kc-brokers 0 "git clone https://github.com/datastax/kafka-examples.git
 
 
 # -------- Kafka Connect L Setup --------
-ctool launch -p bionic -i c3.2xlarge kc-connect-l 3
+ctool launch kc-connect-l 3
 ctool run kc-connect-l all "curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz"
 ctool run kc-connect-l all "mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1"
 
@@ -134,7 +134,7 @@ ctool run kc-connect-l all "confluent/bin/connect-distributed confluent/etc/kafk
 
 
 # DSE Cluster Setup
-ctool launch -p bionic -i m3.2xlarge kc-dse 5 <<< YES
+ctool launch kc-dse 5 <<< YES
 ctool install -v 6.0.4 -i tar -n 8 -x kc-dse-topology.json kc-dse enterprise
 ctool yaml -o set -k allocate_tokens_for_local_replication_factor -v 3 kc-dse all
 ctool run kc-dse 0 "dse cassandra &> startup.log &"; sleep 120
