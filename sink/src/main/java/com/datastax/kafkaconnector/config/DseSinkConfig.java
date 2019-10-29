@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector.config;
 import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
 
 import com.datastax.kafkaconnector.util.StringUtil;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
@@ -44,6 +45,9 @@ public class DseSinkConfig {
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
   static final String DC_OPT = "loadBalancing.localDc";
+  static final String LOCAL_DC_DRIVER_SETTING =
+      withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER);
+
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
   static final String QUERY_EXECUTION_TIMEOUT_OPT = "queryExecutionTimeout";
   static final String CONNECTION_POOL_LOCAL_SIZE = "connectionPoolLocalSize";
@@ -175,6 +179,7 @@ public class DseSinkConfig {
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
 
+    populateDriverSettingsWithDeprecatedSettings();
     boolean cloud = isCloud();
 
     if (!cloud) {
@@ -218,8 +223,26 @@ public class DseSinkConfig {
       throw new ConfigException(
           CONTACT_POINTS_OPT,
           contactPoints,
-          String.format("When contact points is provided, %s must also be specified", DC_OPT));
+          String.format(
+              "When contact points is provided, %s must also be specified",
+              LOCAL_DC_DRIVER_SETTING));
     }
+  }
+
+  private void populateDriverSettingsWithDeprecatedSettings() {
+    String localDcSetting = withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER);
+    String localDcDeprecatedSetting = globalConfig.getString(DC_OPT);
+    if (!localDcDeprecatedSetting.isEmpty()) {
+      log.warn(
+          "The {} setting is deprecated." + " You should use {} setting instead.",
+          DC_OPT,
+          localDcSetting);
+      javaDriverSettings.put(localDcSetting, localDcDeprecatedSetting);
+    }
+  }
+
+  private static String withDriverPrefix(DefaultDriverOption option) {
+    return String.format("%s.%s", DRIVER_CONFIG_PREFIX, option);
   }
 
   private void validateCloudSettings(Map<String, String> sslSettings) {
@@ -230,11 +253,11 @@ public class DseSinkConfig {
               SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
     }
 
-    if (!getLocalDc().isEmpty()) {
+    if (!StringUtil.isEmpty(getLocalDc())) {
       throw new ConfigException(
           String.format(
               "When %s parameter is specified you should not provide %s.",
-              SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
+              SECURE_CONNECT_BUNDLE_OPT, LOCAL_DC_DRIVER_SETTING));
     }
 
     if (!sslSettings.isEmpty()) {
@@ -317,7 +340,8 @@ public class DseSinkConfig {
   }
 
   public String getLocalDc() {
-    return globalConfig.getString(DC_OPT);
+    return javaDriverSettings.get(
+        withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER));
   }
 
   public Map<String, TopicConfig> getTopicConfigs() {

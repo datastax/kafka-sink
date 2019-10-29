@@ -13,6 +13,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUES
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
@@ -155,7 +156,9 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            String.format("When contact points is provided, %s must also be specified", DC_OPT));
+            String.format(
+                "When contact points is provided, %s must also be specified",
+                LOCAL_DC_DRIVER_SETTING));
   }
 
   @Test
@@ -164,6 +167,19 @@ class DseSinkConfigTest {
         ImmutableMap.<String, String>builder()
             .put(CONTACT_POINTS_OPT, "127.0.0.1, 127.0.1.1")
             .put(DC_OPT, "local")
+            .build();
+
+    DseSinkConfig d = new DseSinkConfig(props);
+    assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
+    assertThat(d.getLocalDc()).isEqualTo("local");
+  }
+
+  @Test
+  void should_handle_dc_with_contactPoints_driver_prefix() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(CONTACT_POINTS_OPT, "127.0.0.1, 127.0.1.1")
+            .put(LOCAL_DC_DRIVER_SETTING, "local")
             .build();
 
     DseSinkConfig d = new DseSinkConfig(props);
@@ -238,7 +254,23 @@ class DseSinkConfigTest {
         .hasMessageContaining(
             String.format(
                 "When %s parameter is specified you should not provide %s.",
-                SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
+                SECURE_CONNECT_BUNDLE_OPT, LOCAL_DC_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_throw_when_secure_connect_bundle_and_local_dc_driver_setting_provided() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
+            .put(LOCAL_DC_DRIVER_SETTING, "dc1")
+            .build();
+
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "When %s parameter is specified you should not provide %s.",
+                SECURE_CONNECT_BUNDLE_OPT, LOCAL_DC_DRIVER_SETTING));
   }
 
   @Test
