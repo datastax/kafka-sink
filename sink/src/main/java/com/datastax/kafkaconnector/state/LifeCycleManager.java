@@ -30,7 +30,6 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.config.DseDriverConfigLoader;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
@@ -57,10 +56,13 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
+import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -534,7 +536,8 @@ public class LifeCycleManager {
     }
 
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DseDriverConfigLoader.programmaticBuilder();
+        dseProgrammaticBuilderWithFallback(
+            ConfigFactory.parseMap(config.getJavaDriverSettings(), "Connector properties"));
     if (!config.getLocalDc().isEmpty()) {
       configLoaderBuilder.withString(
           DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
@@ -722,5 +725,17 @@ public class LifeCycleManager {
   @VisibleForTesting
   public static void cleanMetrics() {
     metricRegistry = new MetricRegistry();
+  }
+
+  @NonNull
+  private static ProgrammaticDriverConfigLoaderBuilder dseProgrammaticBuilderWithFallback(
+      Config properties) {
+    return new DefaultProgrammaticDriverConfigLoaderBuilder(
+        () ->
+            ConfigFactory.defaultApplication()
+                .withFallback(properties)
+                .withFallback(ConfigFactory.parseResourcesAnySyntax("dse-reference"))
+                .withFallback(ConfigFactory.defaultReference()),
+        DefaultDriverConfigLoader.DEFAULT_ROOT_PATH);
   }
 }

@@ -6,6 +6,7 @@
 - [improvement] KAF-148: Switch from using dsbulk kafka_ft branch to 1.x branch
 - [task] KAF-151: Evaluate impacts of DAT-449
 - [improvement] KAF-80: Ability to keep contact points unresolved
+- [improvement] KAF-79: Expose driver configuration options
 
 ### 1.1.1
 - [improvement] KAF-132: add ignoreErrors settings to prevent infinite loop of errors

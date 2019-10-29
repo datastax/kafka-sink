@@ -37,6 +37,8 @@ public class DseSinkConfig {
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");
 
+  private static final String DRIVER_CONFIG_PREFIX = "datastax-java-driver";
+
   static final String SSL_OPT_PREFIX = "ssl.";
 
   public static final String CONTACT_POINTS_OPT = "contactPoints";
@@ -136,6 +138,7 @@ public class DseSinkConfig {
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
+  private final Map<String, String> javaDriverSettings;
 
   @Nullable private SslConfig sslConfig;
 
@@ -149,6 +152,7 @@ public class DseSinkConfig {
     Map<String, String> sslSettings = new HashMap<>();
     Map<String, String> authSettings = new HashMap<>();
     Map<String, Map<String, String>> topicSettings = new HashMap<>();
+    javaDriverSettings = new HashMap<>();
     for (Map.Entry<String, String> entry : settings.entrySet()) {
       String name = entry.getKey();
       if (name.startsWith("topic.")) {
@@ -160,6 +164,8 @@ public class DseSinkConfig {
         sslSettings.put(name, entry.getValue());
       } else if (name.startsWith("auth.")) {
         authSettings.put(name, entry.getValue());
+      } else if (name.startsWith(DRIVER_CONFIG_PREFIX)) {
+        javaDriverSettings.put(entry.getKey(), entry.getValue());
       } else {
         globalSettings.put(name, entry.getValue());
       }
@@ -408,5 +414,9 @@ public class DseSinkConfig {
     public String getDriverCompressionType() {
       return driverCompressionType;
     }
+  }
+
+  public Map<String, String> getJavaDriverSettings() {
+    return javaDriverSettings;
   }
 }
