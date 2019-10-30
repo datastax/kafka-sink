@@ -16,8 +16,12 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_L
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SSL_OPT_PREFIX;
@@ -87,6 +91,91 @@ class DseSinkConfigTest {
   }
 
   @Test
+  void should_favor_deprecated_setting_over_java_driver_queryExecutionTimeout(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(QUERY_EXECUTION_TIMEOUT_OPT, "10")
+                .put(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING))
+        .isEqualTo("10 seconds");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                QUERY_EXECUTION_TIMEOUT_OPT, QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_use_deprecated_setting_as_a_new_java_driver_setting_queryExecutionTimeout(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(QUERY_EXECUTION_TIMEOUT_OPT, "10").build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING))
+        .isEqualTo("10 seconds");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                QUERY_EXECUTION_TIMEOUT_OPT, QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_use_java_driver_setting_queryExecutionTimeout(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                // driver setting need to have time unit defined explicitly
+                .put(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100 seconds")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING))
+        .isEqualTo("100 seconds");
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                QUERY_EXECUTION_TIMEOUT_OPT, QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_set_default_for_queryExecutionTimeout(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING))
+        .isEqualTo(QUERY_EXECUTION_TIMEOUT_DEFAULT);
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                QUERY_EXECUTION_TIMEOUT_OPT, QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING));
+  }
+
+  @Test
   void should_error_invalid_metricsHighestLatency() {
     Map<String, String> props =
         Maps.newHashMap(
@@ -104,6 +193,91 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
+  void should_favor_deprecated_setting_over_java_driver_metricsHighestLatency(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(METRICS_HIGHEST_LATENCY_OPT, "10")
+                .put(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS))
+        .isEqualTo("10 seconds");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                METRICS_HIGHEST_LATENCY_OPT, METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS));
+  }
+
+  @Test
+  void should_use_deprecated_setting_as_a_new_java_driver_setting_metricsHighestLatency(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(METRICS_HIGHEST_LATENCY_OPT, "10").build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_OPT))
+        .isEqualTo("10 seconds");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                METRICS_HIGHEST_LATENCY_OPT, METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS));
+  }
+
+  @Test
+  void should_use_java_driver_setting_metricsHighestLatency(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                // driver setting need to have time unit defined explicitly
+                .put(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100 seconds")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS))
+        .isEqualTo("100 seconds");
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                METRICS_HIGHEST_LATENCY_OPT, METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS));
+  }
+
+  @Test
+  void should_set_default_for_metricsHighestLatency(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS))
+        .isEqualTo(METRICS_HIGHEST_LATENCY_DEFAULT);
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                METRICS_HIGHEST_LATENCY_OPT, METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS));
   }
 
   // todo should we handle validation in the same way for settings with datastax-java-driver prefix?

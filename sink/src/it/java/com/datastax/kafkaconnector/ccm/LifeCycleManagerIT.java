@@ -8,13 +8,17 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.*;
 import static com.datastax.kafkaconnector.config.SslConfig.HOSTNAME_VALIDATION_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONFIG_RELOAD_INTERVAL;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_MAX_FRAME_LENGTH;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.RECONNECTION_POLICY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_CONSISTENCY;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_DEFAULT_IDEMPOTENCE;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_TIMEOUT;
 import static com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader.DEFAULT_ROOT_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
@@ -35,7 +39,6 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -198,20 +201,28 @@ public class LifeCycleManagerIT {
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
 
+      // validate explict settings form datastax-java-driver prefix
       DriverExecutionProfile profile = session.getContext().getConfig().getDefaultProfile();
-      AssertionsForClassTypes.assertThat(profile.getDuration(CONFIG_RELOAD_INTERVAL))
+      assertThat(profile.getDuration(CONFIG_RELOAD_INTERVAL))
           .isEqualTo(Duration.of(1, ChronoUnit.MINUTES));
 
-      AssertionsForClassTypes.assertThat(profile.getString(REQUEST_CONSISTENCY)).isEqualTo("ALL");
+      assertThat(profile.getString(REQUEST_CONSISTENCY)).isEqualTo("ALL");
 
-      AssertionsForClassTypes.assertThat(profile.getBoolean(REQUEST_DEFAULT_IDEMPOTENCE))
-          .isEqualTo(true);
+      assertThat(profile.getBoolean(REQUEST_DEFAULT_IDEMPOTENCE)).isEqualTo(true);
 
-      AssertionsForClassTypes.assertThat(profile.getString(RECONNECTION_POLICY_CLASS))
+      assertThat(profile.getString(RECONNECTION_POLICY_CLASS))
           .isEqualTo("ConstantReconnectionPolicy");
 
-      AssertionsForClassTypes.assertThat(profile.getBytes(PROTOCOL_MAX_FRAME_LENGTH))
-          .isEqualTo(128_000_000L);
+      assertThat(profile.getBytes(PROTOCOL_MAX_FRAME_LENGTH)).isEqualTo(128_000_000L);
+
+      // validate defaults
+      assertThat(profile.getInt(CONNECTION_POOL_LOCAL_SIZE))
+          .isEqualTo(Integer.valueOf(CONNECTION_POOL_LOCAL_SIZE_DEFAULT));
+
+      assertThat(profile.getDuration(REQUEST_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
+
+      assertThat(profile.getDuration(METRICS_NODE_CQL_MESSAGES_HIGHEST))
+          .isEqualTo(Duration.ofSeconds(35));
     }
   }
 

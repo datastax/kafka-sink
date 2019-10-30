@@ -46,7 +46,6 @@ import com.datastax.kafkaconnector.ssl.SessionBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
@@ -538,13 +537,6 @@ public class LifeCycleManager {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
         dseProgrammaticBuilderWithFallback(
             ConfigFactory.parseMap(config.getJavaDriverSettings(), "Connector properties"));
-
-    configLoaderBuilder.withDuration(
-        DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
-
-    configLoaderBuilder.withDuration(
-        DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST,
-        Duration.ofSeconds(config.getMetricsHighestLatency()));
 
     if (config.getJmx()) {
       configLoaderBuilder.withStringList(

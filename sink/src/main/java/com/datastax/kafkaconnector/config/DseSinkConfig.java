@@ -50,17 +50,26 @@ public class DseSinkConfig {
       withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER);
 
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
+
   static final String QUERY_EXECUTION_TIMEOUT_OPT = "queryExecutionTimeout";
+  static final String QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING =
+      withDriverPrefix(DefaultDriverOption.REQUEST_TIMEOUT);
+  public static final String QUERY_EXECUTION_TIMEOUT_DEFAULT = "30 seconds";
 
   static final String CONNECTION_POOL_LOCAL_SIZE = "connectionPoolLocalSize";
   static final String CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING =
       withDriverPrefix(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE);
-  static final String CONNECTION_POOL_LOCAL_SIZE_DEFAULT = "4";
+  public static final String CONNECTION_POOL_LOCAL_SIZE_DEFAULT = "4";
 
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
+
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
+  static final String METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS =
+      withDriverPrefix(DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST);
+  static final String METRICS_HIGHEST_LATENCY_DEFAULT = "35 seconds";
+
   static final String IGNORE_ERRORS = "ignoreErrors";
   public static final String SECURE_CONNECT_BUNDLE_OPT = "cloud.secureConnectBundle";
   public static final ConfigDef GLOBAL_CONFIG_DEF =
@@ -238,6 +247,8 @@ public class DseSinkConfig {
   private void populateDriverSettingsWithDeprecatedSettings(Map<String, String> connectorSettings) {
     deprecatedLocalDc(connectorSettings);
     deprecatedConnectionPoolSize(connectorSettings);
+    deprecatedQueryExecutionTimeout(connectorSettings);
+    deprecatedMetricsHighestLatency(connectorSettings);
   }
 
   private void deprecatedLocalDc(Map<String, String> connectorSettings) {
@@ -267,6 +278,44 @@ public class DseSinkConfig {
     if (!javaDriverSettings.containsKey(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING)) {
       javaDriverSettings.put(
           CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, CONNECTION_POOL_LOCAL_SIZE_DEFAULT);
+    }
+  }
+
+  private void deprecatedQueryExecutionTimeout(Map<String, String> connectorSettings) {
+    // handle usage of deprecated setting
+    if (connectorSettings.containsKey(QUERY_EXECUTION_TIMEOUT_OPT)) {
+      log.warn(
+          "The {} setting is deprecated. You should use {} setting instead.",
+          QUERY_EXECUTION_TIMEOUT_OPT,
+          QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING);
+      javaDriverSettings.put(
+          QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+          String.format("%s seconds", connectorSettings.get(QUERY_EXECUTION_TIMEOUT_OPT)));
+    }
+
+    // handle default if setting is not provided
+    if (!javaDriverSettings.containsKey(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING)) {
+      javaDriverSettings.put(
+          QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, QUERY_EXECUTION_TIMEOUT_DEFAULT);
+    }
+  }
+
+  private void deprecatedMetricsHighestLatency(Map<String, String> connectorSettings) {
+    // handle usage of deprecated setting
+    if (connectorSettings.containsKey(METRICS_HIGHEST_LATENCY_OPT)) {
+      log.warn(
+          "The {} setting is deprecated. You should use {} setting instead.",
+          METRICS_HIGHEST_LATENCY_OPT,
+          METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS);
+      javaDriverSettings.put(
+          METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+          String.format("%s seconds", connectorSettings.get(METRICS_HIGHEST_LATENCY_OPT)));
+    }
+
+    // handle default if setting is not provided
+    if (!javaDriverSettings.containsKey(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS)) {
+      javaDriverSettings.put(
+          METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, METRICS_HIGHEST_LATENCY_DEFAULT);
     }
   }
 
@@ -327,14 +376,6 @@ public class DseSinkConfig {
     return globalConfig.getInt(CONCURRENT_REQUESTS_OPT);
   }
 
-  public int getQueryExecutionTimeout() {
-    return globalConfig.getInt(QUERY_EXECUTION_TIMEOUT_OPT);
-  }
-
-  public int getMetricsHighestLatency() {
-    return globalConfig.getInt(METRICS_HIGHEST_LATENCY_OPT);
-  }
-
   public boolean isIgnoreErrors() {
     return globalConfig.getBoolean(IGNORE_ERRORS);
   }
@@ -393,7 +434,6 @@ public class DseSinkConfig {
             + "        contactPoints: %s%n"
             + "        port: %s%n"
             + "        maxConcurrentRequests: %d%n"
-            + "        queryExecutionTimeout: %d%n"
             + "        maxNumberOfRecordsInBatch: %d%n"
             + "        jmx: %b%n"
             + "        compression: %s%n"
@@ -404,7 +444,6 @@ public class DseSinkConfig {
         getContactPoints(),
         getPortToString(),
         getMaxConcurrentRequests(),
-        getQueryExecutionTimeout(),
         getMaxNumberOfRecordsInBatch(),
         getJmx(),
         getCompressionType(),
