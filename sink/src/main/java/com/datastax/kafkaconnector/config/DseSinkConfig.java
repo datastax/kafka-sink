@@ -76,7 +76,11 @@ public class DseSinkConfig {
   static final String METRICS_HIGHEST_LATENCY_DEFAULT = "35 seconds";
 
   static final String IGNORE_ERRORS = "ignoreErrors";
+
   public static final String SECURE_CONNECT_BUNDLE_OPT = "cloud.secureConnectBundle";
+  static final String SECURE_CONNECT_BUNDLE_DRIVER_SETTING =
+      withDriverPrefix(DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE);
+
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
           .define(
@@ -254,6 +258,16 @@ public class DseSinkConfig {
     deprecatedQueryExecutionTimeout(connectorSettings);
     deprecatedMetricsHighestLatency(connectorSettings);
     deprecatedCompression(connectorSettings);
+    deprecatedSecureBundle(connectorSettings);
+  }
+
+  private void deprecatedSecureBundle(Map<String, String> connectorSettings) {
+    handleDeprecatedSetting(
+        connectorSettings,
+        SECURE_CONNECT_BUNDLE_OPT,
+        SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+        null,
+        Function.identity());
   }
 
   private void deprecatedCompression(Map<String, String> connectorSettings) {
@@ -384,11 +398,7 @@ public class DseSinkConfig {
   }
 
   public boolean isCloud() {
-    return !getSecureConnectBundle().isEmpty();
-  }
-
-  public String getSecureConnectBundle() {
-    return globalConfig.getString(SECURE_CONNECT_BUNDLE_OPT);
+    return !StringUtil.isEmpty(javaDriverSettings.get(SECURE_CONNECT_BUNDLE_DRIVER_SETTING));
   }
 
   public List<String> getContactPoints() {
@@ -396,8 +406,7 @@ public class DseSinkConfig {
   }
 
   public String getLocalDc() {
-    return javaDriverSettings.get(
-        withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER));
+    return javaDriverSettings.get(LOCAL_DC_DRIVER_SETTING);
   }
 
   public Map<String, TopicConfig> getTopicConfigs() {

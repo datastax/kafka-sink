@@ -15,7 +15,6 @@ import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
@@ -542,10 +541,6 @@ public class LifeCycleManager {
           METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));
       configLoaderBuilder.withDuration(
           METRICS_SESSION_CQL_REQUESTS_INTERVAL, Duration.ofSeconds(30));
-    }
-
-    if (config.isCloud()) {
-      configLoaderBuilder.withString(CLOUD_SECURE_CONNECT_BUNDLE, config.getSecureConnectBundle());
     }
 
     processAuthenticatorConfig(config, configLoaderBuilder);

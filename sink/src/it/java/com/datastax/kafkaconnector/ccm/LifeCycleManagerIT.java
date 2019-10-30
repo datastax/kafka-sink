@@ -10,10 +10,12 @@ package com.datastax.kafkaconnector.ccm;
 
 import static com.datastax.kafkaconnector.config.DseSinkConfig.*;
 import static com.datastax.kafkaconnector.config.SslConfig.HOSTNAME_VALIDATION_OPT;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONFIG_RELOAD_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_MAX_FRAME_LENGTH;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.RECONNECTION_POLICY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_CONSISTENCY;
@@ -223,6 +225,11 @@ public class LifeCycleManagerIT {
 
       assertThat(profile.getDuration(METRICS_NODE_CQL_MESSAGES_HIGHEST))
           .isEqualTo(Duration.ofSeconds(35));
+
+      // todo after 4.x release with JAVA-2452 consider changing default to "none"
+      assertFalse(profile.isDefined(PROTOCOL_COMPRESSION));
+
+      assertFalse(profile.isDefined(CLOUD_SECURE_CONNECT_BUNDLE));
     }
   }
 

@@ -24,6 +24,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SSL_OPT_PREFIX;
 import static com.datastax.kafkaconnector.config.SslConfig.PROVIDER_OPT;
@@ -239,7 +240,8 @@ class DseSinkConfigTest {
             .build();
 
     DseSinkConfig d = new DseSinkConfig(props);
-    assertThat(d.getSecureConnectBundle()).isEqualTo("/location/to/bundle");
+    assertThat(d.getJavaDriverSettings().get(SECURE_CONNECT_BUNDLE_DRIVER_SETTING))
+        .isEqualTo("/location/to/bundle");
   }
 
   @Test
@@ -573,8 +575,8 @@ class DseSinkConfigTest {
         Arguments.of(
             COMPRESSION_DRIVER_SETTING,
             COMPRESSION_OPT,
-            null) // todo after 4.x release with JAVA-2452 consider changing default to "none"
-        );
+            null), // todo after 4.x release with JAVA-2452 consider changing default to "none"
+        Arguments.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, SECURE_CONNECT_BUNDLE_OPT, null));
   }
 
   private static Stream<? extends Arguments> deprecatedSettingsProvider() {
@@ -627,7 +629,18 @@ class DseSinkConfigTest {
             ImmutableMap.of(COMPRESSION_OPT, "lz4"),
             COMPRESSION_DRIVER_SETTING,
             COMPRESSION_OPT,
-            "lz4"));
+            "lz4"),
+        Arguments.of(
+            ImmutableMap.of(
+                SECURE_CONNECT_BUNDLE_OPT, "path", SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path2"),
+            SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+            SECURE_CONNECT_BUNDLE_OPT,
+            "path"),
+        Arguments.of(
+            ImmutableMap.of(SECURE_CONNECT_BUNDLE_OPT, "path"),
+            SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+            SECURE_CONNECT_BUNDLE_OPT,
+            "path"));
   }
 
   private static Stream<? extends Arguments> javaDriverSettingProvider() {
@@ -653,7 +666,12 @@ class DseSinkConfigTest {
             ImmutableMap.of(COMPRESSION_DRIVER_SETTING, "lz4"),
             COMPRESSION_DRIVER_SETTING,
             COMPRESSION_OPT,
-            "lz4"));
+            "lz4"),
+        Arguments.of(
+            ImmutableMap.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path"),
+            SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+            SECURE_CONNECT_BUNDLE_OPT,
+            "path"));
   }
 
   private void assertTopic(
