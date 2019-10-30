@@ -18,7 +18,6 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_P
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
@@ -545,10 +544,6 @@ public class LifeCycleManager {
           METRICS_SESSION_CQL_REQUESTS_INTERVAL, Duration.ofSeconds(30));
     }
 
-    if (config.getCompressionType() != DseSinkConfig.CompressionType.None) {
-      configLoaderBuilder.withString(
-          PROTOCOL_COMPRESSION, config.getCompressionType().getDriverCompressionType());
-    }
     if (config.isCloud()) {
       configLoaderBuilder.withString(CLOUD_SECURE_CONNECT_BUNDLE, config.getSecureConnectBundle());
     }

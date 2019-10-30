@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
@@ -151,17 +152,19 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
   }
 
-  @Test
-  void should_error_invalid_compression_type() {
-    Map<String, String> props =
-        Maps.newHashMap(ImmutableMap.<String, String>builder().put(COMPRESSION_OPT, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
-        .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(
-            String.format(
-                "Invalid value foo for configuration %s: valid values are None, Snappy, LZ4",
-                COMPRESSION_OPT));
-  }
+  //  todo can we move the validation to the driver?
+  //  @Test
+  //  void should_error_invalid_compression_type() {
+  //    Map<String, String> props =
+  //        Maps.newHashMap(ImmutableMap.<String, String>builder().put(COMPRESSION_OPT,
+  // "foo").build());
+  //    assertThatThrownBy(() -> new DseSinkConfig(props))
+  //        .isInstanceOf(ConfigException.class)
+  //        .hasMessageContaining(
+  //            String.format(
+  //                "Invalid value foo for configuration %s: valid values are None, Snappy, LZ4",
+  //                COMPRESSION_OPT));
+  //  }
 
   @Test
   void should_error_missing_dc_with_contactPoints() {
@@ -565,7 +568,13 @@ class DseSinkConfigTest {
         Arguments.of(
             CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
             CONNECTION_POOL_LOCAL_SIZE,
-            CONNECTION_POOL_LOCAL_SIZE_DEFAULT));
+            CONNECTION_POOL_LOCAL_SIZE_DEFAULT),
+        Arguments.of(LOCAL_DC_DRIVER_SETTING, DC_OPT, null),
+        Arguments.of(
+            COMPRESSION_DRIVER_SETTING,
+            COMPRESSION_OPT,
+            null) // todo after 4.x release with JAVA-2452 consider changing default to "none"
+        );
   }
 
   private static Stream<? extends Arguments> deprecatedSettingsProvider() {
@@ -608,7 +617,17 @@ class DseSinkConfigTest {
             LOCAL_DC_DRIVER_SETTING,
             DC_OPT,
             "dc"),
-        Arguments.of(ImmutableMap.of(DC_OPT, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"));
+        Arguments.of(ImmutableMap.of(DC_OPT, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"),
+        Arguments.of(
+            ImmutableMap.of(COMPRESSION_OPT, "lz4", COMPRESSION_DRIVER_SETTING, "none"),
+            COMPRESSION_DRIVER_SETTING,
+            COMPRESSION_OPT,
+            "lz4"),
+        Arguments.of(
+            ImmutableMap.of(COMPRESSION_OPT, "lz4"),
+            COMPRESSION_DRIVER_SETTING,
+            COMPRESSION_OPT,
+            "lz4"));
   }
 
   private static Stream<? extends Arguments> javaDriverSettingProvider() {
@@ -629,7 +648,12 @@ class DseSinkConfigTest {
             CONNECTION_POOL_LOCAL_SIZE,
             "100"),
         Arguments.of(
-            ImmutableMap.of(LOCAL_DC_DRIVER_SETTING, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"));
+            ImmutableMap.of(LOCAL_DC_DRIVER_SETTING, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"),
+        Arguments.of(
+            ImmutableMap.of(COMPRESSION_DRIVER_SETTING, "lz4"),
+            COMPRESSION_DRIVER_SETTING,
+            COMPRESSION_OPT,
+            "lz4"));
   }
 
   private void assertTopic(

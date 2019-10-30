@@ -65,6 +65,9 @@ public class DseSinkConfig {
 
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
+  static final String COMPRESSION_DRIVER_SETTING =
+      withDriverPrefix(DefaultDriverOption.PROTOCOL_COMPRESSION);
+
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
 
   static final String METRICS_HIGHEST_LATENCY_OPT = "metricsHighestLatency";
@@ -210,9 +213,6 @@ public class DseSinkConfig {
         (name, topicConfigMap) ->
             topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
 
-    // Verify that the compression-type setting is valid.
-    getCompressionType();
-
     // Verify that we have a topic section for every topic we're subscribing to, if 'topics'
     // was provided. A user may use topics.regex to subscribe by pattern, in which case,
     // they're on their own.
@@ -253,6 +253,12 @@ public class DseSinkConfig {
     deprecatedConnectionPoolSize(connectorSettings);
     deprecatedQueryExecutionTimeout(connectorSettings);
     deprecatedMetricsHighestLatency(connectorSettings);
+    deprecatedCompression(connectorSettings);
+  }
+
+  private void deprecatedCompression(Map<String, String> connectorSettings) {
+    handleDeprecatedSetting(
+        connectorSettings, COMPRESSION_OPT, COMPRESSION_DRIVER_SETTING, null, Function.identity());
   }
 
   private void deprecatedLocalDc(Map<String, String> connectorSettings) {
@@ -385,15 +391,6 @@ public class DseSinkConfig {
     return globalConfig.getString(SECURE_CONNECT_BUNDLE_OPT);
   }
 
-  public CompressionType getCompressionType() {
-    String typeString = globalConfig.getString(COMPRESSION_OPT);
-    try {
-      return CompressionType.valueOf(typeString);
-    } catch (IllegalArgumentException e) {
-      throw new ConfigException(COMPRESSION_OPT, typeString, "valid values are None, Snappy, LZ4");
-    }
-  }
-
   public List<String> getContactPoints() {
     return globalConfig.getList(CONTACT_POINTS_OPT);
   }
@@ -429,7 +426,6 @@ public class DseSinkConfig {
             + "        maxConcurrentRequests: %d%n"
             + "        maxNumberOfRecordsInBatch: %d%n"
             + "        jmx: %b%n"
-            + "        compression: %s%n"
             + "SSL configuration:%n%s%n"
             + "Authentication configuration:%n%s%n"
             + "Topic configurations:%n%s"
@@ -439,7 +435,6 @@ public class DseSinkConfig {
         getMaxConcurrentRequests(),
         getMaxNumberOfRecordsInBatch(),
         getJmx(),
-        getCompressionType(),
         getSslConfigToString(),
         Splitter.on("\n")
             .splitToList(authConfig.toString())
@@ -482,22 +477,6 @@ public class DseSinkConfig {
       return String.format("%s will be ignored because you are using cloud", PORT_OPT);
     }
     return String.valueOf(getPort());
-  }
-
-  public enum CompressionType {
-    None(null),
-    Snappy("snappy"),
-    LZ4("lz4");
-
-    private final String driverCompressionType;
-
-    CompressionType(String driverCompressionType) {
-      this.driverCompressionType = driverCompressionType;
-    }
-
-    public String getDriverCompressionType() {
-      return driverCompressionType;
-    }
   }
 
   public Map<String, String> getJavaDriverSettings() {
