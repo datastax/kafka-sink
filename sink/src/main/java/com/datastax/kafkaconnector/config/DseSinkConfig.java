@@ -18,12 +18,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,6 +155,8 @@ public class DseSinkConfig {
               "",
               ConfigDef.Importance.HIGH,
               "The location of the cloud secure bundle used to connect to Datastax Apache Cassandra as a service.");
+  private static final Function<String, String> TO_SECONDS_CONVERTER =
+      v -> String.format("%s seconds", v);
 
   private final String instanceName;
   private final AbstractConfig globalConfig;
@@ -252,70 +256,59 @@ public class DseSinkConfig {
   }
 
   private void deprecatedLocalDc(Map<String, String> connectorSettings) {
-    // handle usage of deprecated setting
-    if (connectorSettings.containsKey(DC_OPT)) {
-      log.warn(
-          "The {} setting is deprecated. You should use {} setting instead.",
-          DC_OPT,
-          LOCAL_DC_DRIVER_SETTING);
-      javaDriverSettings.put(LOCAL_DC_DRIVER_SETTING, connectorSettings.get(DC_OPT));
-    }
+    handleDeprecatedSetting(
+        connectorSettings, DC_OPT, LOCAL_DC_DRIVER_SETTING, null, Function.identity());
   }
 
   private void deprecatedConnectionPoolSize(Map<String, String> connectorSettings) {
-    // handle usage of deprecated setting
-    if (connectorSettings.containsKey(CONNECTION_POOL_LOCAL_SIZE)) {
-      log.warn(
-          "The {} setting is deprecated. You should use {} setting instead.",
-          CONNECTION_POOL_LOCAL_SIZE,
-          CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING);
-      javaDriverSettings.put(
-          CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
-          connectorSettings.get(CONNECTION_POOL_LOCAL_SIZE));
-    }
-
-    // handle default if setting is not provided
-    if (!javaDriverSettings.containsKey(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING)) {
-      javaDriverSettings.put(
-          CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, CONNECTION_POOL_LOCAL_SIZE_DEFAULT);
-    }
+    handleDeprecatedSetting(
+        connectorSettings,
+        CONNECTION_POOL_LOCAL_SIZE,
+        CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+        CONNECTION_POOL_LOCAL_SIZE_DEFAULT,
+        Function.identity());
   }
 
   private void deprecatedQueryExecutionTimeout(Map<String, String> connectorSettings) {
-    // handle usage of deprecated setting
-    if (connectorSettings.containsKey(QUERY_EXECUTION_TIMEOUT_OPT)) {
-      log.warn(
-          "The {} setting is deprecated. You should use {} setting instead.",
-          QUERY_EXECUTION_TIMEOUT_OPT,
-          QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING);
-      javaDriverSettings.put(
-          QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
-          String.format("%s seconds", connectorSettings.get(QUERY_EXECUTION_TIMEOUT_OPT)));
-    }
-
-    // handle default if setting is not provided
-    if (!javaDriverSettings.containsKey(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING)) {
-      javaDriverSettings.put(
-          QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, QUERY_EXECUTION_TIMEOUT_DEFAULT);
-    }
+    handleDeprecatedSetting(
+        connectorSettings,
+        QUERY_EXECUTION_TIMEOUT_OPT,
+        QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+        QUERY_EXECUTION_TIMEOUT_DEFAULT,
+        TO_SECONDS_CONVERTER);
   }
 
   private void deprecatedMetricsHighestLatency(Map<String, String> connectorSettings) {
+    handleDeprecatedSetting(
+        connectorSettings,
+        METRICS_HIGHEST_LATENCY_OPT,
+        METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+        METRICS_HIGHEST_LATENCY_DEFAULT,
+        TO_SECONDS_CONVERTER);
+  }
+
+  private void handleDeprecatedSetting(
+      @NotNull Map<String, String> connectorSettings,
+      @NotNull String connectorDeprecatedSetting,
+      @NotNull String driverSetting,
+      @Nullable String defaultValue,
+      @NotNull Function<String, String> deprecatedValueConverter) {
     // handle usage of deprecated setting
-    if (connectorSettings.containsKey(METRICS_HIGHEST_LATENCY_OPT)) {
+    if (connectorSettings.containsKey(connectorDeprecatedSetting)) {
       log.warn(
           "The {} setting is deprecated. You should use {} setting instead.",
-          METRICS_HIGHEST_LATENCY_OPT,
-          METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS);
+          connectorDeprecatedSetting,
+          driverSetting);
       javaDriverSettings.put(
-          METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
-          String.format("%s seconds", connectorSettings.get(METRICS_HIGHEST_LATENCY_OPT)));
+          driverSetting,
+          deprecatedValueConverter.apply(connectorSettings.get(connectorDeprecatedSetting)));
     }
 
-    // handle default if setting is not provided
-    if (!javaDriverSettings.containsKey(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS)) {
-      javaDriverSettings.put(
-          METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, METRICS_HIGHEST_LATENCY_DEFAULT);
+    if (defaultValue != null) {
+      // handle default if setting is not provided
+      if (!javaDriverSettings.containsKey(driverSetting)) {
+        javaDriverSettings.put(driverSetting, defaultValue);
+      }
     }
   }
 

@@ -231,7 +231,7 @@ class DseSinkConfigTest {
     DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
 
     // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_OPT))
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS))
         .isEqualTo("10 seconds");
     assertThat(logs.getLoggedMessages())
         .contains(
