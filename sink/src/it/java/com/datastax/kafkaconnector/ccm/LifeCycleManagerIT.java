@@ -15,6 +15,8 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONFIG
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_MAX_FRAME_LENGTH;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.RECONNECTION_POLICY_CLASS;
@@ -184,6 +186,7 @@ public class LifeCycleManagerIT {
     config.put("contactPoints", contactPointIp);
     config.put("loadBalancing.localDc", ccm.getDC(1));
     config.put("port", String.valueOf(ccm.getBinaryPort()));
+    config.put("jmx", "true");
     config.put(driverSetting(CONFIG_RELOAD_INTERVAL), "1 minutes");
     config.put(driverSetting(REQUEST_CONSISTENCY), "ALL");
     config.put(driverSetting(REQUEST_DEFAULT_IDEMPOTENCE), "true");
@@ -230,6 +233,11 @@ public class LifeCycleManagerIT {
       assertFalse(profile.isDefined(PROTOCOL_COMPRESSION));
 
       assertFalse(profile.isDefined(CLOUD_SECURE_CONNECT_BUNDLE));
+
+      assertThat(profile.getDuration(METRICS_SESSION_CQL_REQUESTS_INTERVAL))
+          .isEqualTo(Duration.ofSeconds(30));
+      assertThat(profile.getStringList(METRICS_SESSION_ENABLED))
+          .containsOnly("cql-client-timeouts", "cql-requests");
     }
   }
 

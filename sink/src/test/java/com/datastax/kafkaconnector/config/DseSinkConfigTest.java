@@ -20,6 +20,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_S
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_INTERVAL_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING;
@@ -27,9 +28,12 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_T
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SSL_OPT_PREFIX;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.withDriverPrefix;
 import static com.datastax.kafkaconnector.config.SslConfig.PROVIDER_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.slf4j.event.Level.WARN;
@@ -495,6 +499,58 @@ class DseSinkConfigTest {
             "The setting: "
                 + settingName
                 + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
+  }
+
+  @Test
+  void should_fill_with_default_metrics_settings_if_jmx_enabled() {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(ImmutableMap.<String, String>builder().put("jmx", "true").build());
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0"))
+        .isEqualTo("cql-requests");
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".1"))
+        .isEqualTo("cql-client-timeouts");
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL)))
+        .isEqualTo(METRICS_INTERVAL_DEFAULT);
+  }
+
+  @Test
+  void should_override_default_metrics_settings_if_jmx_and_metrics_settings_are_provided_enabled() {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put("jmx", "true")
+                .put(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0", "bytes-sent")
+                .put(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL), "5 seconds")
+                .build());
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0"))
+        .isEqualTo("bytes-sent");
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL)))
+        .isEqualTo("5 seconds");
   }
 
   @ParameterizedTest

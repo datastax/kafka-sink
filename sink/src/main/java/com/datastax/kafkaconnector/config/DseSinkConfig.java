@@ -9,6 +9,8 @@
 package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
@@ -165,6 +167,8 @@ public class DseSinkConfig {
   private static final Function<String, String> TO_SECONDS_CONVERTER =
       v -> String.format("%s seconds", v);
 
+  static final String METRICS_INTERVAL_DEFAULT = "30 seconds";
+
   private final String instanceName;
   private final AbstractConfig globalConfig;
   private final Map<String, TopicConfig> topicConfigs;
@@ -259,6 +263,29 @@ public class DseSinkConfig {
     deprecatedMetricsHighestLatency(connectorSettings);
     deprecatedCompression(connectorSettings);
     deprecatedSecureBundle(connectorSettings);
+
+    if (getJmx()) {
+      metricsSettings();
+    }
+  }
+
+  private void metricsSettings() {
+    String metricsEnabledDriverSetting = withDriverPrefix(METRICS_SESSION_ENABLED);
+
+    // if user explicitly provided setting under datastax-java-driver do not add defaults
+    if (javaDriverSettings
+        .keySet()
+        .stream()
+        .noneMatch(v -> v.contains(metricsEnabledDriverSetting))) {
+      javaDriverSettings.put(metricsEnabledDriverSetting + ".0", "cql-requests");
+      javaDriverSettings.put(metricsEnabledDriverSetting + ".1", "cql-client-timeouts");
+    }
+
+    String sessionCqlRequestIntervalDriverSetting =
+        withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL);
+    if (!javaDriverSettings.containsKey(sessionCqlRequestIntervalDriverSetting)) {
+      javaDriverSettings.put(sessionCqlRequestIntervalDriverSetting, METRICS_INTERVAL_DEFAULT);
+    }
   }
 
   private void deprecatedSecureBundle(Map<String, String> connectorSettings) {
@@ -332,7 +359,7 @@ public class DseSinkConfig {
     }
   }
 
-  private static String withDriverPrefix(DefaultDriverOption option) {
+  static String withDriverPrefix(DefaultDriverOption option) {
     return String.format("%s.%s", DRIVER_CONFIG_PREFIX, option.getPath());
   }
 

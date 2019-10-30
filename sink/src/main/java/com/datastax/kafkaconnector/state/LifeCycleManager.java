@@ -15,8 +15,6 @@ import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
@@ -62,8 +60,6 @@ import com.typesafe.config.ConfigFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -535,13 +531,6 @@ public class LifeCycleManager {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
         dseProgrammaticBuilderWithFallback(
             ConfigFactory.parseMap(config.getJavaDriverSettings(), "Connector properties"));
-
-    if (config.getJmx()) {
-      configLoaderBuilder.withStringList(
-          METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));
-      configLoaderBuilder.withDuration(
-          METRICS_SESSION_CQL_REQUESTS_INTERVAL, Duration.ofSeconds(30));
-    }
 
     processAuthenticatorConfig(config, configLoaderBuilder);
     if (sslConfig != null) {
