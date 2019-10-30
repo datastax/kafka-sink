@@ -91,51 +91,6 @@ class DseSinkConfigTest {
   }
 
   @Test
-  void should_favor_deprecated_setting_over_java_driver_queryExecutionTimeout(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder()
-                .put(QUERY_EXECUTION_TIMEOUT_OPT, "10")
-                .put(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100")
-                .build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING))
-        .isEqualTo("10 seconds");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                QUERY_EXECUTION_TIMEOUT_OPT, QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING));
-  }
-
-  @Test
-  void should_use_deprecated_setting_as_a_new_java_driver_setting_queryExecutionTimeout(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder().put(QUERY_EXECUTION_TIMEOUT_OPT, "10").build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING))
-        .isEqualTo("10 seconds");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                QUERY_EXECUTION_TIMEOUT_OPT, QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING));
-  }
-
-  @Test
   void should_use_java_driver_setting_queryExecutionTimeout(
       @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
     // given
@@ -193,51 +148,6 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
-  }
-
-  @Test
-  void should_favor_deprecated_setting_over_java_driver_metricsHighestLatency(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder()
-                .put(METRICS_HIGHEST_LATENCY_OPT, "10")
-                .put(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100")
-                .build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS))
-        .isEqualTo("10 seconds");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                METRICS_HIGHEST_LATENCY_OPT, METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS));
-  }
-
-  @Test
-  void should_use_deprecated_setting_as_a_new_java_driver_setting_metricsHighestLatency(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder().put(METRICS_HIGHEST_LATENCY_OPT, "10").build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS))
-        .isEqualTo("10 seconds");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                METRICS_HIGHEST_LATENCY_OPT, METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS));
   }
 
   @Test
@@ -299,51 +209,6 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
-  }
-
-  @Test
-  void should_favor_deprecated_setting_over_java_driver_connectionPoolLocalSize(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder()
-                .put(CONNECTION_POOL_LOCAL_SIZE, "10")
-                .put(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100")
-                .build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING))
-        .isEqualTo("10");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                CONNECTION_POOL_LOCAL_SIZE, CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING));
-  }
-
-  @Test
-  void should_use_deprecated_setting_as_a_new_java_driver_setting_connectionPoolLocalSize(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder().put(CONNECTION_POOL_LOCAL_SIZE, "10").build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING))
-        .isEqualTo("10");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                CONNECTION_POOL_LOCAL_SIZE, CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING));
   }
 
   @Test
@@ -630,48 +495,6 @@ class DseSinkConfigTest {
   }
 
   @Test
-  void should_favor_deprecated_setting_over_java_driver_localDc(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(
-            ImmutableMap.<String, String>builder()
-                .put(DC_OPT, "dc")
-                .put(LOCAL_DC_DRIVER_SETTING, "dc_suppressed")
-                .build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isEqualTo("dc");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                DC_OPT, LOCAL_DC_DRIVER_SETTING));
-  }
-
-  @Test
-  void should_use_deprecated_setting_as_a_new_java_driver_setting_localDc(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // given
-    Map<String, String> props =
-        Maps.newHashMap(ImmutableMap.<String, String>builder().put(DC_OPT, "dc").build());
-
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isEqualTo("dc");
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                DC_OPT, LOCAL_DC_DRIVER_SETTING));
-  }
-
-  @Test
   void should_use_java_driver_setting_localDc(
       @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
     // given
@@ -806,6 +629,69 @@ class DseSinkConfigTest {
             "The setting: "
                 + settingName
                 + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
+  }
+
+  @ParameterizedTest
+  @MethodSource("deprecatedSettingsProvider")
+  void should_handle_deprecated_settings(
+      Map<String, String> inputSettings,
+      String driverSettingName,
+      String connectorSettingName,
+      String expected,
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                connectorSettingName, driverSettingName));
+  }
+
+  private static Stream<? extends Arguments> deprecatedSettingsProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableMap.of(
+                QUERY_EXECUTION_TIMEOUT_OPT, "10", QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100"),
+            QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+            QUERY_EXECUTION_TIMEOUT_OPT,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(QUERY_EXECUTION_TIMEOUT_OPT, "10"),
+            QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+            QUERY_EXECUTION_TIMEOUT_OPT,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(
+                METRICS_HIGHEST_LATENCY_OPT, "10", METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100"),
+            METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+            METRICS_HIGHEST_LATENCY_OPT,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(METRICS_HIGHEST_LATENCY_OPT, "10"),
+            METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+            METRICS_HIGHEST_LATENCY_OPT,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(
+                CONNECTION_POOL_LOCAL_SIZE, "10", CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100"),
+            CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+            CONNECTION_POOL_LOCAL_SIZE,
+            "10"),
+        Arguments.of(
+            ImmutableMap.of(CONNECTION_POOL_LOCAL_SIZE, "10"),
+            CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+            CONNECTION_POOL_LOCAL_SIZE,
+            "10"),
+        Arguments.of(
+            ImmutableMap.of(DC_OPT, "dc", LOCAL_DC_DRIVER_SETTING, "dc_suppressed"),
+            LOCAL_DC_DRIVER_SETTING,
+            DC_OPT,
+            "dc"),
+        Arguments.of(ImmutableMap.of(DC_OPT, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"));
   }
 
   private void assertTopic(
