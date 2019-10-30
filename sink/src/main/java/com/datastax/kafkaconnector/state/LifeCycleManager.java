@@ -538,10 +538,6 @@ public class LifeCycleManager {
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
         dseProgrammaticBuilderWithFallback(
             ConfigFactory.parseMap(config.getJavaDriverSettings(), "Connector properties"));
-    if (!config.getLocalDc().isEmpty()) {
-      configLoaderBuilder.withString(
-          DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
-    }
 
     configLoaderBuilder.withDuration(
         DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
@@ -549,9 +545,6 @@ public class LifeCycleManager {
     configLoaderBuilder.withDuration(
         DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST,
         Duration.ofSeconds(config.getMetricsHighestLatency()));
-
-    configLoaderBuilder.withInt(
-        DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.getConnectionPoolLocalSize());
 
     if (config.getJmx()) {
       configLoaderBuilder.withStringList(

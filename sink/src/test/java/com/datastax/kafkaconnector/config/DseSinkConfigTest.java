@@ -11,6 +11,8 @@ package com.datastax.kafkaconnector.config;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
@@ -24,19 +26,26 @@ import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.slf4j.event.Level.WARN;
 
+import com.datastax.dsbulk.commons.tests.logging.LogCapture;
+import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
+import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@ExtendWith(LogInterceptingExtension.class)
 class DseSinkConfigTest {
   @Test
   void should_error_invalid_port() {
@@ -97,6 +106,7 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
   }
 
+  // todo should we handle validation in the same way for settings with datastax-java-driver prefix?
   @Test
   void should_error_invalid_connectionPoolLocalSize() {
     Map<String, String> props =
@@ -115,6 +125,90 @@ class DseSinkConfigTest {
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
+  }
+
+  @Test
+  void should_favor_deprecated_setting_over_java_driver_connectionPoolLocalSize(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(CONNECTION_POOL_LOCAL_SIZE, "10")
+                .put(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING))
+        .isEqualTo("10");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                CONNECTION_POOL_LOCAL_SIZE, CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_use_deprecated_setting_as_a_new_java_driver_setting_connectionPoolLocalSize(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(CONNECTION_POOL_LOCAL_SIZE, "10").build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING))
+        .isEqualTo("10");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                CONNECTION_POOL_LOCAL_SIZE, CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_use_java_driver_setting_connectionPoolLocalSize(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING))
+        .isEqualTo("100");
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                CONNECTION_POOL_LOCAL_SIZE, CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_set_default_for_connectionPoolLocalSize(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING))
+        .isEqualTo(CONNECTION_POOL_LOCAL_SIZE_DEFAULT);
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                CONNECTION_POOL_LOCAL_SIZE, CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING));
   }
 
   @Test
@@ -359,6 +453,83 @@ class DseSinkConfigTest {
             "The setting: "
                 + settingName
                 + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
+  }
+
+  @Test
+  void should_favor_deprecated_setting_over_java_driver_localDc(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(DC_OPT, "dc")
+                .put(LOCAL_DC_DRIVER_SETTING, "dc_suppressed")
+                .build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isEqualTo("dc");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                DC_OPT, LOCAL_DC_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_use_deprecated_setting_as_a_new_java_driver_setting_localDc(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(ImmutableMap.<String, String>builder().put(DC_OPT, "dc").build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isEqualTo("dc");
+    assertThat(logs.getLoggedMessages())
+        .contains(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                DC_OPT, LOCAL_DC_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_use_java_driver_setting_localDc(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder().put(LOCAL_DC_DRIVER_SETTING, "dc").build());
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isEqualTo("dc");
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                DC_OPT, LOCAL_DC_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_not_set_default_for_localDc(
+      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isNull();
+    assertThat(logs.getLoggedMessages())
+        .doesNotContain(
+            String.format(
+                "The %s setting is deprecated. You should use %s setting instead.",
+                DC_OPT, LOCAL_DC_DRIVER_SETTING));
   }
 
   private static Stream<? extends Arguments> correctTopicNames() {

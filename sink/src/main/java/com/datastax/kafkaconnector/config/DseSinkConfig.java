@@ -44,13 +44,19 @@ public class DseSinkConfig {
 
   public static final String CONTACT_POINTS_OPT = "contactPoints";
   static final String PORT_OPT = "port";
+
   static final String DC_OPT = "loadBalancing.localDc";
-  static final String LOCAL_DC_DRIVER_SETTING =
+  public static final String LOCAL_DC_DRIVER_SETTING =
       withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER);
 
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
   static final String QUERY_EXECUTION_TIMEOUT_OPT = "queryExecutionTimeout";
+
   static final String CONNECTION_POOL_LOCAL_SIZE = "connectionPoolLocalSize";
+  static final String CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING =
+      withDriverPrefix(DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE);
+  static final String CONNECTION_POOL_LOCAL_SIZE_DEFAULT = "4";
+
   static final String JMX_OPT = "jmx";
   static final String COMPRESSION_OPT = "compression";
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
@@ -179,7 +185,7 @@ public class DseSinkConfig {
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
 
-    populateDriverSettingsWithDeprecatedSettings();
+    populateDriverSettingsWithDeprecatedSettings(globalSettings);
     boolean cloud = isCloud();
 
     if (!cloud) {
@@ -229,20 +235,43 @@ public class DseSinkConfig {
     }
   }
 
-  private void populateDriverSettingsWithDeprecatedSettings() {
-    String localDcSetting = withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER);
-    String localDcDeprecatedSetting = globalConfig.getString(DC_OPT);
-    if (!localDcDeprecatedSetting.isEmpty()) {
+  private void populateDriverSettingsWithDeprecatedSettings(Map<String, String> connectorSettings) {
+    deprecatedLocalDc(connectorSettings);
+    deprecatedConnectionPoolSize(connectorSettings);
+  }
+
+  private void deprecatedLocalDc(Map<String, String> connectorSettings) {
+    // handle usage of deprecated setting
+    if (connectorSettings.containsKey(DC_OPT)) {
       log.warn(
-          "The {} setting is deprecated." + " You should use {} setting instead.",
+          "The {} setting is deprecated. You should use {} setting instead.",
           DC_OPT,
-          localDcSetting);
-      javaDriverSettings.put(localDcSetting, localDcDeprecatedSetting);
+          LOCAL_DC_DRIVER_SETTING);
+      javaDriverSettings.put(LOCAL_DC_DRIVER_SETTING, connectorSettings.get(DC_OPT));
+    }
+  }
+
+  private void deprecatedConnectionPoolSize(Map<String, String> connectorSettings) {
+    // handle usage of deprecated setting
+    if (connectorSettings.containsKey(CONNECTION_POOL_LOCAL_SIZE)) {
+      log.warn(
+          "The {} setting is deprecated. You should use {} setting instead.",
+          CONNECTION_POOL_LOCAL_SIZE,
+          CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING);
+      javaDriverSettings.put(
+          CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+          connectorSettings.get(CONNECTION_POOL_LOCAL_SIZE));
+    }
+
+    // handle default if setting is not provided
+    if (!javaDriverSettings.containsKey(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING)) {
+      javaDriverSettings.put(
+          CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, CONNECTION_POOL_LOCAL_SIZE_DEFAULT);
     }
   }
 
   private static String withDriverPrefix(DefaultDriverOption option) {
-    return String.format("%s.%s", DRIVER_CONFIG_PREFIX, option);
+    return String.format("%s.%s", DRIVER_CONFIG_PREFIX, option.getPath());
   }
 
   private void validateCloudSettings(Map<String, String> sslSettings) {
@@ -306,10 +335,6 @@ public class DseSinkConfig {
     return globalConfig.getInt(METRICS_HIGHEST_LATENCY_OPT);
   }
 
-  public int getConnectionPoolLocalSize() {
-    return globalConfig.getInt(CONNECTION_POOL_LOCAL_SIZE);
-  }
-
   public boolean isIgnoreErrors() {
     return globalConfig.getBoolean(IGNORE_ERRORS);
   }
@@ -367,23 +392,20 @@ public class DseSinkConfig {
         "Global configuration:%n"
             + "        contactPoints: %s%n"
             + "        port: %s%n"
-            + "        localDc: %s%n"
             + "        maxConcurrentRequests: %d%n"
             + "        queryExecutionTimeout: %d%n"
             + "        maxNumberOfRecordsInBatch: %d%n"
-            + "        connectionPoolLocalSize: %d%n"
             + "        jmx: %b%n"
             + "        compression: %s%n"
             + "SSL configuration:%n%s%n"
             + "Authentication configuration:%n%s%n"
-            + "Topic configurations:%n%s",
+            + "Topic configurations:%n%s"
+            + "datastax-java-driver configuration: %n%s",
         getContactPoints(),
         getPortToString(),
-        getLocalDc(),
         getMaxConcurrentRequests(),
         getQueryExecutionTimeout(),
         getMaxNumberOfRecordsInBatch(),
-        getConnectionPoolLocalSize(),
         getJmx(),
         getCompressionType(),
         getSslConfigToString(),
@@ -402,7 +424,13 @@ public class DseSinkConfig {
                         .stream()
                         .map(line -> "        " + line)
                         .collect(Collectors.joining("\n")))
+            .collect(Collectors.joining("\n")),
+        Splitter.on("\n")
+            .splitToList(javaDriverSettings.toString())
+            .stream()
+            .map(line -> "        " + line)
             .collect(Collectors.joining("\n")));
+    // todo validate to string of javaDriverSettings
   }
 
   private String getSslConfigToString() {

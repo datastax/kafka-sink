@@ -331,7 +331,7 @@ class LifeCycleManagerTest {
     // when, then
     assertThatThrownBy(() -> new DseSinkConfig(config))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("loadBalancing.localDc");
+        .hasMessageContaining(DseSinkConfig.LOCAL_DC_DRIVER_SETTING);
   }
 
   private static TableConfig makeTableConfig(
