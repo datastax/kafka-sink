@@ -187,16 +187,12 @@ public class LifeCycleManagerIT {
     config.put("loadBalancing.localDc", ccm.getDC(1));
     config.put("port", String.valueOf(ccm.getBinaryPort()));
     config.put("jmx", "true");
-    config.put(driverSetting(CONFIG_RELOAD_INTERVAL), "1 minutes");
-    config.put(driverSetting(REQUEST_CONSISTENCY), "ALL");
-    config.put(driverSetting(REQUEST_DEFAULT_IDEMPOTENCE), "true");
-    config.put(driverSetting(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
-    config.put(driverSetting(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
-
-    // check test how does it behaves for sink.json distributed mode?
-    // todo typesafe list needs to be in .0, .1, .. format
-    config.put(
-        driverSetting(CONTACT_POINTS) + ".0", "this should be ignored because provided directly");
+    config.put(withDriverPrefix(CONFIG_RELOAD_INTERVAL), "1 minutes");
+    config.put(withDriverPrefix(REQUEST_CONSISTENCY), "ALL");
+    config.put(withDriverPrefix(REQUEST_DEFAULT_IDEMPOTENCE), "true");
+    config.put(withDriverPrefix(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
+    config.put(withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
+    config.put(withDriverPrefix(CONTACT_POINTS), "this should be ignored because provided directly");
 
     DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
 
@@ -240,10 +236,6 @@ public class LifeCycleManagerIT {
       assertThat(profile.getStringList(METRICS_SESSION_ENABLED))
           .containsOnly("cql-client-timeouts", "cql-requests");
     }
-  }
-
-  private String driverSetting(DefaultDriverOption contactPoints) {
-    return String.format("%s.%s", DEFAULT_ROOT_PATH, contactPoints.getPath());
   }
 
   @NotNull

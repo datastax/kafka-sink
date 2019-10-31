@@ -17,6 +17,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_L
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
@@ -47,6 +48,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
@@ -610,6 +612,24 @@ class DseSinkConfigTest {
             String.format(
                 "The %s setting is deprecated. You should use %s setting instead.",
                 connectorSettingName, driverSettingName));
+  }
+
+  @Test
+  void should_transform_list_setting_to_indexed_typesafe_setting(){
+    // given
+    Map<String, String> connectorSettings = new HashMap<>();
+    for(String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE){
+      connectorSettings.put(listSettingName, "a,b");
+    }
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
+
+    // then
+    for(String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE){
+      assertThat(dseSinkConfig.getJavaDriverSettings().get(String.format("%s.%s",listSettingName, "0"))).isEqualTo("a");
+      assertThat(dseSinkConfig.getJavaDriverSettings().get(String.format("%s.%s",listSettingName, "1"))).isEqualTo("b");
+    }
   }
 
   private static Stream<? extends Arguments> defaultSettingProvider() {

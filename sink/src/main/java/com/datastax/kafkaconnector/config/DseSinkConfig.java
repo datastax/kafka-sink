@@ -9,12 +9,18 @@
 package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.util.SinkUtil.NAME_OPT;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METADATA_SCHEMA_REFRESHED_KEYSPACES;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_NODE_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
+import com.datastax.oss.driver.api.core.config.DriverOption;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -83,6 +89,15 @@ public class DseSinkConfig {
   public static final String SECURE_CONNECT_BUNDLE_OPT = "cloud.secureConnectBundle";
   static final String SECURE_CONNECT_BUNDLE_DRIVER_SETTING =
       withDriverPrefix(DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE);
+
+  static final List<String> JAVA_DRIVER_SETTINGS_LIST_TYPE = ImmutableList
+      .of(
+          withDriverPrefix(METRICS_SESSION_ENABLED),
+          withDriverPrefix(CONTACT_POINTS),
+          withDriverPrefix(METADATA_SCHEMA_REFRESHED_KEYSPACES),
+          withDriverPrefix(METRICS_NODE_ENABLED),
+          withDriverPrefix(SSL_CIPHER_SUITES)
+      );
 
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
@@ -200,7 +215,7 @@ public class DseSinkConfig {
       } else if (name.startsWith("auth.")) {
         authSettings.put(name, entry.getValue());
       } else if (name.startsWith(DRIVER_CONFIG_PREFIX)) {
-        javaDriverSettings.put(entry.getKey(), entry.getValue());
+        addJavaDriverSetting(entry);
       } else {
         globalSettings.put(name, entry.getValue());
       }
@@ -256,6 +271,20 @@ public class DseSinkConfig {
           String.format(
               "When contact points is provided, %s must also be specified",
               LOCAL_DC_DRIVER_SETTING));
+    }
+  }
+
+  private static Splitter COMA_SPLITTER = Splitter.on(",");
+  private void addJavaDriverSetting(Map.Entry<String, String> entry) {
+
+    if(JAVA_DRIVER_SETTINGS_LIST_TYPE.contains(entry.getKey())){
+      List<String> values = COMA_SPLITTER.splitToList(entry.getValue());
+      for(int i=0; i < values.size(); i++){
+        javaDriverSettings.put(String.format("%s.%d", entry.getKey(), i), values.get(i));
+      }
+
+    } else {
+      javaDriverSettings.put(entry.getKey(), entry.getValue());
     }
   }
 
@@ -371,7 +400,7 @@ public class DseSinkConfig {
     }
   }
 
-  static String withDriverPrefix(DefaultDriverOption option) {
+  public static String withDriverPrefix(DefaultDriverOption option) {
     return String.format("%s.%s", DRIVER_CONFIG_PREFIX, option.getPath());
   }
 
