@@ -230,8 +230,8 @@ public class LifeCycleManagerIT {
       assertThat(profile.getDuration(METRICS_NODE_CQL_MESSAGES_HIGHEST))
           .isEqualTo(Duration.ofSeconds(35));
 
-      // todo after 4.x release with JAVA-2452 consider changing default to "none"
-      assertFalse(profile.isDefined(PROTOCOL_COMPRESSION));
+
+      assertThat(profile.getString(PROTOCOL_COMPRESSION)).isEqualTo(COMPRESSION_DEFAULT);
 
       assertFalse(profile.isDefined(CLOUD_SECURE_CONNECT_BUNDLE));
 

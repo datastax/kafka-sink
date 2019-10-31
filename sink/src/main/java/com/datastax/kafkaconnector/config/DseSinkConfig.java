@@ -69,6 +69,7 @@ public class DseSinkConfig {
   static final String COMPRESSION_OPT = "compression";
   static final String COMPRESSION_DRIVER_SETTING =
       withDriverPrefix(DefaultDriverOption.PROTOCOL_COMPRESSION);
+  public static final String COMPRESSION_DEFAULT = "none";
 
   static final String MAX_NUMBER_OF_RECORDS_IN_BATCH = "maxNumberOfRecordsInBatch";
 
@@ -259,13 +260,11 @@ public class DseSinkConfig {
   }
 
   private void validateCompressionType() {
-    String typeString = globalConfig.getString(COMPRESSION_OPT);
-
     String compressionTypeValue = javaDriverSettings.get(COMPRESSION_DRIVER_SETTING);
     if (!(compressionTypeValue.toLowerCase().equals("none")
         || compressionTypeValue.toLowerCase().equals("snappy")
         || compressionTypeValue.toLowerCase().equals("lz4"))) {
-      throw new ConfigException(COMPRESSION_OPT, typeString, "valid values are none, snappy, lz4");
+      throw new ConfigException(COMPRESSION_OPT, compressionTypeValue, "valid values are none, snappy, lz4");
     }
   }
 
@@ -312,7 +311,7 @@ public class DseSinkConfig {
 
   private void deprecatedCompression(Map<String, String> connectorSettings) {
     handleDeprecatedSetting(
-        connectorSettings, COMPRESSION_OPT, COMPRESSION_DRIVER_SETTING, null, Function.identity());
+        connectorSettings, COMPRESSION_OPT, COMPRESSION_DRIVER_SETTING, COMPRESSION_DEFAULT, Function.identity());
   }
 
   private void deprecatedLocalDc(Map<String, String> connectorSettings) {

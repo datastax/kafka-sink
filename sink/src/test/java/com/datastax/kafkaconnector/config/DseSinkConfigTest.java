@@ -16,6 +16,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_L
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
@@ -629,7 +630,7 @@ class DseSinkConfigTest {
         Arguments.of(
             COMPRESSION_DRIVER_SETTING,
             COMPRESSION_OPT,
-            null), // todo after 4.x release with JAVA-2452 consider changing default to "none"
+            COMPRESSION_DEFAULT),
         Arguments.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, SECURE_CONNECT_BUNDLE_OPT, null));
   }
 
