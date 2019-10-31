@@ -52,8 +52,6 @@ public class DseSinkConfig {
   static final String SSL_OPT_PREFIX = "ssl.";
 
   public static final String CONTACT_POINTS_OPT = "contactPoints";
-  static final String CONTACT_POINTS_DRIVER_SETTING =
-      withDriverPrefix(DefaultDriverOption.CONTACT_POINTS);
 
   static final String PORT_OPT = "port";
 
@@ -304,7 +302,6 @@ public class DseSinkConfig {
   }
 
   private void populateDriverSettingsWithDeprecatedSettings(Map<String, String> connectorSettings) {
-    deprecatedContactPoints(connectorSettings);
     deprecatedLocalDc(connectorSettings);
     deprecatedConnectionPoolSize(connectorSettings);
     deprecatedQueryExecutionTimeout(connectorSettings);
@@ -314,23 +311,6 @@ public class DseSinkConfig {
 
     if (getJmx()) {
       metricsSettings();
-    }
-  }
-
-  private void deprecatedContactPoints(Map<String, String> connectorSettings) {
-    if (connectorSettings.containsKey(CONTACT_POINTS_OPT)) {
-      // clear all contact-points provided with datastax-java-driver prefix
-      List<String> contactPointsPrefixes =
-          javaDriverSettings
-              .keySet()
-              .stream()
-              .filter(v -> v.startsWith(CONTACT_POINTS_DRIVER_SETTING))
-              .collect(Collectors.toList());
-      contactPointsPrefixes.forEach(javaDriverSettings::remove);
-
-      // put as a typesafe list property
-      putAsTypesafeListProperty(
-          CONTACT_POINTS_DRIVER_SETTING, connectorSettings.get(CONTACT_POINTS_OPT));
     }
   }
 
@@ -495,12 +475,7 @@ public class DseSinkConfig {
   }
 
   public List<String> getContactPoints() {
-    return javaDriverSettings
-        .entrySet()
-        .stream()
-        .filter(e -> e.getKey().startsWith(CONTACT_POINTS_DRIVER_SETTING))
-        .map(Map.Entry::getValue)
-        .collect(Collectors.toList());
+    return globalConfig.getList(CONTACT_POINTS_OPT);
   }
 
   public String getLocalDc() {

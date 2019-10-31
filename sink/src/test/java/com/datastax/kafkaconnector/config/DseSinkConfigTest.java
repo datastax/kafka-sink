@@ -15,7 +15,6 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUES
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
-import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
@@ -35,6 +34,7 @@ import static com.datastax.kafkaconnector.config.DseSinkConfig.withDriverPrefix;
 import static com.datastax.kafkaconnector.config.SslConfig.PROVIDER_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,6 +57,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class DseSinkConfigTest {
+
+  private static final String CONTACT_POINTS_DRIVER_SETTINGS = withDriverPrefix(CONTACT_POINTS);
+
   @Test
   void should_error_invalid_port() {
     Map<String, String> props =
@@ -173,20 +176,6 @@ class DseSinkConfigTest {
   void should_error_missing_dc_with_contactPoints() {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(CONTACT_POINTS_OPT, "127.0.0.1").build();
-    assertThatThrownBy(() -> new DseSinkConfig(props))
-        .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(
-            String.format(
-                "When contact points is provided, %s must also be specified",
-                LOCAL_DC_DRIVER_SETTING));
-  }
-
-  @Test
-  void should_error_missing_dc_with_contactPoints_driver_prefix() {
-    Map<String, String> props =
-        ImmutableMap.<String, String>builder()
-            .put(CONTACT_POINTS_DRIVER_SETTING, "127.0.0.1")
-            .build();
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -620,12 +609,11 @@ class DseSinkConfigTest {
       Map<String, String> expectedDriverSettings) {
     // given
     Map<String, String> connectorSettings = new HashMap<>();
-    // todo do we want to allow value for settings that is = null?
     if (connectorContactPoints != null) {
       connectorSettings.put(CONTACT_POINTS_OPT, connectorContactPoints);
     }
     if (javaDriverPrefixContactPoints != null) {
-      connectorSettings.put(CONTACT_POINTS_DRIVER_SETTING, javaDriverPrefixContactPoints);
+      connectorSettings.put(CONTACT_POINTS_DRIVER_SETTINGS, javaDriverPrefixContactPoints);
     }
     connectorSettings.put(LOCAL_DC_DRIVER_SETTING, "localDc");
 
@@ -641,31 +629,19 @@ class DseSinkConfigTest {
 
   private static Stream<? extends Arguments> contactPointsProvider() {
     return Stream.of(
-        Arguments.of(
-            "a, b",
-            null,
-            ImmutableList.of("a", "b"),
-            ImmutableMap.of(
-                CONTACT_POINTS_DRIVER_SETTING + ".0", "a",
-                CONTACT_POINTS_DRIVER_SETTING + ".1", "b")),
-        Arguments.of(
-            "a, b",
-            "c",
-            ImmutableList.of("a", "b"),
-            ImmutableMap.of(
-                CONTACT_POINTS_DRIVER_SETTING + ".0",
-                "a",
-                CONTACT_POINTS_DRIVER_SETTING + ".1",
-                "b")),
+        Arguments.of("a, b", null, ImmutableList.of("a", "b"), Collections.emptyMap()),
+        Arguments.of("a, b", "c", ImmutableList.of("a", "b"), Collections.emptyMap()),
         Arguments.of(
             null,
             " c, d",
-            ImmutableList.of("c", "d"),
+            Collections.emptyList(), // setting provided with datastax-java-driver
+            // prefix should not be returned by the getContactPoints() method
             ImmutableMap.of(
-                CONTACT_POINTS_DRIVER_SETTING + ".0",
+                CONTACT_POINTS_DRIVER_SETTINGS + ".0",
                 "c",
-                CONTACT_POINTS_DRIVER_SETTING + ".1",
-                "d")));
+                CONTACT_POINTS_DRIVER_SETTINGS + ".1",
+                "d")) // pass cp setting to the driver directly
+        );
   }
 
   private static Stream<? extends Arguments> defaultSettingProvider() {
