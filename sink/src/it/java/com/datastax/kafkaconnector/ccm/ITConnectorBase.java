@@ -127,4 +127,15 @@ public class ITConnectorBase {
       String mappingString, String tableName, Map<String, String> extras) {
     return makeConnectorProperties(mappingString, tableName, extras, "mytopic");
   }
+
+  Map<String, String> makeConnectorPropertiesWithoutContactPointsAndPort(String mappingString) {
+    Map<String, String> connectorProperties = makeConnectorProperties(mappingString, null);
+    connectorProperties.remove("contactPoints");
+    connectorProperties.remove("port");
+    return connectorProperties;
+  }
+
+  public List<EndPoint> getContactPoints() {
+    return contactPoints;
+  }
 }
