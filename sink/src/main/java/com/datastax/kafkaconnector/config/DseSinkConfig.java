@@ -535,7 +535,7 @@ public class DseSinkConfig {
             + "        jmx: %b%n"
             + "SSL configuration:%n%s%n"
             + "Authentication configuration:%n%s%n"
-            + "Topic configurations:%n%s"
+            + "Topic configurations:%n%s%n"
             + "datastax-java-driver configuration: %n%s",
         getContactPoints(),
         getPortToString(),
@@ -559,12 +559,11 @@ public class DseSinkConfig {
                         .map(line -> "        " + line)
                         .collect(Collectors.joining("\n")))
             .collect(Collectors.joining("\n")),
-        Splitter.on("\n")
-            .splitToList(javaDriverSettings.toString())
+        javaDriverSettings
+            .entrySet()
             .stream()
-            .map(line -> "        " + line)
+            .map(entry -> "      " + entry)
             .collect(Collectors.joining("\n")));
-    // todo validate to string of javaDriverSettings
   }
 
   private String getSslConfigToString() {
