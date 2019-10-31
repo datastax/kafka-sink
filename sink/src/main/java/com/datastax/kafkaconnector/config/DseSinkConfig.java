@@ -267,9 +267,7 @@ public class DseSinkConfig {
       throw new ConfigException(
           CONTACT_POINTS_OPT,
           contactPoints,
-          String.format(
-              "When contact points is provided, %s must also be specified",
-              LOCAL_DC_DRIVER_SETTING));
+          String.format("When contact points is provided, %s must also be specified", DC_OPT));
     }
   }
 
@@ -421,7 +419,7 @@ public class DseSinkConfig {
       throw new ConfigException(
           String.format(
               "When %s parameter is specified you should not provide %s.",
-              SECURE_CONNECT_BUNDLE_OPT, LOCAL_DC_DRIVER_SETTING));
+              SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
     }
 
     if (!sslSettings.isEmpty()) {
