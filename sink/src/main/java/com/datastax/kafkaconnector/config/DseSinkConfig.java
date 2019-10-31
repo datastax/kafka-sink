@@ -324,7 +324,7 @@ public class DseSinkConfig {
           javaDriverSettings
               .keySet()
               .stream()
-              .filter(v -> v.contains(CONTACT_POINTS_DRIVER_SETTING))
+              .filter(v -> v.startsWith(CONTACT_POINTS_DRIVER_SETTING))
               .collect(Collectors.toList());
       contactPointsPrefixes.forEach(javaDriverSettings::remove);
 
@@ -391,7 +391,7 @@ public class DseSinkConfig {
     if (javaDriverSettings
         .keySet()
         .stream()
-        .noneMatch(v -> v.contains(metricsEnabledDriverSetting))) {
+        .noneMatch(v -> v.startsWith(metricsEnabledDriverSetting))) {
       javaDriverSettings.put(metricsEnabledDriverSetting + ".0", "cql-requests");
       javaDriverSettings.put(metricsEnabledDriverSetting + ".1", "cql-client-timeouts");
     }
@@ -498,7 +498,7 @@ public class DseSinkConfig {
     return javaDriverSettings
         .entrySet()
         .stream()
-        .filter(e -> e.getKey().contains(CONTACT_POINTS_DRIVER_SETTING))
+        .filter(e -> e.getKey().startsWith(CONTACT_POINTS_DRIVER_SETTING))
         .map(Map.Entry::getValue)
         .collect(Collectors.toList());
   }
