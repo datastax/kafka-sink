@@ -191,7 +191,8 @@ public class LifeCycleManagerIT {
     config.put(withDriverPrefix(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
     config.put(withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
     config.put(
-        withDriverPrefix(CONTACT_POINTS), "this should be ignored because provided directly");
+        withDriverPrefix(CONTACT_POINTS),
+        "this should be ignored because contactPoints provided as well");
 
     DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
 
