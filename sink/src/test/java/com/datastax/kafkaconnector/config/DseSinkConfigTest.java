@@ -8,15 +8,16 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
-import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
@@ -38,27 +39,23 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRIC
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.slf4j.event.Level.WARN;
 
-import com.datastax.dsbulk.commons.tests.logging.LogCapture;
-import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
-import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@ExtendWith(LogInterceptingExtension.class)
 class DseSinkConfigTest {
   @Test
   void should_error_invalid_port() {
@@ -176,6 +173,20 @@ class DseSinkConfigTest {
   void should_error_missing_dc_with_contactPoints() {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(CONTACT_POINTS_OPT, "127.0.0.1").build();
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "When contact points is provided, %s must also be specified",
+                LOCAL_DC_DRIVER_SETTING));
+  }
+
+  @Test
+  void should_error_missing_dc_with_contactPoints_driver_prefix() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(CONTACT_POINTS_DRIVER_SETTING, "127.0.0.1")
+            .build();
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -385,21 +396,6 @@ class DseSinkConfigTest {
                 + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
   }
 
-  @Test
-  void should_not_set_default_for_localDc(
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
-    // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
-
-    // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(LOCAL_DC_DRIVER_SETTING)).isNull();
-    assertThat(logs.getLoggedMessages())
-        .doesNotContain(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                DC_OPT, LOCAL_DC_DRIVER_SETTING));
-  }
-
   private static Stream<? extends Arguments> correctTopicNames() {
     return Stream.of(
         Arguments.of("org.datastax.init.event.history"),
@@ -557,101 +553,129 @@ class DseSinkConfigTest {
   @ParameterizedTest
   @MethodSource("deprecatedSettingsProvider")
   void should_handle_deprecated_settings(
-      Map<String, String> inputSettings,
-      String driverSettingName,
-      String connectorSettingName,
-      String expected,
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+      Map<String, String> inputSettings, String driverSettingName, String expected) {
     // when
     DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
 
     // then
     assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
-    assertThat(logs.getLoggedMessages())
-        .contains(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                connectorSettingName, driverSettingName));
   }
 
   @ParameterizedTest
   @MethodSource("javaDriverSettingProvider")
   void should_use_java_driver_setting(
-      Map<String, String> inputSettings,
-      String driverSettingName,
-      String connectorSettingName,
-      String expected,
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+      Map<String, String> inputSettings, String driverSettingName, String expected) {
     // when
     DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
 
     // then
     assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
-    assertThat(logs.getLoggedMessages())
-        .doesNotContain(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                connectorSettingName, driverSettingName));
   }
 
   @ParameterizedTest
   @MethodSource("defaultSettingProvider")
-  void should_set_default_driver_setting(
-      String driverSettingName,
-      String connectorSettingName,
-      String expectedDefault,
-      @LogCapture(level = WARN, value = DseSinkConfig.class) LogInterceptor logs) {
+  void should_set_default_driver_setting(String driverSettingName, String expectedDefault) {
     // when
     DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
 
     // then
     assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName))
         .isEqualTo(expectedDefault);
-    assertThat(logs.getLoggedMessages())
-        .doesNotContain(
-            String.format(
-                "The %s setting is deprecated. You should use %s setting instead.",
-                connectorSettingName, driverSettingName));
   }
 
   @Test
-  void should_transform_list_setting_to_indexed_typesafe_setting(){
+  void should_transform_list_setting_to_indexed_typesafe_setting() {
     // given
     Map<String, String> connectorSettings = new HashMap<>();
-    for(String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE){
+    for (String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE) {
       connectorSettings.put(listSettingName, "a,b");
     }
+    // when contact-points are provided the dc must also be provided
+    connectorSettings.put(DC_OPT, "dc");
 
     // when
     DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
 
     // then
-    for(String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE){
-      assertThat(dseSinkConfig.getJavaDriverSettings().get(String.format("%s.%s",listSettingName, "0"))).isEqualTo("a");
-      assertThat(dseSinkConfig.getJavaDriverSettings().get(String.format("%s.%s",listSettingName, "1"))).isEqualTo("b");
+    for (String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE) {
+      assertThat(
+              dseSinkConfig
+                  .getJavaDriverSettings()
+                  .get(String.format("%s.%s", listSettingName, "0")))
+          .isEqualTo("a");
+      assertThat(
+              dseSinkConfig
+                  .getJavaDriverSettings()
+                  .get(String.format("%s.%s", listSettingName, "1")))
+          .isEqualTo("b");
     }
+  }
+
+  @ParameterizedTest
+  @MethodSource("contactPointsProvider")
+  void should_handle_contact_points_provided_using_connector_and_driver_prefix(
+      String connectorContactPoints,
+      String javaDriverPrefixContactPoints,
+      List<String> expected,
+      Map<String, String> expectedDriverSettings) {
+    // given
+    Map<String, String> connectorSettings = new HashMap<>();
+    // todo do we want to allow value for settings that is = null?
+    if (connectorContactPoints != null) {
+      connectorSettings.put(CONTACT_POINTS_OPT, connectorContactPoints);
+    }
+    if (javaDriverPrefixContactPoints != null) {
+      connectorSettings.put(CONTACT_POINTS_DRIVER_SETTING, javaDriverPrefixContactPoints);
+    }
+    connectorSettings.put(LOCAL_DC_DRIVER_SETTING, "localDc");
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
+
+    // then
+    assertThat(dseSinkConfig.getContactPoints()).isEqualTo(expected);
+    for (Map.Entry<String, String> entry : expectedDriverSettings.entrySet()) {
+      assertThat(dseSinkConfig.getJavaDriverSettings()).contains(entry);
+    }
+  }
+
+  private static Stream<? extends Arguments> contactPointsProvider() {
+    return Stream.of(
+        Arguments.of(
+            "a, b",
+            null,
+            ImmutableList.of("a", "b"),
+            ImmutableMap.of(
+                CONTACT_POINTS_DRIVER_SETTING + ".0", "a",
+                CONTACT_POINTS_DRIVER_SETTING + ".1", "b")),
+        Arguments.of(
+            "a, b",
+            "c",
+            ImmutableList.of("a", "b"),
+            ImmutableMap.of(
+                CONTACT_POINTS_DRIVER_SETTING + ".0",
+                "a",
+                CONTACT_POINTS_DRIVER_SETTING + ".1",
+                "b")),
+        Arguments.of(
+            null,
+            " c, d",
+            ImmutableList.of("c", "d"),
+            ImmutableMap.of(
+                CONTACT_POINTS_DRIVER_SETTING + ".0",
+                "c",
+                CONTACT_POINTS_DRIVER_SETTING + ".1",
+                "d")));
   }
 
   private static Stream<? extends Arguments> defaultSettingProvider() {
     return Stream.of(
-        Arguments.of(
-            QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
-            QUERY_EXECUTION_TIMEOUT_OPT,
-            QUERY_EXECUTION_TIMEOUT_DEFAULT),
-        Arguments.of(
-            METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
-            METRICS_HIGHEST_LATENCY_OPT,
-            METRICS_HIGHEST_LATENCY_DEFAULT),
-        Arguments.of(
-            CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
-            CONNECTION_POOL_LOCAL_SIZE,
-            CONNECTION_POOL_LOCAL_SIZE_DEFAULT),
-        Arguments.of(LOCAL_DC_DRIVER_SETTING, DC_OPT, null),
-        Arguments.of(
-            COMPRESSION_DRIVER_SETTING,
-            COMPRESSION_OPT,
-            COMPRESSION_DEFAULT),
-        Arguments.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, SECURE_CONNECT_BUNDLE_OPT, null));
+        Arguments.of(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, QUERY_EXECUTION_TIMEOUT_DEFAULT),
+        Arguments.of(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, METRICS_HIGHEST_LATENCY_DEFAULT),
+        Arguments.of(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, CONNECTION_POOL_LOCAL_SIZE_DEFAULT),
+        Arguments.of(LOCAL_DC_DRIVER_SETTING, null),
+        Arguments.of(COMPRESSION_DRIVER_SETTING, COMPRESSION_DEFAULT),
+        Arguments.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, null));
   }
 
   private static Stream<? extends Arguments> deprecatedSettingsProvider() {
@@ -660,61 +684,47 @@ class DseSinkConfigTest {
             ImmutableMap.of(
                 QUERY_EXECUTION_TIMEOUT_OPT, "10", QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100"),
             QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
-            QUERY_EXECUTION_TIMEOUT_OPT,
             "10 seconds"),
         Arguments.of(
             ImmutableMap.of(QUERY_EXECUTION_TIMEOUT_OPT, "10"),
             QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
-            QUERY_EXECUTION_TIMEOUT_OPT,
             "10 seconds"),
         Arguments.of(
             ImmutableMap.of(
                 METRICS_HIGHEST_LATENCY_OPT, "10", METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100"),
             METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
-            METRICS_HIGHEST_LATENCY_OPT,
             "10 seconds"),
         Arguments.of(
             ImmutableMap.of(METRICS_HIGHEST_LATENCY_OPT, "10"),
             METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
-            METRICS_HIGHEST_LATENCY_OPT,
             "10 seconds"),
         Arguments.of(
             ImmutableMap.of(
                 CONNECTION_POOL_LOCAL_SIZE, "10", CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100"),
             CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
-            CONNECTION_POOL_LOCAL_SIZE,
             "10"),
         Arguments.of(
             ImmutableMap.of(CONNECTION_POOL_LOCAL_SIZE, "10"),
             CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
-            CONNECTION_POOL_LOCAL_SIZE,
             "10"),
         Arguments.of(
             ImmutableMap.of(DC_OPT, "dc", LOCAL_DC_DRIVER_SETTING, "dc_suppressed"),
             LOCAL_DC_DRIVER_SETTING,
-            DC_OPT,
             "dc"),
-        Arguments.of(ImmutableMap.of(DC_OPT, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"),
+        Arguments.of(ImmutableMap.of(DC_OPT, "dc"), LOCAL_DC_DRIVER_SETTING, "dc"),
         Arguments.of(
             ImmutableMap.of(COMPRESSION_OPT, "lz4", COMPRESSION_DRIVER_SETTING, "none"),
             COMPRESSION_DRIVER_SETTING,
-            COMPRESSION_OPT,
             "lz4"),
-        Arguments.of(
-            ImmutableMap.of(COMPRESSION_OPT, "lz4"),
-            COMPRESSION_DRIVER_SETTING,
-            COMPRESSION_OPT,
-            "lz4"),
+        Arguments.of(ImmutableMap.of(COMPRESSION_OPT, "lz4"), COMPRESSION_DRIVER_SETTING, "lz4"),
         Arguments.of(
             ImmutableMap.of(
                 SECURE_CONNECT_BUNDLE_OPT, "path", SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path2"),
             SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
-            SECURE_CONNECT_BUNDLE_OPT,
             "path"),
         Arguments.of(
             ImmutableMap.of(SECURE_CONNECT_BUNDLE_OPT, "path"),
             SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
-            SECURE_CONNECT_BUNDLE_OPT,
             "path"));
   }
 
@@ -723,29 +733,21 @@ class DseSinkConfigTest {
         Arguments.of(
             ImmutableMap.of(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100 seconds"),
             QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
-            QUERY_EXECUTION_TIMEOUT_OPT,
             "100 seconds"),
         Arguments.of(
             ImmutableMap.of(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100 seconds"),
             METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
-            METRICS_HIGHEST_LATENCY_OPT,
             "100 seconds"),
         Arguments.of(
             ImmutableMap.of(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100"),
             CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
-            CONNECTION_POOL_LOCAL_SIZE,
             "100"),
+        Arguments.of(ImmutableMap.of(LOCAL_DC_DRIVER_SETTING, "dc"), LOCAL_DC_DRIVER_SETTING, "dc"),
         Arguments.of(
-            ImmutableMap.of(LOCAL_DC_DRIVER_SETTING, "dc"), LOCAL_DC_DRIVER_SETTING, DC_OPT, "dc"),
-        Arguments.of(
-            ImmutableMap.of(COMPRESSION_DRIVER_SETTING, "lz4"),
-            COMPRESSION_DRIVER_SETTING,
-            COMPRESSION_OPT,
-            "lz4"),
+            ImmutableMap.of(COMPRESSION_DRIVER_SETTING, "lz4"), COMPRESSION_DRIVER_SETTING, "lz4"),
         Arguments.of(
             ImmutableMap.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path"),
             SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
-            SECURE_CONNECT_BUNDLE_OPT,
             "path"));
   }
 

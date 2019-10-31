@@ -513,6 +513,7 @@ public class LifeCycleManager {
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
+    // todo remove once JAVA-2519 will be done (see KAF-154)
     if (sslConfig != null && sslConfig.requireHostnameValidation()) {
       // if requireHostnameValidation then InetSocketAddress must be resolved
       config

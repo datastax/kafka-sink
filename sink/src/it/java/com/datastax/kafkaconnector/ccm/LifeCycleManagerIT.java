@@ -23,7 +23,6 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.RECONN
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_CONSISTENCY;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_DEFAULT_IDEMPOTENCE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_TIMEOUT;
-import static com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader.DEFAULT_ROOT_PATH;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -33,7 +32,6 @@ import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
@@ -192,7 +190,8 @@ public class LifeCycleManagerIT {
     config.put(withDriverPrefix(REQUEST_DEFAULT_IDEMPOTENCE), "true");
     config.put(withDriverPrefix(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
     config.put(withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
-    config.put(withDriverPrefix(CONTACT_POINTS), "this should be ignored because provided directly");
+    config.put(
+        withDriverPrefix(CONTACT_POINTS), "this should be ignored because provided directly");
 
     DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
 
@@ -225,7 +224,6 @@ public class LifeCycleManagerIT {
 
       assertThat(profile.getDuration(METRICS_NODE_CQL_MESSAGES_HIGHEST))
           .isEqualTo(Duration.ofSeconds(35));
-
 
       assertThat(profile.getString(PROTOCOL_COMPRESSION)).isEqualTo(COMPRESSION_DEFAULT);
 

@@ -18,7 +18,6 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CI
 
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
-import com.datastax.oss.driver.api.core.config.DriverOption;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -53,6 +52,9 @@ public class DseSinkConfig {
   static final String SSL_OPT_PREFIX = "ssl.";
 
   public static final String CONTACT_POINTS_OPT = "contactPoints";
+  static final String CONTACT_POINTS_DRIVER_SETTING =
+      withDriverPrefix(DefaultDriverOption.CONTACT_POINTS);
+
   static final String PORT_OPT = "port";
 
   static final String DC_OPT = "loadBalancing.localDc";
@@ -90,14 +92,13 @@ public class DseSinkConfig {
   static final String SECURE_CONNECT_BUNDLE_DRIVER_SETTING =
       withDriverPrefix(DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE);
 
-  static final List<String> JAVA_DRIVER_SETTINGS_LIST_TYPE = ImmutableList
-      .of(
+  static final List<String> JAVA_DRIVER_SETTINGS_LIST_TYPE =
+      ImmutableList.of(
           withDriverPrefix(METRICS_SESSION_ENABLED),
           withDriverPrefix(CONTACT_POINTS),
           withDriverPrefix(METADATA_SCHEMA_REFRESHED_KEYSPACES),
           withDriverPrefix(METRICS_NODE_ENABLED),
-          withDriverPrefix(SSL_CIPHER_SUITES)
-      );
+          withDriverPrefix(SSL_CIPHER_SUITES));
 
   public static final ConfigDef GLOBAL_CONFIG_DEF =
       new ConfigDef()
@@ -275,16 +276,20 @@ public class DseSinkConfig {
   }
 
   private static Splitter COMA_SPLITTER = Splitter.on(",");
+
   private void addJavaDriverSetting(Map.Entry<String, String> entry) {
 
-    if(JAVA_DRIVER_SETTINGS_LIST_TYPE.contains(entry.getKey())){
-      List<String> values = COMA_SPLITTER.splitToList(entry.getValue());
-      for(int i=0; i < values.size(); i++){
-        javaDriverSettings.put(String.format("%s.%d", entry.getKey(), i), values.get(i));
-      }
-
+    if (JAVA_DRIVER_SETTINGS_LIST_TYPE.contains(entry.getKey())) {
+      putAsTypesafeListProperty(entry.getKey(), entry.getValue());
     } else {
       javaDriverSettings.put(entry.getKey(), entry.getValue());
+    }
+  }
+
+  private void putAsTypesafeListProperty(@NotNull String key, @NotNull String value) {
+    List<String> values = COMA_SPLITTER.splitToList(value);
+    for (int i = 0; i < values.size(); i++) {
+      javaDriverSettings.put(String.format("%s.%d", key, i), values.get(i).trim());
     }
   }
 
@@ -293,11 +298,13 @@ public class DseSinkConfig {
     if (!(compressionTypeValue.toLowerCase().equals("none")
         || compressionTypeValue.toLowerCase().equals("snappy")
         || compressionTypeValue.toLowerCase().equals("lz4"))) {
-      throw new ConfigException(COMPRESSION_OPT, compressionTypeValue, "valid values are none, snappy, lz4");
+      throw new ConfigException(
+          COMPRESSION_OPT, compressionTypeValue, "valid values are none, snappy, lz4");
     }
   }
 
   private void populateDriverSettingsWithDeprecatedSettings(Map<String, String> connectorSettings) {
+    deprecatedContactPoints(connectorSettings);
     deprecatedLocalDc(connectorSettings);
     deprecatedConnectionPoolSize(connectorSettings);
     deprecatedQueryExecutionTimeout(connectorSettings);
@@ -310,22 +317,20 @@ public class DseSinkConfig {
     }
   }
 
-  private void metricsSettings() {
-    String metricsEnabledDriverSetting = withDriverPrefix(METRICS_SESSION_ENABLED);
+  private void deprecatedContactPoints(Map<String, String> connectorSettings) {
+    if (connectorSettings.containsKey(CONTACT_POINTS_OPT)) {
+      // clear all contact-points provided with datastax-java-driver prefix
+      List<String> contactPointsPrefixes =
+          javaDriverSettings
+              .keySet()
+              .stream()
+              .filter(v -> v.contains(CONTACT_POINTS_DRIVER_SETTING))
+              .collect(Collectors.toList());
+      contactPointsPrefixes.forEach(javaDriverSettings::remove);
 
-    // if user explicitly provided setting under datastax-java-driver do not add defaults
-    if (javaDriverSettings
-        .keySet()
-        .stream()
-        .noneMatch(v -> v.contains(metricsEnabledDriverSetting))) {
-      javaDriverSettings.put(metricsEnabledDriverSetting + ".0", "cql-requests");
-      javaDriverSettings.put(metricsEnabledDriverSetting + ".1", "cql-client-timeouts");
-    }
-
-    String sessionCqlRequestIntervalDriverSetting =
-        withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL);
-    if (!javaDriverSettings.containsKey(sessionCqlRequestIntervalDriverSetting)) {
-      javaDriverSettings.put(sessionCqlRequestIntervalDriverSetting, METRICS_INTERVAL_DEFAULT);
+      // put as a typesafe list property
+      putAsTypesafeListProperty(
+          CONTACT_POINTS_DRIVER_SETTING, connectorSettings.get(CONTACT_POINTS_OPT));
     }
   }
 
@@ -340,7 +345,11 @@ public class DseSinkConfig {
 
   private void deprecatedCompression(Map<String, String> connectorSettings) {
     handleDeprecatedSetting(
-        connectorSettings, COMPRESSION_OPT, COMPRESSION_DRIVER_SETTING, COMPRESSION_DEFAULT, Function.identity());
+        connectorSettings,
+        COMPRESSION_OPT,
+        COMPRESSION_DRIVER_SETTING,
+        COMPRESSION_DEFAULT,
+        Function.identity());
   }
 
   private void deprecatedLocalDc(Map<String, String> connectorSettings) {
@@ -375,6 +384,25 @@ public class DseSinkConfig {
         TO_SECONDS_CONVERTER);
   }
 
+  private void metricsSettings() {
+    String metricsEnabledDriverSetting = withDriverPrefix(METRICS_SESSION_ENABLED);
+
+    // if user explicitly provided setting under datastax-java-driver do not add defaults
+    if (javaDriverSettings
+        .keySet()
+        .stream()
+        .noneMatch(v -> v.contains(metricsEnabledDriverSetting))) {
+      javaDriverSettings.put(metricsEnabledDriverSetting + ".0", "cql-requests");
+      javaDriverSettings.put(metricsEnabledDriverSetting + ".1", "cql-client-timeouts");
+    }
+
+    String sessionCqlRequestIntervalDriverSetting =
+        withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL);
+    if (!javaDriverSettings.containsKey(sessionCqlRequestIntervalDriverSetting)) {
+      javaDriverSettings.put(sessionCqlRequestIntervalDriverSetting, METRICS_INTERVAL_DEFAULT);
+    }
+  }
+
   private void handleDeprecatedSetting(
       @NotNull Map<String, String> connectorSettings,
       @NotNull String connectorDeprecatedSetting,
@@ -383,10 +411,7 @@ public class DseSinkConfig {
       @NotNull Function<String, String> deprecatedValueConverter) {
     // handle usage of deprecated setting
     if (connectorSettings.containsKey(connectorDeprecatedSetting)) {
-      log.warn(
-          "The {} setting is deprecated. You should use {} setting instead.",
-          connectorDeprecatedSetting,
-          driverSetting);
+      // put or override if setting with datastax-java-driver prefix provided
       javaDriverSettings.put(
           driverSetting,
           deprecatedValueConverter.apply(connectorSettings.get(connectorDeprecatedSetting)));
@@ -470,7 +495,12 @@ public class DseSinkConfig {
   }
 
   public List<String> getContactPoints() {
-    return globalConfig.getList(CONTACT_POINTS_OPT);
+    return javaDriverSettings
+        .entrySet()
+        .stream()
+        .filter(e -> e.getKey().contains(CONTACT_POINTS_DRIVER_SETTING))
+        .map(Map.Entry::getValue)
+        .collect(Collectors.toList());
   }
 
   public String getLocalDc() {
