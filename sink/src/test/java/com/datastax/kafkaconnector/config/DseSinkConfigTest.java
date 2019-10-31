@@ -157,19 +157,17 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
   }
 
-  //  todo can we move the validation to the driver?
-  //  @Test
-  //  void should_error_invalid_compression_type() {
-  //    Map<String, String> props =
-  //        Maps.newHashMap(ImmutableMap.<String, String>builder().put(COMPRESSION_OPT,
-  // "foo").build());
-  //    assertThatThrownBy(() -> new DseSinkConfig(props))
-  //        .isInstanceOf(ConfigException.class)
-  //        .hasMessageContaining(
-  //            String.format(
-  //                "Invalid value foo for configuration %s: valid values are None, Snappy, LZ4",
-  //                COMPRESSION_OPT));
-  //  }
+  @Test
+  void should_error_invalid_compression_type() {
+    Map<String, String> props =
+        Maps.newHashMap(ImmutableMap.<String, String>builder().put(COMPRESSION_OPT, "foo").build());
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "Invalid value foo for configuration %s: valid values are none, snappy, lz4",
+                COMPRESSION_OPT));
+  }
 
   @Test
   void should_error_missing_dc_with_contactPoints() {

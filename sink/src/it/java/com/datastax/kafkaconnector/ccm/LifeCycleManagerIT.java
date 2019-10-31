@@ -193,6 +193,7 @@ public class LifeCycleManagerIT {
     config.put(driverSetting(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
     config.put(driverSetting(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
 
+    // check test how does it behaves for sink.json distributed mode?
     // todo typesafe list needs to be in .0, .1, .. format
     config.put(
         driverSetting(CONTACT_POINTS) + ".0", "this should be ignored because provided directly");

@@ -221,6 +221,8 @@ public class DseSinkConfig {
         (name, topicConfigMap) ->
             topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
 
+    validateCompressionType();
+
     // Verify that we have a topic section for every topic we're subscribing to, if 'topics'
     // was provided. A user may use topics.regex to subscribe by pattern, in which case,
     // they're on their own.
@@ -253,6 +255,17 @@ public class DseSinkConfig {
           String.format(
               "When contact points is provided, %s must also be specified",
               LOCAL_DC_DRIVER_SETTING));
+    }
+  }
+
+  private void validateCompressionType() {
+    String typeString = globalConfig.getString(COMPRESSION_OPT);
+
+    String compressionTypeValue = javaDriverSettings.get(COMPRESSION_DRIVER_SETTING);
+    if (!(compressionTypeValue.toLowerCase().equals("none")
+        || compressionTypeValue.toLowerCase().equals("snappy")
+        || compressionTypeValue.toLowerCase().equals("lz4"))) {
+      throw new ConfigException(COMPRESSION_OPT, typeString, "valid values are none, snappy, lz4");
     }
   }
 
