@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -225,7 +226,7 @@ public class DseSinkConfig {
     // topic settings map.
     globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
 
-    populateDriverSettingsWithDeprecatedSettings(globalSettings);
+    populateDriverSettingsWithConnectorSettings(globalSettings);
     boolean cloud = isCloud();
 
     if (!cloud) {
@@ -264,7 +265,7 @@ public class DseSinkConfig {
     // Verify that if contact-points are provided, local dc is also specified.
     List<String> contactPoints = getContactPoints();
     log.debug("contactPoints: {}", contactPoints);
-    if (!contactPoints.isEmpty() && StringUtil.isEmpty(getLocalDc())) {
+    if (!contactPoints.isEmpty() && !getLocalDc().isPresent()) {
       throw new ConfigException(
           CONTACT_POINTS_OPT,
           contactPoints,
@@ -300,7 +301,7 @@ public class DseSinkConfig {
     }
   }
 
-  private void populateDriverSettingsWithDeprecatedSettings(Map<String, String> connectorSettings) {
+  private void populateDriverSettingsWithConnectorSettings(Map<String, String> connectorSettings) {
     deprecatedLocalDc(connectorSettings);
     deprecatedConnectionPoolSize(connectorSettings);
     deprecatedQueryExecutionTimeout(connectorSettings);
@@ -416,7 +417,7 @@ public class DseSinkConfig {
               SECURE_CONNECT_BUNDLE_OPT, CONTACT_POINTS_OPT));
     }
 
-    if (!StringUtil.isEmpty(getLocalDc())) {
+    if (getLocalDc().isPresent()) {
       throw new ConfigException(
           String.format(
               "When %s parameter is specified you should not provide %s.",
@@ -477,8 +478,8 @@ public class DseSinkConfig {
     return globalConfig.getList(CONTACT_POINTS_OPT);
   }
 
-  public String getLocalDc() {
-    return javaDriverSettings.get(LOCAL_DC_DRIVER_SETTING);
+  public Optional<String> getLocalDc() {
+    return Optional.ofNullable(javaDriverSettings.get(LOCAL_DC_DRIVER_SETTING));
   }
 
   public Map<String, TopicConfig> getTopicConfigs() {

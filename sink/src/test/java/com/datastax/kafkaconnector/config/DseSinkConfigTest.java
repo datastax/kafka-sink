@@ -192,7 +192,7 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
-    assertThat(d.getLocalDc()).isEqualTo("local");
+    assertThat(d.getLocalDc().get()).isEqualTo("local");
   }
 
   @Test
@@ -205,7 +205,7 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
-    assertThat(d.getLocalDc()).isEqualTo("local");
+    assertThat(d.getLocalDc().get()).isEqualTo("local");
   }
 
   @Test
