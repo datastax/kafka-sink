@@ -338,7 +338,6 @@ create_dse_schema () {
 	fi
 }
 
-# todo adapt to dsbulk cloud: https://datastax.jira.com/browse/KAF-149
 verify_rows_in_dse () {
     if [ "$IS_CLOUD" = "false" ]
     then
