@@ -695,6 +695,7 @@ public class LifeCycleManager {
   @NonNull
   private static ProgrammaticDriverConfigLoaderBuilder dseProgrammaticBuilderWithFallback(
       Config properties) {
+    ConfigFactory.invalidateCaches();
     return new DefaultProgrammaticDriverConfigLoaderBuilder(
         () ->
             ConfigFactory.defaultApplication()
