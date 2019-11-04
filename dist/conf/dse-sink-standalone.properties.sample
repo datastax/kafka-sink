@@ -16,7 +16,7 @@ topics=my_topic
 # DSE cluster topology. Defaults to empty, meaning localhost.
 # This setting cannot be provided if `cloud.secureConnectBundle` is provided, since this
 # information is part of the bundle's data.
-#contactPoints=[]
+#contactPoints=
 
 # DSE data center name to which the DataStax Driver connects. Required if contactPoints
 # is specified.
