@@ -212,7 +212,7 @@ topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 # - datastax-java-driver.advanced.metadata.schema.refreshed-keyspaces
 # - datastax-java-driver.advanced.metrics.session.enabled
 # - datastax-java-driver.basic.contact-points
-# will be automatically converted to the typesafe format used by the driver.
+# will be automatically converted to the TypeSafe Config format used by the driver.
 # The conversion will split values provided in those setting on the coma (,) sign and create indexed properties.
 #
 # For example if you will provide: datastax-java-driver.advanced.metrics.session.enabled=a,b
