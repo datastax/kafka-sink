@@ -183,6 +183,19 @@ class DseSinkConfigTest {
   }
 
   @Test
+  void should_error_empty_dc_with_contactPoints() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(CONTACT_POINTS_OPT, "127.0.0.1")
+            .put(DC_OPT, "")
+            .build();
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format("When contact points is provided, %s must also be specified", DC_OPT));
+  }
+
+  @Test
   void should_handle_dc_with_contactPoints() {
     Map<String, String> props =
         ImmutableMap.<String, String>builder()

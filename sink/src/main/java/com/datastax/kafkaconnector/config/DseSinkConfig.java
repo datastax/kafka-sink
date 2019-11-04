@@ -479,7 +479,8 @@ public class DseSinkConfig {
   }
 
   public Optional<String> getLocalDc() {
-    return Optional.ofNullable(javaDriverSettings.get(LOCAL_DC_DRIVER_SETTING));
+    return Optional.ofNullable(javaDriverSettings.get(LOCAL_DC_DRIVER_SETTING))
+        .filter(v -> !v.isEmpty());
   }
 
   public Map<String, TopicConfig> getTopicConfigs() {
