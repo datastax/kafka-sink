@@ -191,7 +191,7 @@ topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 # datastax-java-driver.basic.config-reload-interval=1 minutes
 # The value will be taken and propagated to the driver.
 #
-# The following connector settings have an equivalent with datastax-java-driver prefix; if you set both, connector settings will take precedence over driver settings:
+# The following connector settings are equivalent with datastax-java-driver prefix; if you set both, connector settings will take precedence over driver settings:
 # - contactPoints             : datastax-java-driver.basic.contact-points
 # - loadBalancing.localDc     : datastax-java-driver.basic.load-balancing-policy.local-datacenter
 # - cloud.secureConnectBundle : datastax-java-driver.basic.cloud.secure-connect-bundle
