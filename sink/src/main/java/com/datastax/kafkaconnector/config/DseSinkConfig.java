@@ -50,13 +50,14 @@ public class DseSinkConfig {
   private static final String DRIVER_CONFIG_PREFIX = "datastax-java-driver";
 
   static final String SSL_OPT_PREFIX = "ssl.";
+  private static final String AUTH_OPT_PREFIX = "auth.";
 
   public static final String CONTACT_POINTS_OPT = "contactPoints";
 
   static final String PORT_OPT = "port";
 
-  static final String DC_OPT = "loadBalancing.localDc";
-  public static final String LOCAL_DC_DRIVER_SETTING =
+  public static final String DC_OPT = "loadBalancing.localDc";
+  static final String LOCAL_DC_DRIVER_SETTING =
       withDriverPrefix(DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER);
 
   static final String CONCURRENT_REQUESTS_OPT = "maxConcurrentRequests";
@@ -211,7 +212,7 @@ public class DseSinkConfig {
         topicMap.put(name, entry.getValue());
       } else if (name.startsWith(SSL_OPT_PREFIX)) {
         sslSettings.put(name, entry.getValue());
-      } else if (name.startsWith("auth.")) {
+      } else if (name.startsWith(AUTH_OPT_PREFIX)) {
         authSettings.put(name, entry.getValue());
       } else if (name.startsWith(DRIVER_CONFIG_PREFIX)) {
         addJavaDriverSetting(entry);

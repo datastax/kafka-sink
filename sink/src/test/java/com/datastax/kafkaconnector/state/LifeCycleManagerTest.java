@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.state;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_TIME_UNIT_OPT;
@@ -331,7 +332,7 @@ class LifeCycleManagerTest {
     // when, then
     assertThatThrownBy(() -> new DseSinkConfig(config))
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(DseSinkConfig.LOCAL_DC_DRIVER_SETTING);
+        .hasMessageContaining(DC_OPT);
   }
 
   private static TableConfig makeTableConfig(
