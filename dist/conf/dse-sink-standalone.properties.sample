@@ -185,3 +185,16 @@ topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 # `TimeUnit` enum constants are valid choices.
 # Defaults to MILLISECONDS.
 #topic.my_topic.codec.unit=MILLISECONDS
+
+# You can pass now all settings to the driver "datastax-java-driver" prefix directly.
+# For example to pass basic.config-reload-interval, you need to add:
+# datastax-java-driver.basic.config-reload-interval=1 minutes
+# The value will be taken and propagated to the driver
+# For settings that are already provided in this connector, if you will set them
+# they will take the precedence over settings with a datastax-java-driver prefix.
+# So if you will provide both, the value from:
+# loadBalancing.localDc, connectionPoolLocalSize, queryExecutionTimeout, metricsHighestLatency,
+# compression, cloud.secureConnectBundle, contactPoints.
+# and setting equivalent with datastax-java-driver prefix the direct setting from connector will be taken.
+# (basic.load-balancing-policy.local-datacenter, advanced.connection.pool.local.size, .. )
+# If you will not provide any of those, the default value for a connector setting will be taken.
