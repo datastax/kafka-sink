@@ -65,7 +65,9 @@ class ContactPointsValidatorTest {
     return Stream.of(
         Arguments.of("\"127.0.0.1\",\"127.0.0.2\""),
         Arguments.of("\"not-an-url"),
-        Arguments.of("*.0.0.1"));
+        Arguments.of("*.0.0.1"),
+        Arguments.of("[]"),
+        Arguments.of("[127.0.0.1,127.0.0.2]"));
   }
 
   private static String tenIp4Addresses() {

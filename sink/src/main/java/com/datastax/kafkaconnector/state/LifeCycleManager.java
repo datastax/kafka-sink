@@ -15,10 +15,6 @@ import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_ENGINE_FACTORY_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_HOSTNAME_VALIDATION;
@@ -30,7 +26,6 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.config.DseDriverConfigLoader;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
@@ -47,7 +42,6 @@ import com.datastax.kafkaconnector.ssl.SessionBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
@@ -57,14 +51,15 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
+import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -518,6 +513,7 @@ public class LifeCycleManager {
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
+    // todo remove once JAVA-2519 will be done (see KAF-154)
     if (sslConfig != null && sslConfig.requireHostnameValidation()) {
       // if requireHostnameValidation then InetSocketAddress must be resolved
       config
@@ -534,36 +530,8 @@ public class LifeCycleManager {
     }
 
     ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder =
-        DseDriverConfigLoader.programmaticBuilder();
-    if (!config.getLocalDc().isEmpty()) {
-      configLoaderBuilder.withString(
-          DefaultDriverOption.LOAD_BALANCING_LOCAL_DATACENTER, config.getLocalDc());
-    }
-
-    configLoaderBuilder.withDuration(
-        DefaultDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(config.getQueryExecutionTimeout()));
-
-    configLoaderBuilder.withDuration(
-        DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST,
-        Duration.ofSeconds(config.getMetricsHighestLatency()));
-
-    configLoaderBuilder.withInt(
-        DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE, config.getConnectionPoolLocalSize());
-
-    if (config.getJmx()) {
-      configLoaderBuilder.withStringList(
-          METRICS_SESSION_ENABLED, Arrays.asList("cql-requests", "cql-client-timeouts"));
-      configLoaderBuilder.withDuration(
-          METRICS_SESSION_CQL_REQUESTS_INTERVAL, Duration.ofSeconds(30));
-    }
-
-    if (config.getCompressionType() != DseSinkConfig.CompressionType.None) {
-      configLoaderBuilder.withString(
-          PROTOCOL_COMPRESSION, config.getCompressionType().getDriverCompressionType());
-    }
-    if (config.isCloud()) {
-      configLoaderBuilder.withString(CLOUD_SECURE_CONNECT_BUNDLE, config.getSecureConnectBundle());
-    }
+        dseProgrammaticBuilderWithFallback(
+            ConfigFactory.parseMap(config.getJavaDriverSettings(), "Connector properties"));
 
     processAuthenticatorConfig(config, configLoaderBuilder);
     if (sslConfig != null) {
@@ -722,5 +690,18 @@ public class LifeCycleManager {
   @VisibleForTesting
   public static void cleanMetrics() {
     metricRegistry = new MetricRegistry();
+  }
+
+  @NonNull
+  private static ProgrammaticDriverConfigLoaderBuilder dseProgrammaticBuilderWithFallback(
+      Config properties) {
+    ConfigFactory.invalidateCaches();
+    return new DefaultProgrammaticDriverConfigLoaderBuilder(
+        () ->
+            ConfigFactory.defaultApplication()
+                .withFallback(properties)
+                .withFallback(ConfigFactory.parseResourcesAnySyntax("dse-reference"))
+                .withFallback(ConfigFactory.defaultReference()),
+        DefaultDriverConfigLoader.DEFAULT_ROOT_PATH);
   }
 }

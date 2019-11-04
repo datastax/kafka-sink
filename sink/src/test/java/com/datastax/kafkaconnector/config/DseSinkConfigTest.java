@@ -8,26 +8,46 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.DC_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.METRICS_INTERVAL_DEFAULT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.PORT_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_DRIVER_SETTING;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.SSL_OPT_PREFIX;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.withDriverPrefix;
 import static com.datastax.kafkaconnector.config.SslConfig.PROVIDER_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.getTableSettingPath;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
@@ -37,6 +57,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class DseSinkConfigTest {
+
+  private static final String CONTACT_POINTS_DRIVER_SETTINGS = withDriverPrefix(CONTACT_POINTS);
+
   @Test
   void should_error_invalid_port() {
     Map<String, String> props =
@@ -96,6 +119,7 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
   }
 
+  // todo should we handle validation in the same way for settings with datastax-java-driver prefix?
   @Test
   void should_error_invalid_connectionPoolLocalSize() {
     Map<String, String> props =
@@ -144,7 +168,7 @@ class DseSinkConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
-                "Invalid value foo for configuration %s: valid values are None, Snappy, LZ4",
+                "Invalid value foo for configuration %s: valid values are none, snappy, lz4",
                 COMPRESSION_OPT));
   }
 
@@ -152,6 +176,19 @@ class DseSinkConfigTest {
   void should_error_missing_dc_with_contactPoints() {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(CONTACT_POINTS_OPT, "127.0.0.1").build();
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format("When contact points is provided, %s must also be specified", DC_OPT));
+  }
+
+  @Test
+  void should_error_empty_dc_with_contactPoints() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(CONTACT_POINTS_OPT, "127.0.0.1")
+            .put(DC_OPT, "")
+            .build();
     assertThatThrownBy(() -> new DseSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -168,7 +205,20 @@ class DseSinkConfigTest {
 
     DseSinkConfig d = new DseSinkConfig(props);
     assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
-    assertThat(d.getLocalDc()).isEqualTo("local");
+    assertThat(d.getLocalDc().get()).isEqualTo("local");
+  }
+
+  @Test
+  void should_handle_dc_with_contactPoints_driver_prefix() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(CONTACT_POINTS_OPT, "127.0.0.1, 127.0.1.1")
+            .put(LOCAL_DC_DRIVER_SETTING, "local")
+            .build();
+
+    DseSinkConfig d = new DseSinkConfig(props);
+    assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
+    assertThat(d.getLocalDc().get()).isEqualTo("local");
   }
 
   @Test
@@ -206,7 +256,8 @@ class DseSinkConfigTest {
             .build();
 
     DseSinkConfig d = new DseSinkConfig(props);
-    assertThat(d.getSecureConnectBundle()).isEqualTo("/location/to/bundle");
+    assertThat(d.getJavaDriverSettings().get(SECURE_CONNECT_BUNDLE_DRIVER_SETTING))
+        .isEqualTo("/location/to/bundle");
   }
 
   @Test
@@ -231,6 +282,22 @@ class DseSinkConfigTest {
         ImmutableMap.<String, String>builder()
             .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
             .put(DC_OPT, "dc1")
+            .build();
+
+    assertThatThrownBy(() -> new DseSinkConfig(props))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            String.format(
+                "When %s parameter is specified you should not provide %s.",
+                SECURE_CONNECT_BUNDLE_OPT, DC_OPT));
+  }
+
+  @Test
+  void should_throw_when_secure_connect_bundle_and_local_dc_driver_setting_provided() {
+    Map<String, String> props =
+        ImmutableMap.<String, String>builder()
+            .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
+            .put(LOCAL_DC_DRIVER_SETTING, "dc1")
             .build();
 
     assertThatThrownBy(() -> new DseSinkConfig(props))
@@ -429,6 +496,246 @@ class DseSinkConfigTest {
             "The setting: "
                 + settingName
                 + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
+  }
+
+  @Test
+  void should_fill_with_default_metrics_settings_if_jmx_enabled() {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(ImmutableMap.<String, String>builder().put("jmx", "true").build());
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0"))
+        .isEqualTo("cql-requests");
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".1"))
+        .isEqualTo("cql-client-timeouts");
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL)))
+        .isEqualTo(METRICS_INTERVAL_DEFAULT);
+  }
+
+  @Test
+  void should_override_default_metrics_settings_if_jmx_and_metrics_settings_are_provided_enabled() {
+    // given
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put("jmx", "true")
+                .put(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0", "bytes-sent")
+                .put(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL), "5 seconds")
+                .build());
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+
+    // then
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0"))
+        .isEqualTo("bytes-sent");
+    assertThat(
+            dseSinkConfig
+                .getJavaDriverSettings()
+                .get(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL)))
+        .isEqualTo("5 seconds");
+  }
+
+  @ParameterizedTest
+  @MethodSource("deprecatedSettingsProvider")
+  void should_handle_deprecated_settings(
+      Map<String, String> inputSettings, String driverSettingName, String expected) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @MethodSource("javaDriverSettingProvider")
+  void should_use_java_driver_setting(
+      Map<String, String> inputSettings, String driverSettingName, String expected) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
+  }
+
+  @ParameterizedTest
+  @MethodSource("defaultSettingProvider")
+  void should_set_default_driver_setting(String driverSettingName, String expectedDefault) {
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
+
+    // then
+    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName))
+        .isEqualTo(expectedDefault);
+  }
+
+  @Test
+  void should_transform_list_setting_to_indexed_typesafe_setting() {
+    // given
+    Map<String, String> connectorSettings = new HashMap<>();
+    for (String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE) {
+      connectorSettings.put(listSettingName, "a,b");
+    }
+    // when contact-points are provided the dc must also be provided
+    connectorSettings.put(DC_OPT, "dc");
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
+
+    // then
+    for (String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE) {
+      assertThat(
+              dseSinkConfig
+                  .getJavaDriverSettings()
+                  .get(String.format("%s.%s", listSettingName, "0")))
+          .isEqualTo("a");
+      assertThat(
+              dseSinkConfig
+                  .getJavaDriverSettings()
+                  .get(String.format("%s.%s", listSettingName, "1")))
+          .isEqualTo("b");
+    }
+  }
+
+  @ParameterizedTest
+  @MethodSource("contactPointsProvider")
+  void should_handle_contact_points_provided_using_connector_and_driver_prefix(
+      String connectorContactPoints,
+      String javaDriverPrefixContactPoints,
+      List<String> expected,
+      Map<String, String> expectedDriverSettings) {
+    // given
+    Map<String, String> connectorSettings = new HashMap<>();
+    if (connectorContactPoints != null) {
+      connectorSettings.put(CONTACT_POINTS_OPT, connectorContactPoints);
+    }
+    if (javaDriverPrefixContactPoints != null) {
+      connectorSettings.put(CONTACT_POINTS_DRIVER_SETTINGS, javaDriverPrefixContactPoints);
+    }
+    connectorSettings.put(LOCAL_DC_DRIVER_SETTING, "localDc");
+
+    // when
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
+
+    // then
+    assertThat(dseSinkConfig.getContactPoints()).isEqualTo(expected);
+    for (Map.Entry<String, String> entry : expectedDriverSettings.entrySet()) {
+      assertThat(dseSinkConfig.getJavaDriverSettings()).contains(entry);
+    }
+  }
+
+  private static Stream<? extends Arguments> contactPointsProvider() {
+    return Stream.of(
+        Arguments.of("a, b", null, ImmutableList.of("a", "b"), Collections.emptyMap()),
+        Arguments.of("a, b", "c", ImmutableList.of("a", "b"), Collections.emptyMap()),
+        Arguments.of(
+            null,
+            " c, d",
+            Collections.emptyList(), // setting provided with datastax-java-driver
+            // prefix should not be returned by the getContactPoints() method
+            ImmutableMap.of(
+                CONTACT_POINTS_DRIVER_SETTINGS + ".0",
+                "c",
+                CONTACT_POINTS_DRIVER_SETTINGS + ".1",
+                "d")) // pass cp setting to the driver directly
+        );
+  }
+
+  private static Stream<? extends Arguments> defaultSettingProvider() {
+    return Stream.of(
+        Arguments.of(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, QUERY_EXECUTION_TIMEOUT_DEFAULT),
+        Arguments.of(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, METRICS_HIGHEST_LATENCY_DEFAULT),
+        Arguments.of(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, CONNECTION_POOL_LOCAL_SIZE_DEFAULT),
+        Arguments.of(LOCAL_DC_DRIVER_SETTING, null),
+        Arguments.of(COMPRESSION_DRIVER_SETTING, COMPRESSION_DEFAULT),
+        Arguments.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, null));
+  }
+
+  private static Stream<? extends Arguments> deprecatedSettingsProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableMap.of(
+                QUERY_EXECUTION_TIMEOUT_OPT, "10", QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100"),
+            QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(QUERY_EXECUTION_TIMEOUT_OPT, "10"),
+            QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(
+                METRICS_HIGHEST_LATENCY_OPT, "10", METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100"),
+            METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(METRICS_HIGHEST_LATENCY_OPT, "10"),
+            METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+            "10 seconds"),
+        Arguments.of(
+            ImmutableMap.of(
+                CONNECTION_POOL_LOCAL_SIZE, "10", CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100"),
+            CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+            "10"),
+        Arguments.of(
+            ImmutableMap.of(CONNECTION_POOL_LOCAL_SIZE, "10"),
+            CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+            "10"),
+        Arguments.of(
+            ImmutableMap.of(DC_OPT, "dc", LOCAL_DC_DRIVER_SETTING, "dc_suppressed"),
+            LOCAL_DC_DRIVER_SETTING,
+            "dc"),
+        Arguments.of(ImmutableMap.of(DC_OPT, "dc"), LOCAL_DC_DRIVER_SETTING, "dc"),
+        Arguments.of(
+            ImmutableMap.of(COMPRESSION_OPT, "lz4", COMPRESSION_DRIVER_SETTING, "none"),
+            COMPRESSION_DRIVER_SETTING,
+            "lz4"),
+        Arguments.of(ImmutableMap.of(COMPRESSION_OPT, "lz4"), COMPRESSION_DRIVER_SETTING, "lz4"),
+        Arguments.of(
+            ImmutableMap.of(
+                SECURE_CONNECT_BUNDLE_OPT, "path", SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path2"),
+            SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+            "path"),
+        Arguments.of(
+            ImmutableMap.of(SECURE_CONNECT_BUNDLE_OPT, "path"),
+            SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+            "path"));
+  }
+
+  private static Stream<? extends Arguments> javaDriverSettingProvider() {
+    return Stream.of(
+        Arguments.of(
+            ImmutableMap.of(QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING, "100 seconds"),
+            QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING,
+            "100 seconds"),
+        Arguments.of(
+            ImmutableMap.of(METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS, "100 seconds"),
+            METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS,
+            "100 seconds"),
+        Arguments.of(
+            ImmutableMap.of(CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING, "100"),
+            CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING,
+            "100"),
+        Arguments.of(ImmutableMap.of(LOCAL_DC_DRIVER_SETTING, "dc"), LOCAL_DC_DRIVER_SETTING, "dc"),
+        Arguments.of(
+            ImmutableMap.of(COMPRESSION_DRIVER_SETTING, "lz4"), COMPRESSION_DRIVER_SETTING, "lz4"),
+        Arguments.of(
+            ImmutableMap.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path"),
+            SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
+            "path"));
   }
 
   private void assertTopic(

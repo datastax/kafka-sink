@@ -16,7 +16,7 @@ topics=my_topic
 # DSE cluster topology. Defaults to empty, meaning localhost.
 # This setting cannot be provided if `cloud.secureConnectBundle` is provided, since this
 # information is part of the bundle's data.
-#contactPoints=[]
+#contactPoints=
 
 # DSE data center name to which the DataStax Driver connects. Required if contactPoints
 # is specified.
@@ -185,3 +185,37 @@ topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 # `TimeUnit` enum constants are valid choices.
 # Defaults to MILLISECONDS.
 #topic.my_topic.codec.unit=MILLISECONDS
+
+# You can pass now all settings to the driver "datastax-java-driver" prefix directly.
+# For example to pass basic.config-reload-interval, you need to add:
+# datastax-java-driver.basic.config-reload-interval=1 minutes
+# The value will be taken and propagated to the driver.
+#
+# The following connector settings have an equivalent with datastax-java-driver prefix; if you set both, connector settings will take precedence over driver settings:
+# - contactPoints             : datastax-java-driver.basic.contact-points
+# - loadBalancing.localDc     : datastax-java-driver.basic.load-balancing-policy.local-datacenter
+# - cloud.secureConnectBundle : datastax-java-driver.basic.cloud.secure-connect-bundle
+# - queryExecutionTimeout     : datastax-java-driver.basic.request.timeout
+# - connectionPoolLocalSize   : datastax-java-driver.advanced.connection.pool.local.size
+# - compression               : datastax-java-driver.advanced.protocol.compression
+# - metricsHighestLatency     : datastax-java-driver.advanced.metrics.session.cql-requests.highest-latency
+# If you will not provide any of those, the default value for a connector setting will be taken.
+#
+# There is one difference between contactPoints and datastax-java-driver.basic.contact-points.
+# For the the contactPoints the value of the port is appended to every host provided by this setting.
+# For datastax-java-driver.basic.contact-points you need to provide full contact points (host:port).
+# The second option gives more flexibility because you can specify different port for every host.
+#
+# All driver properties that are of a type `List`:
+# - datastax-java-driver.advanced.ssl-engine-factory.cipher-suites
+# - datastax-java-driver.advanced.metrics.node.enabled
+# - datastax-java-driver.advanced.metadata.schema.refreshed-keyspaces
+# - datastax-java-driver.advanced.metrics.session.enabled
+# - datastax-java-driver.basic.contact-points
+# will be automatically converted to the TypeSafe Config format used by the driver.
+# The conversion will split values provided in those setting on the coma (,) sign and create indexed properties.
+#
+# For example if you will provide: datastax-java-driver.advanced.metrics.session.enabled=a,b
+# this will be converted to:
+# - datastax-java-driver.advanced.metrics.session.enabled.0=a
+# - datastax-java-driver.advanced.metrics.session.enabled.1=b

@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector.ccm;
 
 import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.withDriverPrefix;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -24,6 +25,7 @@ import com.datastax.dse.driver.internal.core.data.geometry.DefaultPolygon;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.data.UdtValue;
@@ -37,6 +39,7 @@ import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.protocol.internal.util.Bytes;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Duration;
@@ -52,6 +55,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
@@ -2165,6 +2169,36 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+  }
+
+  @Test
+  void should_insert_when_using_java_driver_contact_points_setting() {
+    Map<String, String> connectorProperties =
+        makeConnectorPropertiesWithoutContactPointsAndPort("bigintcol=key, listcol=value");
+    // use single datastax-java-driver prefixed property that carry host:port
+    connectorProperties.put(
+        withDriverPrefix(DefaultDriverOption.CONTACT_POINTS),
+        getContactPoints()
+            .stream()
+            .map(
+                a -> {
+                  InetSocketAddress inetSocketAddress = (InetSocketAddress) a.resolve();
+                  return String.format(
+                      "%s:%d", inetSocketAddress.getHostString(), inetSocketAddress.getPort());
+                })
+            .collect(Collectors.joining(",")));
+
+    conn.start(connectorProperties);
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "[42, 37]", 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    assertThat(row.getList("listcol", Integer.class)).isEqualTo(Arrays.asList(42, 37));
   }
 
   private static Stream<? extends Arguments> ttlColProvider() {
