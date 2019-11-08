@@ -1,0 +1,139 @@
+ensemble:
+  server:
+    node.count: 5
+    provisioner:
+      name: ctool
+      properties:
+        cloud.provider: openstack
+        cloud.tenant: performance
+        cloud.instance.type: ms1.small
+        name: dseserver
+        mark_for_reuse: true
+    configuration_manager:
+      - name: ctool
+        properties:
+          java.version: "1.8_151"
+          product.type: dse
+          product.install.type: tarball
+          product.version: 6.7-dev
+          enable.graph: false
+      - name: ctool_monitoring
+        properties:
+          components: os,jvm, dse-db, cassandra-all
+          graphite.create_server: true
+  clients:
+    - name: kafkabrokers
+      node.count: 3
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: openstack
+          cloud.tenant: performance
+          cloud.instance.type: ms1.small
+          mark_for_reuse: true
+      configuration_manager:
+        - name: ctool
+          properties:
+            install.maven: true
+            java.version: shenandoah8
+        - name: ctool_monitoring
+          properties:
+            components: os
+            graphite.create_server: true
+
+    - name: kafkaconnect
+      node.count: 3
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: openstack
+          cloud.tenant: performance
+          cloud.instance.type: ms1.small
+          mark_for_reuse: true
+      configuration_manager:
+        - name: ctool
+          properties:
+            install.maven: true
+            java.version: shenandoah8
+        - name: ctool_monitoring
+          properties:
+            components: os
+            graphite.create_server: true
+
+workload:
+  phases:
+    - downoad-confluent:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
+            mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
+    - set-server-properties-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          script: |
+            sed -i \"s/broker.id=.*/broker.id=0/\" confluent/etc/kafka/server.properties
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 0 >> /tmp/zookeeper/myid
+    - set-server-properties-1:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 1
+          export_output: false
+          script: |
+            sed -i \"s/broker.id=.*/broker.id=1/\" confluent/etc/kafka/server.properties
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
+    - set-server-properties-2:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 2
+          export_output: false
+          script: |
+            sed -i \"s/broker.id=.*/broker.id=2/\" confluent/etc/kafka/server.properties
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
+    - set-properties-all-brokers:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            BROKER_FIRST_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1
+            BROKER_SECOND_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2
+            BROKER_THIRD_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3
+            # set broker ips in kafka server props
+            sed -i \"s/zookeeper.connect=.*/zookeeper.connect=$BROKER_FIRST_ADDRESS:2181,$BROKER_SECOND_ADDRESS:2181,$BROKER_THIRD_ADDRESS:2181/\" confluent/etc/kafka/server.properties
+            # disable confluent metrics
+            sed -i \"s/confluent.support.metrics.enable=.*/confluent.support.metrics.enable=false/\" confluent/etc/kafka/server.properties
+            # initLimit is timeouts ZooKeeper uses to limit the length of time the ZooKeeper servers in quorum have to connect to a leader
+            echo \"initLimit=5\" >> confluent/etc/kafka/zookeeper.properties
+            # syncLimit limits how far out of date a server can be from a leader
+            echo \"syncLimit=2\" >> confluent/etc/kafka/zookeeper.properties
+            # set ips of zookeeper nodes
+            echo \"server.0=$BROKER_FIRST_ADDRESS:2888:3888\" >> confluent/etc/kafka/zookeeper.properties
+            echo \"server.1=$BROKER_SECOND_ADDRESS:2888:3888\" >> confluent/etc/kafka/zookeeper.properties
+            echo \"server.2=$BROKER_THIRD_ADDRESS:2888:3888\" >> confluent/etc/kafka/zookeeper.properties
+            # start zookeeper, kafka on all brokers, and schema registry
+            confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &
+            confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
+            echo \"kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092\" >>confluent/etc/schema-registry/schema-registry.properties
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sudo apt-get install -y maven
+    - create-topics-brokers-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic json-stream --config retention.ms=-1 delete.topic.enable=true
+            confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true
+            git clone https://github.com/datastax/kafka-examples.git
+
+  checkers:
+    verify_success:
+      checker: nofail
