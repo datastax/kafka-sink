@@ -15,6 +15,7 @@ import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.TimeUUIDGenerator;
 import com.datastax.dsbulk.commons.config.BulkConfigurationException;
 import com.datastax.dsbulk.commons.config.LoaderConfig;
+import com.datastax.dsbulk.commons.internal.config.ConfigUtils;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.typesafe.config.ConfigException;
@@ -131,7 +132,7 @@ public class CodecSettings {
       objectMapper = JsonCodecUtils.getObjectMapper();
 
     } catch (ConfigException e) {
-      throw BulkConfigurationException.fromTypeSafeConfigException(e, "codec");
+      throw ConfigUtils.configExceptionToBulkConfigurationException(e, "codec");
     }
   }
 
