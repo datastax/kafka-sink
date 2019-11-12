@@ -173,7 +173,15 @@ workload:
             mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
             # Setup worker Distributed Properties
             echo \"confluent.support.metrics.enable=false\" >> confluent/etc/kafka/connect-distributed.properties
+
+            # set optimal max.poll depending on the connector type
+            if [ "{{connector_type}}" = "json" ]
             echo \"consumer.max.poll.records=500\" >> confluent/etc/kafka/connect-distributed.properties
+            elif [ "{{connector_type}}" = "avro" ]
+            then
+            echo \"consumer.max.poll.records=100\" >> confluent/etc/kafka/connect-distributed.properties
+            fi
+
             sed -i \"s/^group.id=.*/group.id=kc-connect-s-group/\" confluent/etc/kafka/connect-distributed.properties
             BROKER_FIRST_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 1
             BROKER_SECOND_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 2
@@ -394,7 +402,38 @@ workload:
                     udt_col8 FROZEN<segment8_udt>,
                     udt_col9 FROZEN<segment9_udt>
                     );
+    - start-producer-and-submit-connector-worker-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 1
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
 
+            if [ "{{connector_type}}" = "json" ]
+            then
+            BROKER_FIRST_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1
+            BROKER_SECOND_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2
+            BROKER_THIRD_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3
+            # Produce 20_000 records per second to json-stream topic
+            KC_BROKERS_LIST=${BROKER_FIRST_ADDRESS}:9092,${BROKER_SECOND_ADDRESS}:9092,${BROKER_THIRD_ADDRESS}:9092
+            cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.InfiniteJsonProducer -Dexec.args=\"20000 json-stream $KC_BROKERS_LIST\" &> infinite-json-producer.log &
+
+            CONNECT_FIRST_ADDRESS=echo ${FALLOUT_kafkaconnect_PUBLIC_IPS} | cut -d "," -f 1
+            # todo validate if FALLOUT_SERVER_PRODUCT_CONTACT_POINT is coma separated
+            DSE_FIRST_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINT} | cut -d "," -f 1
+            DSE_SECOND_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINT} | cut -d "," -f 2
+
+            sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" kafka-sink/perf/dse-sink.json
+            sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink.json
+            curl -X POST -H "Content-Type: application/json" -d @kafka-sink/perf/dse-sink.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+
+            elif [ "{{connector_type}}" = "avro" ]
+            then
+
+            fi
+            confluent/bin/connect-distributed confluent/etc/kafka/connect-distributed.properties &> worker.log &
 
   checkers:
     verify_success:
