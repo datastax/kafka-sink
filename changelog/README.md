@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.2.0 (in progress)
+### 1.2.0
 - [new feature] KAF-143: Add support for connecting with cloud using secureBundle
 - [new feature] KAF-142: Add ability to extract fields from headers in kafka record and use them in mapping
 - [improvement] KAF-148: Switch from using dsbulk kafka_ft branch to 1.x branch

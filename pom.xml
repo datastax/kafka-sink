@@ -15,7 +15,7 @@
   <groupId>com.datastax.dse</groupId>
   <artifactId>kafka-connect-dse-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.2.0-SNAPSHOT</version>
+  <version>1.2.1-SNAPSHOT</version>
 
   <name>DataStax Apache Kafka Connector</name>
   <description>
@@ -43,7 +43,7 @@
     <caffeine.version>2.6.2</caffeine.version>
     <oss.driver.version>4.3.0</oss.driver.version>
     <driver.version>2.3.0</driver.version>
-    <dsbulk.version>1.4.0+20191022</dsbulk.version>
+    <dsbulk.version>1.4.0</dsbulk.version>
     <guava.version>25.1-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
