@@ -43,6 +43,16 @@ ensemble:
       - name: ctool_monitoring
         properties:
           components: os,jvm, dse-db, cassandra-all
+  observer:
+    node.count: 1
+    provisioner:
+      name: ctool
+      properties:
+        cloud.tenant: performance
+        cloud.instance.type: ms1.small
+    configuration_manager:
+      - name: ctool_monitoring
+        properties:
           graphite.create_server: true
   clients:
     - name: kafkabrokers
@@ -62,7 +72,6 @@ ensemble:
         - name: ctool_monitoring
           properties:
             components: os
-            graphite.create_server: true
 
     - name: kafkaconnect
       node.count: 3
@@ -81,7 +90,6 @@ ensemble:
         - name: ctool_monitoring
           properties:
             components: os
-            graphite.create_server: true
 
 workload:
   phases:
