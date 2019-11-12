@@ -421,9 +421,9 @@ workload:
               cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.InfiniteJsonProducer -Dexec.args=\"20000 json-stream $KC_BROKERS_LIST\" &> infinite-json-producer.log &
 
               CONNECT_FIRST_ADDRESS=echo ${FALLOUT_kafkaconnect_PUBLIC_IPS} | cut -d "," -f 1
-              # todo validate if FALLOUT_SERVER_PRODUCT_CONTACT_POINT is coma separated
-              DSE_FIRST_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINT} | cut -d "," -f 1
-              DSE_SECOND_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINT} | cut -d "," -f 2
+
+              DSE_FIRST_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1
+              DSE_SECOND_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2
 
               sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" kafka-sink/perf/dse-sink.json
               sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink.json
@@ -435,9 +435,9 @@ workload:
               cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args=\"avro-stream 200000000\"
 
               CONNECT_FIRST_ADDRESS=echo ${FALLOUT_kafkaconnect_PUBLIC_IPS} | cut -d "," -f 1
-              # todo validate if FALLOUT_SERVER_PRODUCT_CONTACT_POINT is coma separated
-              DSE_FIRST_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINT} | cut -d "," -f 1
-              DSE_SECOND_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINT} | cut -d "," -f 2
+
+              DSE_FIRST_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1
+              DSE_SECOND_ADDRESS=echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2
 
               sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" kafka-sink/perf/dse-sink-avro.json
               sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink-avro.json
