@@ -7,7 +7,7 @@ ensemble:
         cloud.provider: openstack
         cloud.tenant: performance
         cloud.instance.type: ms1.small
-        name: dseserver
+        name: dseserver-kafka-perf-json
         mark_for_reuse: true
     configuration_manager:
       - name: ctool
@@ -68,6 +68,7 @@ workload:
           target.group: kafkabrokers
           export_output: false
           script: |
+            cd ${FALLOUT_SCRATCH_DIR}
             curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
             mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
     - set-server-properties-0:
@@ -77,6 +78,7 @@ workload:
           target.ordinals: 0
           export_output: false
           script: |
+            cd ${FALLOUT_SCRATCH_DIR}
             sed -i \"s/broker.id=.*/broker.id=0/\" confluent/etc/kafka/server.properties
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 0 >> /tmp/zookeeper/myid
     - set-server-properties-1:
@@ -86,6 +88,7 @@ workload:
           target.ordinals: 1
           export_output: false
           script: |
+            cd ${FALLOUT_SCRATCH_DIR}
             sed -i \"s/broker.id=.*/broker.id=1/\" confluent/etc/kafka/server.properties
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
     - set-server-properties-2:
@@ -95,6 +98,7 @@ workload:
           target.ordinals: 2
           export_output: false
           script: |
+            cd ${FALLOUT_SCRATCH_DIR}
             sed -i \"s/broker.id=.*/broker.id=2/\" confluent/etc/kafka/server.properties
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
     - set-properties-all-brokers:
@@ -103,6 +107,7 @@ workload:
           target.group: kafkabrokers
           export_output: false
           script: |
+            cd ${FALLOUT_SCRATCH_DIR}
             BROKER_FIRST_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1
             BROKER_SECOND_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2
             BROKER_THIRD_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3
@@ -121,7 +126,7 @@ workload:
             # start zookeeper, kafka on all brokers, and schema registry
             confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &
             confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
-            echo \"kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092\" >>confluent/etc/schema-registry/schema-registry.properties
+            echo \"kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092\" >> confluent/etc/schema-registry/schema-registry.properties
             ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
             sudo apt-get install -y maven
     - create-topics-brokers-0:
@@ -130,9 +135,30 @@ workload:
           target.group: kafkabrokers
           export_output: false
           script: |
+            cd ${FALLOUT_SCRATCH_DIR}
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic json-stream --config retention.ms=-1 delete.topic.enable=true
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true
             git clone https://github.com/datastax/kafka-examples.git
+    - setup-confluent-workers:
+        module: bash
+        properties:
+          target.group: kafkaconnect
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
+            curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
+            mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
+            # Setup worker Distributed Properties
+            echo \"confluent.support.metrics.enable=false\" >> confluent/etc/kafka/connect-distributed.properties
+            echo \"consumer.max.poll.records=500\" >> confluent/etc/kafka/connect-distributed.properties
+            sed -i \"s/^group.id=.*/group.id=kc-connect-s-group/\" confluent/etc/kafka/connect-distributed.properties
+            BROKER_FIRST_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1
+            BROKER_SECOND_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2
+            BROKER_THIRD_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3
+            sed -i \"s/^bootstrap.servers=.*/bootstrap.servers=$BROKER_FIRST_ADDRESS:9092,$BROKER_SECOND_ADDRESS:9092,$BROKER_THIRD_ADDRESS:9092/\" confluent/etc/kafka/connect-distributed.properties
+            curl -O http://central.maven.org/maven2/org/jmxtrans/agent/jmxtrans-agent/1.2.6/jmxtrans-agent-1.2.6.jar
+            git clone https://github.com/riptano/kafka-sink
+
 
   checkers:
     verify_success:
