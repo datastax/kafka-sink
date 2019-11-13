@@ -110,7 +110,7 @@ workload:
           export_output: false
           script: |
             cd ${FALLOUT_SCRATCH_DIR}
-            sed -i \"s/broker.id=.*/broker.id=0/\" confluent/etc/kafka/server.properties
+            sed -i "s/broker.id=.*/broker.id=0/" confluent/etc/kafka/server.properties
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 0 >> /tmp/zookeeper/myid
     - set-server-properties-1:
         module: bash
@@ -120,7 +120,7 @@ workload:
           export_output: false
           script: |
             cd ${FALLOUT_SCRATCH_DIR}
-            sed -i \"s/broker.id=.*/broker.id=1/\" confluent/etc/kafka/server.properties
+            sed -i "s/broker.id=.*/broker.id=1/" confluent/etc/kafka/server.properties
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
     - set-server-properties-2:
         module: bash
@@ -130,7 +130,7 @@ workload:
           export_output: false
           script: |
             cd ${FALLOUT_SCRATCH_DIR}
-            sed -i \"s/broker.id=.*/broker.id=2/\" confluent/etc/kafka/server.properties
+            sed -i "s/broker.id=.*/broker.id=2/" confluent/etc/kafka/server.properties
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
     - set-properties-all-brokers:
         module: bash
@@ -143,21 +143,21 @@ workload:
             BROKER_SECOND_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2
             BROKER_THIRD_ADDRESS=echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3
             # set broker ips in kafka server props
-            sed -i \"s/zookeeper.connect=.*/zookeeper.connect=$BROKER_FIRST_ADDRESS:2181,$BROKER_SECOND_ADDRESS:2181,$BROKER_THIRD_ADDRESS:2181/\" confluent/etc/kafka/server.properties
+            sed -i "s/zookeeper.connect=.*/zookeeper.connect=$BROKER_FIRST_ADDRESS:2181,$BROKER_SECOND_ADDRESS:2181,$BROKER_THIRD_ADDRESS:2181/" confluent/etc/kafka/server.properties
             # disable confluent metrics
-            sed -i \"s/confluent.support.metrics.enable=.*/confluent.support.metrics.enable=false/\" confluent/etc/kafka/server.properties
+            sed -i "s/confluent.support.metrics.enable=.*/confluent.support.metrics.enable=false/" confluent/etc/kafka/server.properties
             # initLimit is timeouts ZooKeeper uses to limit the length of time the ZooKeeper servers in quorum have to connect to a leader
-            echo \"initLimit=5\" >> confluent/etc/kafka/zookeeper.properties
+            echo "initLimit=5" >> confluent/etc/kafka/zookeeper.properties
             # syncLimit limits how far out of date a server can be from a leader
-            echo \"syncLimit=2\" >> confluent/etc/kafka/zookeeper.properties
+            echo "syncLimit=2" >> confluent/etc/kafka/zookeeper.properties
             # set ips of zookeeper nodes
-            echo \"server.0=$BROKER_FIRST_ADDRESS:2888:3888\" >> confluent/etc/kafka/zookeeper.properties
-            echo \"server.1=$BROKER_SECOND_ADDRESS:2888:3888\" >> confluent/etc/kafka/zookeeper.properties
-            echo \"server.2=$BROKER_THIRD_ADDRESS:2888:3888\" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.0=$BROKER_FIRST_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.1=$BROKER_SECOND_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.2=$BROKER_THIRD_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
             # start zookeeper, kafka on all brokers, and schema registry
             confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &
             confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
-            echo \"kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092\" >> confluent/etc/schema-registry/schema-registry.properties
+            echo "kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092" >> confluent/etc/schema-registry/schema-registry.properties
             ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
             sudo apt-get install -y maven
     - create-topics-brokers-0:
@@ -180,22 +180,22 @@ workload:
             curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
             mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
             # Setup worker Distributed Properties
-            echo \"confluent.support.metrics.enable=false\" >> confluent/etc/kafka/connect-distributed.properties
+            echo "confluent.support.metrics.enable=false" >> confluent/etc/kafka/connect-distributed.properties
 
             # set optimal max.poll depending on the connector type
             if [ "{{connector_type}}" = "json" ]
             then
-              echo \"consumer.max.poll.records=500\" >> confluent/etc/kafka/connect-distributed.properties
+              echo "consumer.max.poll.records=500" >> confluent/etc/kafka/connect-distributed.properties
             elif [ "{{connector_type}}" = "avro" ]
             then
-              echo \"consumer.max.poll.records=100\" >> confluent/etc/kafka/connect-distributed.properties
+              echo "consumer.max.poll.records=100" >> confluent/etc/kafka/connect-distributed.properties
             fi
 
-            sed -i \"s/^group.id=.*/group.id=kc-connect-s-group/\" confluent/etc/kafka/connect-distributed.properties
+            sed -i "s/^group.id=.*/group.id=kc-connect-s-group/" confluent/etc/kafka/connect-distributed.properties
             BROKER_FIRST_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 1
             BROKER_SECOND_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 2
             BROKER_THIRD_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 3
-            sed -i \"s/^bootstrap.servers=.*/bootstrap.servers=$BROKER_FIRST_ADDRESS:9092,$BROKER_SECOND_ADDRESS:9092,$BROKER_THIRD_ADDRESS:9092/\" confluent/etc/kafka/connect-distributed.properties
+            sed -i "s/^bootstrap.servers=.*/bootstrap.servers=$BROKER_FIRST_ADDRESS:9092,$BROKER_SECOND_ADDRESS:9092,$BROKER_THIRD_ADDRESS:9092/" confluent/etc/kafka/connect-distributed.properties
             curl -O http://central.maven.org/maven2/org/jmxtrans/agent/jmxtrans-agent/1.2.6/jmxtrans-agent-1.2.6.jar
 
             # clone and build connector
@@ -203,7 +203,7 @@ workload:
             mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
             CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-dse-{{version}}.jar
             plugin_path=${FALLOUT_SCRATCH_DIR}/confluent/share,${CONNECTOR_JAR_LOCATION}
-            sed -i \"s#plugin\.path.*#plugin\.path=$plugin_path\n#\" confluent/etc/kafka/connect-distributed.properties
+            sed -i "s#plugin\.path.*#plugin\.path=$plugin_path\n#" confluent/etc/kafka/connect-distributed.properties
     - setup-metrics-worker-0:
         module: bash
         properties:
@@ -244,21 +244,21 @@ workload:
             if [ "{{connector_type}}" = "json" ]
             then
                 echo "configure for JSON"
-                sed -i \"s/^key.converter=.*/key.converter=org.apache.kafka.connect.storage.StringConverter/\" confluent/etc/kafka/connect-distributed.properties
-                sed -i \"s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties
-                sed -i \"s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=false/\" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^key.converter=.*/key.converter=org.apache.kafka.connect.storage.StringConverter/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=false/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=false/" confluent/etc/kafka/connect-distributed.properties
             elif [ "{{connector_type}}" = "avro" ]
             then
                 echo "configure for AVRO"
                 BROKER_FIRST_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 1
                 BROKER_SECOND_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 2
                 BROKER_THIRD_ADDRESS=echo ${FALLOUT_kafkabrokers_PUBLIC_IPS} | cut -d "," -f 3
-                sed -i \"s/^key.converter=.*/key.converter=io.confluent.connect.avro.AvroConverter/\" confluent/etc/kafka/connect-distributed.properties
-                sed -i \"s/^value.converter=.*/value.converter=io.confluent.connect.avro.AvroConverter/\" confluent/etc/kafka/connect-distributed.properties
-                echo \"key.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081\" >> confluent/etc/kafka/connect-distributed.properties
-                echo \"value.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081\" >> confluent/etc/kafka/connect-distributed.properties
-                sed -i \"s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=true/\" confluent/etc/kafka/connect-distributed.properties
-                sed -i \"s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=true/\" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^key.converter=.*/key.converter=io.confluent.connect.avro.AvroConverter/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^value.converter=.*/value.converter=io.confluent.connect.avro.AvroConverter/" confluent/etc/kafka/connect-distributed.properties
+                echo "key.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081" >> confluent/etc/kafka/connect-distributed.properties
+                echo "value.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081" >> confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=true/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=true/" confluent/etc/kafka/connect-distributed.properties
             fi
             confluent/bin/connect-distributed confluent/etc/kafka/connect-distributed.properties &> worker.log &
     - setup-dse-schema:
