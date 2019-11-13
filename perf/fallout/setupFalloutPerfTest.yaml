@@ -200,7 +200,9 @@ workload:
 
             # clone and build connector
             git clone -b {{branch}} git@github.com:riptano/kafka-sink.git
+            cd kafka-sink
             mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+            cd ${FALLOUT_SCRATCH_DIR}
             CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-dse-{{version}}.jar
             plugin_path=${FALLOUT_SCRATCH_DIR}/confluent/share,${CONNECTOR_JAR_LOCATION}
             sed -i "s#plugin\.path.*#plugin\.path=$plugin_path\n#" confluent/etc/kafka/connect-distributed.properties
@@ -429,6 +431,7 @@ workload:
               KC_BROKERS_LIST=${BROKER_FIRST_ADDRESS}:9092,${BROKER_SECOND_ADDRESS}:9092,${BROKER_THIRD_ADDRESS}:9092
               cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.InfiniteJsonProducer -Dexec.args=\"20000 json-stream $KC_BROKERS_LIST\" &> infinite-json-producer.log &
 
+              cd ${FALLOUT_SCRATCH_DIR}
               CONNECT_FIRST_ADDRESS=$(echo ${FALLOUT_kafkaconnect_PUBLIC_IPS} | cut -d "," -f 1)
 
               DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
@@ -443,6 +446,7 @@ workload:
               # Produce 200_000_000 avro records
               cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args=\"avro-stream 200000000\"
 
+              cd ${FALLOUT_SCRATCH_DIR}
               CONNECT_FIRST_ADDRESS=$(echo ${FALLOUT_kafkaconnect_PUBLIC_IPS} | cut -d "," -f 1)
 
               DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
