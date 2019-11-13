@@ -131,7 +131,7 @@ workload:
           script: |
             cd ${FALLOUT_SCRATCH_DIR}
             sed -i "s/broker.id=.*/broker.id=2/" confluent/etc/kafka/server.properties
-            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 2 >> /tmp/zookeeper/myid
     - set-properties-all-brokers:
         module: bash
         properties:
