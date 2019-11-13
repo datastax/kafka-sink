@@ -184,10 +184,11 @@ workload:
 
             # set optimal max.poll depending on the connector type
             if [ "{{connector_type}}" = "json" ]
-            echo \"consumer.max.poll.records=500\" >> confluent/etc/kafka/connect-distributed.properties
+            then
+              echo \"consumer.max.poll.records=500\" >> confluent/etc/kafka/connect-distributed.properties
             elif [ "{{connector_type}}" = "avro" ]
             then
-            echo \"consumer.max.poll.records=100\" >> confluent/etc/kafka/connect-distributed.properties
+              echo \"consumer.max.poll.records=100\" >> confluent/etc/kafka/connect-distributed.properties
             fi
 
             sed -i \"s/^group.id=.*/group.id=kc-connect-s-group/\" confluent/etc/kafka/connect-distributed.properties
