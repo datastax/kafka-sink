@@ -49,7 +49,7 @@ ensemble:
       name: ctool
       properties:
         cloud.tenant: performance
-        cloud.instance.type: ms1.small
+        cloud.instance.type: m1.xlarge
     configuration_manager:
       - name: ctool_monitoring
         properties:
