@@ -93,7 +93,7 @@ ensemble:
 
 workload:
   phases:
-    - downoad-confluent:
+    - dowlnoad-confluent:
         module: bash
         properties:
           target.group: kafkabrokers
@@ -102,36 +102,6 @@ workload:
             cd ${FALLOUT_SCRATCH_DIR}
             curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
             mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
-    - set-server-properties-0:
-        module: bash
-        properties:
-          target.group: kafkabrokers
-          target.ordinals: 0
-          export_output: false
-          script: |
-            cd ${FALLOUT_SCRATCH_DIR}
-            sed -i "s/broker.id=.*/broker.id=0/" confluent/etc/kafka/server.properties
-            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 0 >> /tmp/zookeeper/myid
-    - set-server-properties-1:
-        module: bash
-        properties:
-          target.group: kafkabrokers
-          target.ordinals: 1
-          export_output: false
-          script: |
-            cd ${FALLOUT_SCRATCH_DIR}
-            sed -i "s/broker.id=.*/broker.id=1/" confluent/etc/kafka/server.properties
-            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 1 >> /tmp/zookeeper/myid
-    - set-server-properties-2:
-        module: bash
-        properties:
-          target.group: kafkabrokers
-          target.ordinals: 2
-          export_output: false
-          script: |
-            cd ${FALLOUT_SCRATCH_DIR}
-            sed -i "s/broker.id=.*/broker.id=2/" confluent/etc/kafka/server.properties
-            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo 2 >> /tmp/zookeeper/myid
     - set-properties-all-brokers:
         module: bash
         properties:
@@ -139,6 +109,12 @@ workload:
           export_output: false
           script: |
             cd ${FALLOUT_SCRATCH_DIR}
+
+            # set broker ids
+            sed -i "s/broker.id=.*/broker.id=${FALLOUT_NODE_ORDINAL}/" confluent/etc/kafka/server.properties
+            # set zookeeper ids
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo ${FALLOUT_NODE_ORDINAL} >> /tmp/zookeeper/myid
+
             BROKER_FIRST_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1)
             BROKER_SECOND_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2)
             BROKER_THIRD_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3)
