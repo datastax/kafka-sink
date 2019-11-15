@@ -407,7 +407,7 @@ workload:
           target.group: kafkabrokers
           target.ordinals: 0
           export_output: false
-          timeout: 3 hours
+          timeout: 4 hours
           script: |
             set -ex
             cd ${FALLOUT_SCRATCH_DIR}
@@ -428,7 +428,8 @@ workload:
               sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" kafka-sink/perf/dse-sink.json
               sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink.json
               curl -X POST -H "Content-Type: application/json" -d @kafka-sink/perf/dse-sink.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-
+              # wait for process to finish
+              sleep 2h
             elif [ "{{connector_type}}" = "avro" ]
             then
               # Produce 200_000_000 avro records
@@ -444,6 +445,8 @@ workload:
               sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink-avro.json
 
               curl -X POST -H "Content-Type: application/json" -d @kafka-sink/perf/dse-sink-avro.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+              # wait for process to finish
+              sleep 1h
              fi
 
   checkers:
