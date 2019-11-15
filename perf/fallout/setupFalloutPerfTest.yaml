@@ -108,6 +108,7 @@ workload:
           target.group: kafkabrokers
           export_output: false
           script: |
+            set -ex
             cd ${FALLOUT_SCRATCH_DIR}
 
             # set broker ids
@@ -115,9 +116,9 @@ workload:
             # set zookeeper ids
             mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo ${FALLOUT_NODE_ORDINAL} >> /tmp/zookeeper/myid
 
-            BROKER_FIRST_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1)
-            BROKER_SECOND_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2)
-            BROKER_THIRD_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3)
+            BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
             # set broker ips in kafka server props
             sed -i "s/zookeeper.connect=.*/zookeeper.connect=$BROKER_FIRST_ADDRESS:2181,$BROKER_SECOND_ADDRESS:2181,$BROKER_THIRD_ADDRESS:2181/" confluent/etc/kafka/server.properties
             # disable confluent metrics
@@ -140,8 +141,10 @@ workload:
         module: bash
         properties:
           target.group: kafkabrokers
+          target.ordinals: 1
           export_output: false
           script: |
+            set -ex
             cd ${FALLOUT_SCRATCH_DIR}
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic json-stream --config retention.ms=-1 delete.topic.enable=true
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true
@@ -152,6 +155,7 @@ workload:
           target.group: kafkaconnect
           export_output: false
           script: |
+            set -ex
             cd ${FALLOUT_SCRATCH_DIR}
             curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
             mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
@@ -189,7 +193,9 @@ workload:
           target.ordinals: 1
           export_output: false
           script: |
-            CONNECT_FIRST_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 1)
+            cd ${FALLOUT_SCRATCH_DIR}
+            set -ex
+            CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
             METRICS_PATH=${FALLOUT_SCRATCH_DIR}/kafka-sink/perf/kafka/
             sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/${FALLOUT_SCRATCH_DIR}/jmxtrans-agent-1.2.6.jar=${METRICS_PATH}kafka-connect-metrics-0.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_FIRST_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed
     - setup-metrics-worker-1:
@@ -199,7 +205,9 @@ workload:
           target.ordinals: 2
           export_output: false
           script: |
-            CONNECT_SECOND_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 2)
+            cd ${FALLOUT_SCRATCH_DIR}
+            set -ex
+            CONNECT_SECOND_ADDRESS=${FALLOUT_KAFKACONNECT_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
             METRICS_PATH=${FALLOUT_SCRATCH_DIR}/kafka-sink/perf/kafka/
             sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/${FALLOUT_SCRATCH_DIR}/jmxtrans-agent-1.2.6.jar=${METRICS_PATH}kafka-connect-metrics-1.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_SECOND_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed
     - setup-metrics-worker-2:
@@ -209,7 +217,9 @@ workload:
           target.ordinals: 3
           export_output: false
           script: |
-            CONNECT_THIRD_ADDRESS=$(echo ${FALLOUT_TARGET_NODES_PUBLIC_IPS} | cut -d "," -f 3)
+            cd ${FALLOUT_SCRATCH_DIR}
+            set -ex
+            CONNECT_THIRD_ADDRESS=${FALLOUT_KAFKACONNECT_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
             METRICS_PATH=${FALLOUT_SCRATCH_DIR}/kafka-sink/perf/kafka/
             sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/${FALLOUT_SCRATCH_DIR}/jmxtrans-agent-1.2.6.jar=${METRICS_PATH}kafka-connect-metrics-2.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_THIRD_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed
     - start-connector:
@@ -218,6 +228,7 @@ workload:
           target.group: kafkaconnect
           export_output: false
           script: |
+            set -ex
             cd ${FALLOUT_SCRATCH_DIR}
             if [ "{{connector_type}}" = "json" ]
             then
@@ -396,6 +407,7 @@ workload:
           target.ordinals: 1
           export_output: false
           script: |
+            set -ex
             cd ${FALLOUT_SCRATCH_DIR}
 
             if [ "{{connector_type}}" = "json" ]
