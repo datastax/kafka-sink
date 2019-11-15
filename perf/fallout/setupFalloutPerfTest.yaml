@@ -407,6 +407,7 @@ workload:
           target.group: kafkabrokers
           target.ordinals: 0
           export_output: false
+          timeout: 3 hours
           script: |
             set -ex
             cd ${FALLOUT_SCRATCH_DIR}
@@ -443,8 +444,7 @@ workload:
               sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink-avro.json
 
               curl -X POST -H "Content-Type: application/json" -d @kafka-sink/perf/dse-sink-avro.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-
-            fi
+             fi
 
   checkers:
     verify_success:
