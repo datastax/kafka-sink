@@ -138,9 +138,9 @@ workload:
             # start zookeeper, kafka on all brokers, and schema registry
             confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &
             confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
-            # delay between starting kafka and schema-registry
+            # delay between starting kafka and schema-registry (the next step)
             sleep 2m
-            echo "kafkastore.bootstrap.servers=PLAINTEXT://localhost:9092" >> confluent/etc/schema-registry/schema-registry.properties
+            echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092" >> confluent/etc/schema-registry/schema-registry.properties
             ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
             sudo apt-get install -y maven
     - create-topics-brokers-0:
