@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Test;
 public class KAF91Test {
 
   @Test
-  public void testDecimalConversion() throws Exception {
+  public void testJsonConverter() throws Exception {
 
     String topic = "topic";
     ObjectMapper objectMapper = new ObjectMapper();
@@ -49,7 +49,11 @@ public class KAF91Test {
     TextNode outputText = (TextNode) output.get("payload");
 
     // Validate that the string in payload isn't some well-known representation of BigDecimal
-    assertThatThrownBy(() -> { new BigDecimal(outputText.textValue()); });
+    assertThatThrownBy(
+            () -> {
+              new BigDecimal(outputText.textValue());
+            })
+        .isInstanceOf(NumberFormatException.class);
 
     // Now validate what the text field actually is: a base64-encoded rep of the (unscaled)
     // floating point number due to the rendering as bytes (which in turn is due to the
