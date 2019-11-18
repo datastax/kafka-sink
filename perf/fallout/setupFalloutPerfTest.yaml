@@ -4,6 +4,9 @@ version: "1.2.1-SNAPSHOT"
 
 # connector type to test, could be json or avro
 connector_type: "json"
+
+# type of a test, could be performance or endurance
+type_of_test: "performance"
 ---
 
 ensemble:
@@ -407,7 +410,7 @@ workload:
           target.group: kafkabrokers
           target.ordinals: 0
           export_output: false
-          timeout: 4 hours
+          timeout: 25 hours
           script: |
             set -ex
             cd ${FALLOUT_SCRATCH_DIR}
@@ -416,37 +419,84 @@ workload:
 
             if [ "{{connector_type}}" = "json" ]
             then
-              # Produce 1_000_000_000 records to json-stream topic
-              cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer
+              if [ "{{type_of_test}}" = "performance" ]
+                then
+                # Produce 1_000_000_000 records to json-stream topic
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer
 
-              cd ${FALLOUT_SCRATCH_DIR}
-              CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
 
-              DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
-              DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
 
-              sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" kafka-sink/perf/dse-sink.json
-              sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink.json
-              curl -X POST -H "Content-Type: application/json" -d @kafka-sink/perf/dse-sink.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-              # wait for process to finish
-              sleep 2h
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink.json dse-sink-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-temp.json
+                # wait for process to finish
+                sleep 2h
+              elif [ "{{type_of_test}}" = "endurance" ]
+              then
+                # Produce 20_000 records per second to json-stream topic
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.InfiniteJsonProducer -Dexec.args="20000 json-stream 127.0.0.1:9092" &> infinite-json-producer.log &
+
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink.json dse-sink-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-temp.json
+                sleep 15h
+              fi
             elif [ "{{connector_type}}" = "avro" ]
             then
-              # Produce 200_000_000 avro records
-              cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args=\"avro-stream 200000000\"
+              if [ "{{type_of_test}}" = "performance" ]
+              then
+                # Produce 200_000_000 avro records
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args="avro-stream 200000000"
 
-              cd ${FALLOUT_SCRATCH_DIR}
-              CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
 
-              DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
-              DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
 
-              sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" kafka-sink/perf/dse-sink-avro.json
-              sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" kafka-sink/perf/dse-sink-avro.json
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink-avro.json dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-avro-temp.json
 
-              curl -X POST -H "Content-Type: application/json" -d @kafka-sink/perf/dse-sink-avro.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-              # wait for process to finish
-              sleep 1h
+                # wait for process to finish
+                sleep 1h
+              elif [ "{{type_of_test}}" = "endurance" ]
+              then
+                # Produce 5_000 avro records per second
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.InfiniteAvroProducer -Dexec.args="5000 avro-stream" &> infinite-avro-producer.log &
+
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink-avro.json dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-avro-temp.json
+                sleep 24h
+              fi
              fi
 
   checkers:
