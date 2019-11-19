@@ -61,3 +61,9 @@ It means that the producer will be working infinitely until there will be no spa
 Next, the connector will be submitted and it will be running constantly picking new events from Kafka and saving them to DSE.
 
 After the successful test, you should destroy the whole cluster by using ./destroyCluster.sh
+
+## Fallout
+
+The testing procedure is automated as the fallout plan. For more information see ./fallout/setupFalloutPerfTest.yaml
+The plan is created and can be run using this link: https://fallout.sjc.dsinternal.org/tests/ui/tomasz.lelek@datastax.com/kafka_performance_endurance_json_avro_test
+ 
