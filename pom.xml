@@ -81,18 +81,6 @@
       </dependency>
 
       <dependency>
-        <groupId>org.apache.kafka</groupId>
-        <artifactId>connect-json</artifactId>
-        <version>${kafka.connect.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.confluent</groupId>
-        <artifactId>kafka-connect-avro-converter</artifactId>
-        <version>${confluent.version}</version>
-      </dependency>
-
-      <dependency>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-runtime</artifactId>
         <version>${antlr4.version}</version>
@@ -168,6 +156,20 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>${mockito.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>connect-json</artifactId>
+        <version>${kafka.connect.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-connect-avro-converter</artifactId>
+        <version>${confluent.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <dependency>

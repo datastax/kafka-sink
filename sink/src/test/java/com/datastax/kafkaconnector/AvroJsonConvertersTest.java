@@ -35,10 +35,10 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class KAF91Test {
+public class AvroJsonConvertersTest {
 
   @Test
-  public void testJsonConverter() throws Exception {
+  public void shouldConvertBigDecimalToBytesWithJsonConverter() throws Exception {
 
     String topic = "topic";
     ObjectMapper objectMapper = new ObjectMapper();
@@ -77,10 +77,9 @@ public class KAF91Test {
   }
 
   @Test
-  public void testAvroConverter() throws Exception {
+  public void shouldConvertBigDecimalToBytesWithAvroConverter() throws Exception {
 
     String topic = "topic";
-    ObjectMapper objectMapper = new ObjectMapper();
     AvroConverter converter = new AvroConverter(Mockito.mock(SchemaRegistryClient.class));
     converter.configure(
         Collections.singletonMap(
