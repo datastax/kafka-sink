@@ -1,0 +1,555 @@
+# branch and version of the kafka-connector to benchmark
+branch: "1.x"
+version: "1.2.1-SNAPSHOT"
+
+# connector type to test, could be json or avro
+connector_type: "json"
+
+# type of a test, could be performance or endurance
+type_of_test: "performance"
+---
+
+ensemble:
+  server:
+    node.count: 5
+    provisioner:
+      name: ctool
+      properties:
+        cloud.provider: openstack
+        cloud.tenant: performance
+        cloud.instance.type: ms1.small
+        name: dseserver-kafka-perf-json
+        mark_for_reuse: true
+    configuration_manager:
+      - name: ctool
+        properties:
+          java.version: "1.8_151"
+          product.type: dse
+          product.install.type: tarball
+          product.version: 6.7-dev
+          enable.graph: false
+          json.topology: |
+            {
+               "cluster":
+                {
+                  "snitch":"GossipingPropertyFileSnitch",
+                  "nodes":
+                  {
+                    "0":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra", "seed":"True"},
+                    "1":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra", "seed":"True"},
+                    "2":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra"},
+                    "3":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra"},
+                    "4":{"datacenter":"kc-dc", "rack":"rack1", "node_type":"Cassandra"}
+                  }
+                }
+            }
+      - name: ctool_monitoring
+        properties:
+          components: os,jvm, dse-db, cassandra-all
+  observer:
+    node.count: 1
+    provisioner:
+      name: ctool
+      properties:
+        cloud.tenant: performance
+        cloud.instance.type: m1.xlarge
+        mark_for_reuse: true
+    configuration_manager:
+      - name: ctool_monitoring
+        properties:
+          graphite.create_server: true
+  clients:
+    - name: kafkabrokers
+      node.count: 3
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: openstack
+          cloud.tenant: performance
+          cloud.instance.type: ms1.small
+          mark_for_reuse: true
+      configuration_manager:
+        - name: ctool
+          properties:
+            install.maven: true
+            java.version: shenandoah8
+        - name: ctool_monitoring
+          properties:
+            components: os
+
+    - name: kafkaconnect
+      node.count: 3
+      provisioner:
+        name: ctool
+        properties:
+          cloud.provider: openstack
+          cloud.tenant: performance
+          cloud.instance.type: ms1.small
+          mark_for_reuse: true
+      configuration_manager:
+        - name: ctool
+          properties:
+            install.maven: true
+            java.version: shenandoah8
+        - name: ctool_monitoring
+          properties:
+            components: os
+
+workload:
+  phases:
+    - dowlnoad-confluent:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
+            curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
+            mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
+    - set-properties-all-brokers:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+
+            # set broker ids
+            sed -i "s/broker.id=.*/broker.id=${FALLOUT_NODE_ORDINAL}/" confluent/etc/kafka/server.properties
+            # set zookeeper ids
+            mkdir /tmp/zookeeper/ -p; touch /tmp/zookeeper/myid; echo ${FALLOUT_NODE_ORDINAL} >> /tmp/zookeeper/myid
+
+            BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+            # set broker ips in kafka server props
+            sed -i "s/zookeeper.connect=.*/zookeeper.connect=$BROKER_FIRST_ADDRESS:2181,$BROKER_SECOND_ADDRESS:2181,$BROKER_THIRD_ADDRESS:2181/" confluent/etc/kafka/server.properties
+            # disable confluent metrics
+            sed -i "s/confluent.support.metrics.enable=.*/confluent.support.metrics.enable=false/" confluent/etc/kafka/server.properties
+            # initLimit is timeouts ZooKeeper uses to limit the length of time the ZooKeeper servers in quorum have to connect to a leader
+            echo "initLimit=5" >> confluent/etc/kafka/zookeeper.properties
+            # syncLimit limits how far out of date a server can be from a leader
+            echo "syncLimit=2" >> confluent/etc/kafka/zookeeper.properties
+            # set ips of zookeeper nodes
+            echo "server.0=$BROKER_FIRST_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.1=$BROKER_SECOND_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            echo "server.2=$BROKER_THIRD_ADDRESS:2888:3888" >> confluent/etc/kafka/zookeeper.properties
+            # start zookeeper, kafka on all brokers, and schema registry
+            confluent/bin/zookeeper-server-start confluent/etc/kafka/zookeeper.properties &> zookeeper.log &
+            confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
+            # delay between starting kafka and schema-registry (the next step)
+            sleep 2m
+            sudo apt-get install -y maven
+            echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092" >> confluent/etc/schema-registry/schema-registry.properties
+    - start-schema-registry-broker-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - start-schema-registry-broker-1:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 1
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - start-schema-registry-broker-2:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 2
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - create-topics-brokers-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic json-stream --config retention.ms=-1 delete.topic.enable=true
+            confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true
+            git clone https://github.com/datastax/kafka-examples.git
+    - setup-confluent-workers:
+        module: bash
+        properties:
+          target.group: kafkaconnect
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            curl -O http://packages.confluent.io/archive/5.2/confluent-community-5.2.1-2.12.tar.gz
+            mkdir confluent; tar xzf confluent-community-5.2.1-2.12.tar.gz -C confluent --strip-components=1
+            # Setup worker Distributed Properties
+            echo "confluent.support.metrics.enable=false" >> confluent/etc/kafka/connect-distributed.properties
+
+            # set optimal max.poll depending on the connector type
+            if [ "{{connector_type}}" = "json" ]
+            then
+              echo "consumer.max.poll.records=500" >> confluent/etc/kafka/connect-distributed.properties
+            elif [ "{{connector_type}}" = "avro" ]
+            then
+              echo "consumer.max.poll.records=100" >> confluent/etc/kafka/connect-distributed.properties
+            fi
+
+            sed -i "s/^group.id=.*/group.id=kc-connect-s-group/" confluent/etc/kafka/connect-distributed.properties
+            BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+            sed -i "s/^bootstrap.servers=.*/bootstrap.servers=$BROKER_FIRST_ADDRESS:9092,$BROKER_SECOND_ADDRESS:9092,$BROKER_THIRD_ADDRESS:9092/" confluent/etc/kafka/connect-distributed.properties
+            curl -O http://central.maven.org/maven2/org/jmxtrans/agent/jmxtrans-agent/1.2.6/jmxtrans-agent-1.2.6.jar
+
+            # clone and build connector
+            git clone -b {{branch}} git@github.com:riptano/kafka-sink.git
+            cd kafka-sink
+            mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+            cd ${FALLOUT_SCRATCH_DIR}
+            CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-dse-{{version}}.jar
+            plugin_path=${FALLOUT_SCRATCH_DIR}/confluent/share,${CONNECTOR_JAR_LOCATION}
+            sed -i "s#plugin\.path.*#plugin\.path=$plugin_path\n#" confluent/etc/kafka/connect-distributed.properties
+    - setup-metrics-worker-0:
+        module: bash
+        properties:
+          target.group: kafkaconnect
+          target.ordinals: 0
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
+            set -ex
+            CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+            METRICS_PATH=${FALLOUT_SCRATCH_DIR}/kafka-sink/perf/kafka/
+            sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/${FALLOUT_SCRATCH_DIR}/jmxtrans-agent-1.2.6.jar=${METRICS_PATH}kafka-connect-metrics-0.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_FIRST_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed
+    - setup-metrics-worker-1:
+        module: bash
+        properties:
+          target.group: kafkaconnect
+          target.ordinals: 1
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
+            set -ex
+            CONNECT_SECOND_ADDRESS=${FALLOUT_KAFKACONNECT_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+            METRICS_PATH=${FALLOUT_SCRATCH_DIR}/kafka-sink/perf/kafka/
+            sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/${FALLOUT_SCRATCH_DIR}/jmxtrans-agent-1.2.6.jar=${METRICS_PATH}kafka-connect-metrics-1.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_SECOND_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed
+    - setup-metrics-worker-2:
+        module: bash
+        properties:
+          target.group: kafkaconnect
+          target.ordinals: 2
+          export_output: false
+          script: |
+            cd ${FALLOUT_SCRATCH_DIR}
+            set -ex
+            CONNECT_THIRD_ADDRESS=${FALLOUT_KAFKACONNECT_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+            METRICS_PATH=${FALLOUT_SCRATCH_DIR}/kafka-sink/perf/kafka/
+            sed -i '72i KAFKA_JMX_OPTS=\"-javaagent:/${FALLOUT_SCRATCH_DIR}/jmxtrans-agent-1.2.6.jar=${METRICS_PATH}kafka-connect-metrics-2.xml -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.authenticate=false  -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=$CONNECT_THIRD_ADDRESS -Dcom.sun.management.jmxremote.port=7199\"' confluent/bin/connect-distributed
+    - start-connector:
+        module: bash
+        properties:
+          target.group: kafkaconnect
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            if [ "{{connector_type}}" = "json" ]
+            then
+                echo "configure for JSON"
+                sed -i "s/^key.converter=.*/key.converter=org.apache.kafka.connect.storage.StringConverter/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=false/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=false/" confluent/etc/kafka/connect-distributed.properties
+            elif [ "{{connector_type}}" = "avro" ]
+            then
+                echo "configure for AVRO"
+                BROKER_FIRST_ADDRESS=${FALLOUT_KAFKABROKERS_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+                BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
+                BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
+                sed -i "s/^key.converter=.*/key.converter=io.confluent.connect.avro.AvroConverter/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^value.converter=.*/value.converter=io.confluent.connect.avro.AvroConverter/" confluent/etc/kafka/connect-distributed.properties
+                echo "key.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081" >> confluent/etc/kafka/connect-distributed.properties
+                echo "value.converter.schema.registry.url=http://$BROKER_FIRST_ADDRESS:8081,http://$BROKER_SECOND_ADDRESS:8081,http://$BROKER_THIRD_ADDRESS:8081" >> confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^key.converter.schemas.enable=.*/key.converter.schemas.enable=true/" confluent/etc/kafka/connect-distributed.properties
+                sed -i "s/^value.converter.schemas.enable=.*/value.converter.schemas.enable=true/" confluent/etc/kafka/connect-distributed.properties
+            fi
+            confluent/bin/connect-distributed confluent/etc/kafka/connect-distributed.properties &> worker.log &
+    - setup-dse-schema:
+        module: cqlsh
+        properties:
+          num.nodes: 1
+          command: >
+                    CREATE KEYSPACE stocks WITH replication = {'class': 'NetworkTopologyStrategy', 'kc-dc': 3};
+                    CREATE TABLE stocks.ticks (symbol text, ts timestamp, exchange text, industry text, name text, value double, PRIMARY KEY (symbol, ts));
+
+                    create keyspace if not exists kafka_examples with replication = {'class': 'NetworkTopologyStrategy', 'kc-dc': 3};
+
+                    CREATE type if not exists kafka_examples.segment0_udt (
+                    segment0_0 text,
+                    segment0_1 text,
+                    segment0_2 text,
+                    segment0_3 text,
+                    segment0_4 text,
+                    segment0_5 text,
+                    segment0_6 text,
+                    segment0_7 text,
+                    segment0_8 text,
+                    segment0_9 text
+                    );
+
+                    CREATE type if not exists kafka_examples.segment1_udt (
+                    segment1_0 text,
+                    segment1_1 text,
+                    segment1_2 text,
+                    segment1_3 text,
+                    segment1_4 text,
+                    segment1_5 text,
+                    segment1_6 text,
+                    segment1_7 text,
+                    segment1_8 text,
+                    segment1_9 text
+                    );
+
+                    CREATE type if not exists kafka_examples.segment2_udt (
+                    segment2_0 text,
+                    segment2_1 text,
+                    segment2_2 text,
+                    segment2_3 text,
+                    segment2_4 text,
+                    segment2_5 text,
+                    segment2_6 text,
+                    segment2_7 text,
+                    segment2_8 text,
+                    segment2_9 text
+                    );
+
+                    CREATE type if not exists kafka_examples.segment3_udt (
+                    segment3_0 text,
+                    segment3_1 text,
+                    segment3_2 text,
+                    segment3_3 text,
+                    segment3_4 text,
+                    segment3_5 text,
+                    segment3_6 text,
+                    segment3_7 text,
+                    segment3_8 text,
+                    segment3_9 text
+                    );
+
+                    CREATE type if not exists kafka_examples.segment4_udt (
+                    segment4_0 text,
+                    segment4_1 text,
+                    segment4_2 text,
+                    segment4_3 text,
+                    segment4_4 text,
+                    segment4_5 text,
+                    segment4_6 text,
+                    segment4_7 text,
+                    segment4_8 text,
+                    segment4_9 text
+                    );
+
+                    CREATE type if not exists kafka_examples.segment5_udt (
+                    segment5_0 text,
+                    segment5_1 text,
+                    segment5_2 text,
+                    segment5_3 text,
+                    segment5_4 text,
+                    segment5_5 text,
+                    segment5_6 text,
+                    segment5_7 text,
+                    segment5_8 text,
+                    segment5_9 text
+                    );
+                    CREATE type if not exists kafka_examples.segment6_udt (
+                    segment6_0 text,
+                    segment6_1 text,
+                    segment6_2 text,
+                    segment6_3 text,
+                    segment6_4 text,
+                    segment6_5 text,
+                    segment6_6 text,
+                    segment6_7 text,
+                    segment6_8 text,
+                    segment6_9 text
+                    );
+                    CREATE type if not exists kafka_examples.segment7_udt (
+                    segment7_0 text,
+                    segment7_1 text,
+                    segment7_2 text,
+                    segment7_3 text,
+                    segment7_4 text,
+                    segment7_5 text,
+                    segment7_6 text,
+                    segment7_7 text,
+                    segment7_8 text,
+                    segment7_9 text
+                    );
+                    CREATE type if not exists kafka_examples.segment8_udt (
+                    segment8_0 text,
+                    segment8_1 text,
+                    segment8_2 text,
+                    segment8_3 text,
+                    segment8_4 text,
+                    segment8_5 text,
+                    segment8_6 text,
+                    segment8_7 text,
+                    segment8_8 text,
+                    segment8_9 text
+                    );
+
+                    CREATE type if not exists kafka_examples.segment9_udt (
+                    segment9_0 text,
+                    segment9_1 text,
+                    segment9_2 text,
+                    segment9_3 text,
+                    segment9_4 text,
+                    segment9_5 text,
+                    segment9_6 text,
+                    segment9_7 text,
+                    segment9_8 text,
+                    segment9_9 text
+                    );
+
+                    create table if not exists kafka_examples.avro_udt_table (
+                    id int PRIMARY KEY,
+                    udt_col0 FROZEN<segment0_udt>,
+                    udt_col1 FROZEN<segment1_udt>,
+                    udt_col2 FROZEN<segment2_udt>,
+                    udt_col3 FROZEN<segment3_udt>,
+                    udt_col4 FROZEN<segment4_udt>,
+                    udt_col5 FROZEN<segment5_udt>,
+                    udt_col6 FROZEN<segment6_udt>,
+                    udt_col7 FROZEN<segment7_udt>,
+                    udt_col8 FROZEN<segment8_udt>,
+                    udt_col9 FROZEN<segment9_udt>
+                    );
+    - start-producer-and-submit-connector-worker-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          timeout: 25 hours
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            # clone connector
+            git clone -b {{branch}} git@github.com:riptano/kafka-sink.git
+
+            if [ "{{connector_type}}" = "json" ]
+            then
+              if [ "{{type_of_test}}" = "performance" ]
+                then
+                # Produce 1_000_000_000 records to json-stream topic
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.JsonProducer
+
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink.json dse-sink-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-temp.json
+                # wait for process to finish
+                sleep 2h
+              elif [ "{{type_of_test}}" = "endurance" ]
+              then
+                # Produce 20_000 records per second to json-stream topic
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=json.InfiniteJsonProducer -Dexec.args="20000 json-stream 127.0.0.1:9092" &> infinite-json-producer.log &
+
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink.json dse-sink-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-temp.json
+                sleep 15h
+              fi
+            elif [ "{{connector_type}}" = "avro" ]
+            then
+              if [ "{{type_of_test}}" = "performance" ]
+              then
+                # Produce 200_000_000 avro records
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.AvroProducer -Dexec.args="avro-stream 200000000"
+
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink-avro.json dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-avro-temp.json
+
+                # wait for process to finish
+                sleep 1h
+              elif [ "{{type_of_test}}" = "endurance" ]
+              then
+                # Produce 5_000 avro records per second
+                cd kafka-examples/producers; mvn clean compile exec:java -Dexec.mainClass=avro.InfiniteAvroProducer -Dexec.args="5000 avro-stream" &> infinite-avro-producer.log &
+
+                cd ${FALLOUT_SCRATCH_DIR}
+                CONNECT_FIRST_ADDRESS=${FALLOUT_KAFKACONNECT_NODE0_NODE_INFO_PUBLICNETWORKADDRESS}
+
+                DSE_FIRST_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 1)
+                DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
+
+                # Submit connector task
+                cp kafka-sink/perf/dse-sink-avro.json dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-avro-temp.json
+                sleep 24h
+              fi
+             fi
+    - verify-number-of-inserted-server-0:
+         module: bash
+         properties:
+           target.group: server
+           target.ordinals: 0
+           export_output: false
+           timeout: 1 hours
+           script: |
+             if [ "{{connector_type}}" = "json" ]
+             then
+               echo "verifying inserted data for JSON table"
+               /home/automaton/dse/bin/dsbulk count -k stocks -t ticks
+             elif [ "{{connector_type}}" = "avro" ]
+             then
+               echo "verifying inserted data for AVRO table"
+               /home/automaton/dse/bin/dsbulk count -k kafka_examples -t avro_udt_table
+             fi
+
+  checkers:
+    verify_success:
+      checker: nofail
