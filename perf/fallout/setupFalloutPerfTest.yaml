@@ -140,9 +140,41 @@ workload:
             confluent/bin/kafka-server-start confluent/etc/kafka/server.properties &> kafka.log &
             # delay between starting kafka and schema-registry (the next step)
             sleep 2m
-            echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092" >> confluent/etc/schema-registry/schema-registry.properties
-            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
             sudo apt-get install -y maven
+            echo "kafkastore.bootstrap.servers=PLAINTEXT://$BROKER_FIRST_ADDRESS:9092,PLAINTEXT://$BROKER_SECOND_ADDRESS:9092,PLAINTEXT://$BROKER_THIRD_ADDRESS:9092" >> confluent/etc/schema-registry/schema-registry.properties
+    - start-schema-registry-broker-0:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 0
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - start-schema-registry-broker-1:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 1
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
+    - start-schema-registry-broker-2:
+        module: bash
+        properties:
+          target.group: kafkabrokers
+          target.ordinals: 2
+          export_output: false
+          script: |
+            set -ex
+            cd ${FALLOUT_SCRATCH_DIR}
+            ./confluent/bin/schema-registry-start confluent/etc/schema-registry/schema-registry.properties &> schema-registry.log &
+            sleep 30s
     - create-topics-brokers-0:
         module: bash
         properties:
@@ -499,6 +531,23 @@ workload:
                 rm dse-sink-avro-temp.json
                 sleep 24h
               fi
+             fi
+    - verify-number-of-inserted-server-0:
+         module: bash
+         properties:
+           target.group: server
+           target.ordinals: 0
+           export_output: false
+           timeout: 1 hours
+           script: |
+             if [ "{{connector_type}}" = "json" ]
+             then
+               echo "verifying inserted data for JSON table"
+               /home/automaton/dse/bin/dsbulk count -k stocks -t ticks
+             elif [ "{{connector_type}}" = "avro" ]
+             then
+               echo "verifying inserted data for AVRO table"
+               /home/automaton/dse/bin/dsbulk count -k kafka_examples -t avro_udt_table
              fi
 
   checkers:
