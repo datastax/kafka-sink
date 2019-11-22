@@ -40,6 +40,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
     <kafka.connect.version>2.2.0</kafka.connect.version>
+    <confluent.version>5.3.1</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
     <oss.driver.version>4.3.0</oss.driver.version>
     <driver.version>2.3.0</driver.version>
@@ -155,6 +156,20 @@
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
         <version>${mockito.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>connect-json</artifactId>
+        <version>${kafka.connect.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-connect-avro-converter</artifactId>
+        <version>${confluent.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <dependency>
@@ -786,6 +801,17 @@
       <id>datastax-releases-local</id>
       <name>DataStax Local Releases</name>
       <url> https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>Confluent</id>
+      <name>Confluent</name>
+      <url>http://packages.confluent.io/maven/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
