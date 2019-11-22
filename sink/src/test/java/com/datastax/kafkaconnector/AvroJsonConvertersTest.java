@@ -35,6 +35,10 @@ import org.apache.kafka.connect.json.JsonConverter;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+/**
+ * Tests to validate discussion in KAF-91. These tests are intended to prove that the behaviour
+ * described in the ticket is a function of JsonConverter or AvroConverter alone.
+ */
 public class AvroJsonConvertersTest {
 
   @Test
