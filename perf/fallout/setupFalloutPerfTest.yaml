@@ -72,7 +72,7 @@ ensemble:
         - name: ctool
           properties:
             install.maven: true
-            java.version: shenandoah8
+            java.version: openjdk8
         - name: ctool_monitoring
           properties:
             components: os
@@ -90,7 +90,7 @@ ensemble:
         - name: ctool
           properties:
             install.maven: true
-            java.version: shenandoah8
+            java.version: openjdk8
         - name: ctool_monitoring
           properties:
             components: os
