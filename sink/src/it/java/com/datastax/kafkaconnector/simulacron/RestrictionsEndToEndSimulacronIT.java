@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector.simulacron;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import ch.qos.logback.classic.LoggerContext;
@@ -112,7 +111,7 @@ class RestrictionsEndToEndSimulacronIT {
   }
 
   @Test
-  void fail_load_to_oss_cassandra() {
+  void should_allow_load_to_oss_cassandra() {
     SimulacronUtils.primeTables(simulacron, schema);
 
     // DAT-322: absence of dse_version + absence of a DSE patch in release_version => OSS C*
@@ -122,10 +121,8 @@ class RestrictionsEndToEndSimulacronIT {
     SimulacronUtils.primeSystemLocal(simulacron, overrides);
 
     conn.start(connectorProperties);
-    assertThatThrownBy(this::runTaskWithRecords)
-        .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("offending nodes:")
-        .hasMessageContaining("127.0.");
+    // When we run, no exception should occur.
+    runTaskWithRecords();
   }
 
   @Test
