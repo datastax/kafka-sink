@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.2.1 (in progress)
+- [improvement] KAF-165: Remove restriction preventing Kafka Connector use with open source Cassandra
+
 ### 1.2.0
 - [new feature] KAF-143: Add support for connecting with cloud using secureBundle
 - [new feature] KAF-142: Add ability to extract fields from headers in kafka record and use them in mapping
