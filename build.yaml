@@ -21,6 +21,10 @@ java:
 os:
   - ubuntu/bionic64/java-driver
 cassandra:
+  - 2.1
+  - 2.2
+  - 3.0
+  - 3.11
   - dse-5.0
   - dse-5.1
   - dse-6.0
