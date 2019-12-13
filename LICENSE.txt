@@ -123,6 +123,6 @@ THIRD-PARTY.txt file.
 
 9. Questions
 
-If you have questions, please contact us here: www.datastax.com/contactus.
+If you have questions, please contact us here: www.datastax.com/contact.
 
 Apache Kafka® and Apache CassandraTM are trademarks of The Apache Software Foundation
