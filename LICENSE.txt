@@ -1,6 +1,6 @@
 DataStax Apache Kafka (R) Connector License Terms
 
-Last Updated:  December 5, 2018
+Last Updated:  December 12, 2019
 
 PLEASE READ THIS DATASTAX APACHE KAFKA CONNECTOR TERMS (“AGREEMENT”) CAREFULLY. BY
 CLICKING A BOX INDICATING ACCEPTANCE, DOWNLOADING OR USING THE SOFTWARE
@@ -16,9 +16,10 @@ SOFTWARE.
 Subject to the terms and conditions of this Agreement, DataStax grants you a
 non-exclusive, non-transferable, non-sublicensable, limited, royalty-free
 license to use the unmodified Licensed Software, without the right to
-re-distribute to any third party.  The Licensed Software may be used for writing
-data from any distribution of Apache Kafka (R) to any DataStax product for which
-you have an active, paid subscription.
+re-distribute to any third party. The Licensed Software may be used for writing
+data from any distribution of Apache Kafka® to (i) any DataStax product for which
+you have an active, paid subscription and (ii) any other Apache CassandraTM or
+other CQL compatible databases.
 
 2. Restrictions
 
@@ -26,7 +27,8 @@ Licensed Software is confidential and copyrighted. Except as expressly permitted
 under this Agreement, you agree not to assign, distribute, transfer, lease,
 disassemble, decompile, reverse engineer, modify, or create derivative works of
 the Licensed Software, in whole or in part, or permit or authorize a third party
-to do so.
+to do so. For the avoidance of doubt, the Licensed Software cannot be used by you
+to run a software-as-a-service offering or other similar offering.
 
 3. Ownership
 
@@ -121,8 +123,6 @@ THIRD-PARTY.txt file.
 
 9. Questions
 
-If you have questions, please contact us using the information
-at www.datastax.com/contactus.
+If you have questions, please contact us here: www.datastax.com/contact.
 
-Apache Kafka (R) is a registered trademark of The Apache Software Foundation
-
+Apache Kafka® and Apache CassandraTM are trademarks of The Apache Software Foundation

@@ -10,7 +10,6 @@ package com.datastax.kafkaconnector.state;
 
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SERVICE;
-import static com.datastax.dse.driver.api.core.metadata.DseNodeProperties.DSE_VERSION;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
@@ -45,11 +44,9 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
-import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
-import com.datastax.oss.driver.api.core.session.Session;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammaticDriverConfigLoaderBuilder;
@@ -380,30 +377,6 @@ public class LifeCycleManager {
   }
 
   /**
-   * Verify that all the nodes in the cluster are DSE or DDAC nodes.
-   *
-   * @param session the session
-   */
-  private static void checkProductCompatibility(Session session) {
-    Collection<Node> hosts = session.getMetadata().getNodes().values();
-    List<Node> nonDseHosts =
-        hosts
-            .stream()
-            .filter(
-                host ->
-                    host.getExtras().get(DSE_VERSION) == null
-                        && (host.getCassandraVersion() == null
-                            || host.getCassandraVersion().getDSEPatch() <= 0))
-            .collect(Collectors.toList());
-    if (!nonDseHosts.isEmpty()) {
-      throw new IllegalStateException(
-          String.format(
-              "Unable to load data to non DSE cluster; offending nodes: %s",
-              nonDseHosts.stream().map(Node::toString).collect(Collectors.joining(", "))));
-    }
-  }
-
-  /**
    * Perform heavy lifting of creating an InstanceState:
    *
    * <ul>
@@ -423,7 +396,6 @@ public class LifeCycleManager {
    */
   @NotNull
   private static InstanceState buildInstanceState(DseSession session, DseSinkConfig config) {
-    checkProductCompatibility(session);
 
     // Compute the primary keys of all tables being mapped to (across topics).
     Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
