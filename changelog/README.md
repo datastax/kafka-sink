@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.2.1 (in progress)
+### 1.2.1
 - [improvement] KAF-165: Remove restriction preventing Kafka Connector use with open source Cassandra
 
 ### 1.2.0
