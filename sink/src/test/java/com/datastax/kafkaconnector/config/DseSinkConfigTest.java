@@ -119,7 +119,6 @@ class DseSinkConfigTest {
         .hasMessageContaining("Value must be at least 1");
   }
 
-  // todo should we handle validation in the same way for settings with datastax-java-driver prefix?
   @Test
   void should_error_invalid_connectionPoolLocalSize() {
     Map<String, String> props =
