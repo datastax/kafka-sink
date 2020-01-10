@@ -1,3 +1,11 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ *   This software is subject to the below license agreement.
+ *   DataStax may make changes to the agreement from time to time,
+ *   and will post the amended terms at
+ *   https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
+ */
 package com.datastax.kafkaconnector.util;
 
 import com.datastax.dsbulk.commons.internal.platform.PlatformUtils;
@@ -8,8 +16,7 @@ import java.util.UUID;
 
 public class UUIDUtil {
   private static final UUID KAFKA_CONNECTOR_NAMESPACE =
-      // todo how to generate it?
-      UUID.fromString("2505c745-cedf-4714-bcab-0d580270ed95");
+      UUID.fromString("bcfd612f-15fd-4b74-af81-95b04d9e756c");
 
   private static final DateTimeFormatter DEFAULT_TIMESTAMP_PATTERN =
       DateTimeFormatter.ofPattern("uuuuMMdd-HHmmss-SSSSSS");
