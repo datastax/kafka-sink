@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.3.0 (in progress)
+- [improvement] KAF-163: Improve UX of auth configuration by inferring auth.provider to DSE when both username and password are provided.	
+
 ### 1.2.1
 - [improvement] KAF-165: Remove restriction preventing Kafka Connector use with open source Cassandra
 
