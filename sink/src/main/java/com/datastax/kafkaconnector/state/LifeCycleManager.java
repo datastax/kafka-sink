@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector.state;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SERVICE;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.util.UUIDUtil.generateClientId;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
@@ -84,6 +85,8 @@ public class LifeCycleManager {
       new ConcurrentHashMap<>();
   private static MetricRegistry metricRegistry = new MetricRegistry();
 
+  public static final String KAFKA_CONNECTOR_APPLICATION_NAME = "DataStax Apache Kafka Connector";
+
   /** This is a utility class that no one should instantiate. */
   private LifeCycleManager() {}
 
@@ -102,7 +105,7 @@ public class LifeCycleManager {
             props.get(SinkUtil.NAME_OPT),
             x -> {
               DseSinkConfig config = new DseSinkConfig(props);
-              DseSession session = buildDseSession(config);
+              DseSession session = buildDseSession(config, task.version());
               return buildInstanceState(session, config);
             });
     instanceState.registerTask(task);
@@ -474,14 +477,19 @@ public class LifeCycleManager {
    * Create a new {@link DseSession} based on the config
    *
    * @param config the sink config
+   * @param version version of the connector
    * @return a new DseSession
    */
   @VisibleForTesting
   @NotNull
-  public static DseSession buildDseSession(DseSinkConfig config) {
+  public static DseSession buildDseSession(DseSinkConfig config, String version) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     SessionBuilder builder = new SessionBuilder(sslConfig);
+    builder
+        .withApplicationVersion(version)
+        .withApplicationName(KAFKA_CONNECTOR_APPLICATION_NAME)
+        .withClientId(generateClientId(config.getInstanceName()));
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 

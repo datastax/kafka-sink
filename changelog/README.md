@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.3.0 (in progress)
+- [improvement] KAF-161: Set ApplicationName and ClientId for DseProgrammaticBuilder to identify kafka-connector in Insights
+
 ### 1.2.1
 - [improvement] KAF-165: Remove restriction preventing Kafka Connector use with open source Cassandra
 
