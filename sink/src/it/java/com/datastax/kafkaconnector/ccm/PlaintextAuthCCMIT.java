@@ -45,7 +45,7 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
 
   @ParameterizedTest(name = "[{index}] extras={0}")
   @MethodSource("correctCredentialsProvider")
-  void should_insert_big_int_using_auth_settings(Map<String, String> extras) {
+  void should_insert_successfully_with_correct_credentials(Map<String, String> extras) {
     conn.start(makeConnectorProperties(extras));
 
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
