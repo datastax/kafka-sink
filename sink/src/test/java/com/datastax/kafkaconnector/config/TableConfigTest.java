@@ -118,7 +118,7 @@ class TableConfigTest {
         .hasMessageStartingWith(
             "Invalid value 'c1=f1' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
         .hasMessageContaining(
-            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '[now()]'");
   }
 
   @Test
@@ -157,11 +157,19 @@ class TableConfigTest {
   }
 
   @Test
+  void should_parse_mapping_that_contains_now_function() {
+    TableConfig config = configBuilder.addSimpleSetting(MAPPING_OPT, "a=now()").build();
+
+    assertThat(config.getMapping())
+        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("now()"));
+  }
+
+  @Test
   void should_not_allow_to_have_mapping_that_contains_only_header() {
     assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "a=header").build())
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '[now()]'");
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")

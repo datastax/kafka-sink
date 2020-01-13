@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.3.0 (in progress)
+- [new feature] KAF-127: Add support for now()
 - [improvement] KAF-163: Add test of auth configuration inferring auth.provider to DSE when both username and password are provided.	
 
 ### 1.2.1

@@ -32,8 +32,10 @@ import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
@@ -1741,6 +1743,24 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void should_insert_value_using_now_function() {
+    // given
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, loaded_at=now()"));
+
+    // when
+    String json = "{\"bigint\": 1234567}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results = session.execute("SELECT bigintcol, loaded_at FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.get("loaded_at", TypeCodecs.TIMEUUID)).isLessThanOrEqualTo(Uuids.timeBased());
+  }
+
+  @Test
   void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns() {
     // given
     conn.start(
@@ -2168,7 +2188,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThatThrownBy(() -> runTaskWithRecords(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '[now()]'");
   }
 
   @Test

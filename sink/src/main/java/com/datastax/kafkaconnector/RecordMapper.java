@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector;
 
 import static com.datastax.kafkaconnector.record.RawData.VALUE_FIELD_NAME;
+import static com.datastax.kafkaconnector.util.FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
@@ -17,6 +18,7 @@ import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.Record;
 import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.kafkaconnector.record.StructTimeUnitConverter;
+import com.datastax.kafkaconnector.util.FunctionMapper;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -92,8 +94,6 @@ public class RecordMapper {
 
   @NotNull
   public BoundStatement map(RecordMetadata recordMetadata, Record record) {
-    Object raw;
-    DataType cqlType;
     if (!allowMissingFields) {
       ensureAllFieldsPresent(
           record.fields(), insertUpdateStatement.getVariableDefinitions(), mapping);
@@ -113,34 +113,11 @@ public class RecordMapper {
     BoundStatementBuilder builder = preparedStatement.boundStatementBuilder();
     ColumnDefinitions variableDefinitions = preparedStatement.getVariableDefinitions();
     for (String field : record.fields()) {
-      Collection<CqlIdentifier> columns = mapping.fieldToColumns(CqlIdentifier.fromInternal(field));
-      if ((columns == null || columns.isEmpty()) && !allowExtraFields) {
-        throw new ConfigException(
-            "Extraneous field '"
-                + getExternalName(field)
-                + "' was found in record. "
-                + "Please declare it explicitly in the mapping.");
-      }
-      if (columns != null) {
-        for (CqlIdentifier column : columns) {
-          if (!variableDefinitions.contains(column)) {
-            // This can happen if we're binding a delete statement (which
-            // only contains params for primary key columns, not other
-            // mapped columns).
-            continue;
-          }
-          cqlType = variableDefinitions.get(column).getType();
-          GenericType<?> fieldType = recordMetadata.getFieldType(field, cqlType);
-          if (fieldType != null) {
-            raw =
-                getFieldValueAndMaybeTransform(
-                    record, field, column, ttlTimeUnit, timestampTimeUnit);
-            log.trace(
-                "binding field {} with value {} to column {}", field, raw, column.asInternal());
-            bindColumn(builder, column, raw, cqlType, fieldType);
-          }
-        }
-      }
+      bindColumnsToBuilder(recordMetadata, record, builder, variableDefinitions, field, false);
+    }
+    for (CqlIdentifier function : mapping.functions()) {
+      bindColumnsToBuilder(
+          recordMetadata, record, builder, variableDefinitions, function.asInternal(), true);
     }
     // set timestamp from record only if it was not set from mapping
     if (record.getTimestamp() != null && isInsertUpdate && timestampIsNotSet(builder)) {
@@ -154,6 +131,62 @@ public class RecordMapper {
     BoundStatement bs = builder.build();
     ensurePrimaryKeySet(bs);
     return bs;
+  }
+
+  private void bindColumnsToBuilder(
+      RecordMetadata recordMetadata,
+      Record record,
+      BoundStatementBuilder builder,
+      ColumnDefinitions variableDefinitions,
+      String fieldOrFunction,
+      boolean isFunction) {
+    DataType cqlType;
+    Object raw;
+    Collection<CqlIdentifier> columns =
+        mapping.fieldToColumns(CqlIdentifier.fromInternal(fieldOrFunction));
+    if ((columns == null || columns.isEmpty()) && !allowExtraFields) {
+      throw new ConfigException(
+          "Extraneous fieldOrFunction '"
+              + getExternalName(fieldOrFunction)
+              + "' was found in record. "
+              + "Please declare it explicitly in the mapping.");
+    }
+    if (columns != null) {
+      for (CqlIdentifier column : columns) {
+        if (!variableDefinitions.contains(column)) {
+          // This can happen if we're binding a delete statement (which
+          // only contains params for primary key columns, not other
+          // mapped columns).
+          continue;
+        }
+        cqlType = variableDefinitions.get(column).getType();
+        if (isFunction) {
+          GenericType<?> fieldType = FunctionMapper.typeForFunction(fieldOrFunction);
+          if (fieldType != null) {
+            log.trace("binding function {} to column {}", fieldOrFunction, column.asInternal());
+            bindColumn(
+                builder,
+                column,
+                FunctionMapper.valueForFunction(fieldOrFunction),
+                cqlType,
+                fieldType);
+          }
+        } else {
+          GenericType<?> fieldType = recordMetadata.getFieldType(fieldOrFunction, cqlType);
+          if (fieldType != null) {
+            raw =
+                getFieldValueAndMaybeTransform(
+                    record, fieldOrFunction, column, ttlTimeUnit, timestampTimeUnit);
+            log.trace(
+                "binding field {} with value {} to column {}",
+                fieldOrFunction,
+                raw,
+                column.asInternal());
+            bindColumn(builder, column, raw, cqlType, fieldType);
+          }
+        }
+      }
+    }
   }
 
   // Walk through each record field and check if any non-null fields map to a non-primary-key
@@ -292,7 +325,12 @@ public class RecordMapper {
         continue;
       }
 
-      if (field != null && !recordFields.contains(field.asInternal())) {
+      if (field != null && fieldIsAFunction(field)) {
+        // if field is a function (i.e. now()) don't analyze it
+        continue;
+      }
+
+      if (noFieldInRecord(recordFields, field)) {
         throw new ConfigException(
             "Required field '"
                 + getExternalName(field.asInternal())
@@ -302,6 +340,14 @@ public class RecordMapper {
                 + "Please remove it from the mapping.");
       }
     }
+  }
+
+  private static boolean fieldIsAFunction(CqlIdentifier functionName) {
+    return SUPPORTED_FUNCTIONS_IN_MAPPING.contains(functionName);
+  }
+
+  private static boolean noFieldInRecord(Set<String> recordFields, CqlIdentifier field) {
+    return field != null && !recordFields.contains(field.asInternal());
   }
 
   private static boolean isValueSelfOnlyValueField(Set<String> recordFields) {

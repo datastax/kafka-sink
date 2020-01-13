@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import static com.datastax.kafkaconnector.util.FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING;
 import static com.datastax.kafkaconnector.util.StringUtil.singleQuote;
 
 import com.datastax.kafkaconnector.record.RawData;
@@ -105,11 +106,12 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
       field = CqlIdentifier.fromInternal(fieldString + '.' + RawData.FIELD_NAME);
     } else if (!fieldString.startsWith("key.")
         && !fieldString.startsWith("value.")
-        && !fieldString.startsWith("header.")) {
+        && !fieldString.startsWith("header.")
+        && !SUPPORTED_FUNCTIONS_IN_MAPPING.contains(field)) {
       errors.add(
           String.format(
-              "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.",
-              fieldString));
+              "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '%s'.",
+              fieldString, SUPPORTED_FUNCTIONS_IN_MAPPING));
     }
     mapping.put(column, field);
     return null;
