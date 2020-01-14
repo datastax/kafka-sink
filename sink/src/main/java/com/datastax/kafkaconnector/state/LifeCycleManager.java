@@ -26,6 +26,7 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.DseSession;
+import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
 import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
@@ -485,11 +486,11 @@ public class LifeCycleManager {
   public static DseSession buildDseSession(DseSinkConfig config, String version) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
-    SessionBuilder builder = new SessionBuilder(sslConfig);
-    builder
-        .withApplicationVersion(version)
-        .withApplicationName(KAFKA_CONNECTOR_APPLICATION_NAME)
-        .withClientId(generateClientId(config.getInstanceName()));
+    DseSessionBuilder builder =
+        new SessionBuilder(sslConfig)
+            .withApplicationVersion(version)
+            .withApplicationName(KAFKA_CONNECTOR_APPLICATION_NAME)
+            .withClientId(generateClientId(config.getInstanceName()));
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
