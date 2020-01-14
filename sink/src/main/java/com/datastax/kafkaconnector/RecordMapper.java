@@ -146,7 +146,7 @@ public class RecordMapper {
         mapping.fieldToColumns(CqlIdentifier.fromInternal(fieldOrFunction));
     if ((columns == null || columns.isEmpty()) && !allowExtraFields) {
       throw new ConfigException(
-          "Extraneous fieldOrFunction '"
+          "Extraneous field '"
               + getExternalName(fieldOrFunction)
               + "' was found in record. "
               + "Please declare it explicitly in the mapping.");
