@@ -56,6 +56,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1758,6 +1759,28 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
     assertThat(row.get("loaded_at", TypeCodecs.TIMEUUID)).isLessThanOrEqualTo(Uuids.timeBased());
+  }
+
+  @Test
+  void should_insert_value_using_now_function_for_two_dse_columns() {
+    // given
+    conn.start(
+        makeConnectorProperties("bigintcol=value.bigint, loaded_at=now(), loaded_at2=now()"));
+
+    // when
+    String json = "{\"bigint\": 1234567}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results = session.execute("SELECT bigintcol, loaded_at, loaded_at2 FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    UUID loadedAt = row.get("loaded_at", TypeCodecs.TIMEUUID);
+    UUID loadedAt2 = row.get("loaded_at2", TypeCodecs.TIMEUUID);
+    // columns inserted using now() should have different TIMEUUID values
+    assertThat(loadedAt).isNotEqualTo(loadedAt2);
   }
 
   @Test
