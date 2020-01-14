@@ -337,7 +337,7 @@ public class RecordMapper {
                 + "' (mapped to column "
                 + variable.asCql(true)
                 + ") was missing from record. "
-                + "Please remove it from the mapping.");
+                + "Please remove it from the mapping. Or provided function does not exists.");
       }
     }
   }

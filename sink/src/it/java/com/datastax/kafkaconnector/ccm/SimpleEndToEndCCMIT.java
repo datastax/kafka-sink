@@ -1826,6 +1826,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     List<Row> results = session.execute("SELECT * FROM pk_value_with_timeuuid").all();
     assertThat(results.size()).isEqualTo(1);
 
+    // now() function call is ignored when null value is send - DELETE will be performed
     conn.start(
         makeConnectorProperties(
             "my_pk=value.my_pk, my_value=value.my_value, loaded_at=now()",
