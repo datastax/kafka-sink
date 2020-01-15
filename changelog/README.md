@@ -1,10 +1,10 @@
 ## Changelog
 
 ### 1.3.0 (in progress)
+- [new feature] KAF-99: Add new BatchSizeInBytes metric
 - [improvement] KAF-163: Add test of auth configuration inferring auth.provider to DSE when both username and password are provided.	
 
 ### 1.2.1
-- [new feature] KAF-99: Add size in bytes to Batch Size metrics
 - [improvement] KAF-165: Remove restriction preventing Kafka Connector use with open source Cassandra
 
 ### 1.2.0
