@@ -108,6 +108,9 @@ class MetricsJmxReporterTest {
             (Function<TableConfig, String>) MetricNamesCreator::createBatchSizeMetricName,
             "batchSize"),
         Arguments.of(
+            (Function<TableConfig, String>) MetricNamesCreator::createBatchSizeInBytesMetricName,
+            "batchSizeInBytes"),
+        Arguments.of(
             (Function<TableConfig, String>) MetricNamesCreator::createFailedRecordCountMetricName,
             "failedRecordCount"),
         Arguments.of(

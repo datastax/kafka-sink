@@ -149,6 +149,11 @@ public class InstanceState {
   }
 
   @NotNull
+  public Histogram getBatchSizeInBytesHistogram(String topicName, String keyspaceAndTable) {
+    return getTopicState(topicName).getBatchSizeInBytesHistogram(keyspaceAndTable);
+  }
+
+  @NotNull
   public Executor getMappingExecutor() {
     return mappingExecutor;
   }

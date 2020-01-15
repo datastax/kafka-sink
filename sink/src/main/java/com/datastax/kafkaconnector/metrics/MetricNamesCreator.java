@@ -20,6 +20,14 @@ public class MetricNamesCreator {
         tableConfig.getTable().asInternal());
   }
 
+  public static String createBatchSizeInBytesMetricName(TableConfig tableConfig) {
+    return String.format(
+        "%s/%s/%s/batchSizeInBytes",
+        tableConfig.getTopicName(),
+        tableConfig.getKeyspace().asInternal(),
+        tableConfig.getTable().asInternal());
+  }
+
   public static String createRecordCountMetricName(TableConfig tableConfig) {
     return String.format(
         "%s/%s/%s/recordCount",
