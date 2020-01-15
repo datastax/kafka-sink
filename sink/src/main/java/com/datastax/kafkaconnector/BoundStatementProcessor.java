@@ -62,8 +62,8 @@ class BoundStatementProcessor implements Callable<Void> {
     this.boundStatementsQueue = boundStatementsQueue;
     this.queryFutures = queryFutures;
     this.maxNumberOfRecordsInBatch = maxNumberOfRecordsInBatch;
-    this.protocolVersion = task.getInstanceState().getSession().getContext().getProtocolVersion();
-    this.codecRegistry = task.getInstanceState().getSession().getContext().getCodecRegistry();
+    this.protocolVersion = task.getInstanceState().getProtocolVersion();
+    this.codecRegistry = task.getInstanceState().getCodecRegistry();
   }
 
   /**
