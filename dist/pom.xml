@@ -35,12 +35,6 @@
 
     <dependency>
       <groupId>com.datastax.dse</groupId>
-      <artifactId>dse-java-driver-core</artifactId>
-      <version>${driver.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.datastax.dse</groupId>
       <artifactId>dsbulk-commons</artifactId>
     </dependency>
 

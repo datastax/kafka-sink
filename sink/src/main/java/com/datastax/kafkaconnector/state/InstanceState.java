@@ -13,7 +13,6 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
-import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.RecordMapper;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
@@ -22,6 +21,7 @@ import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.metrics.GlobalSinkMetrics;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.kafkaconnector.metrics.MetricsJmxReporter;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 /** Container for a session, config, etc. that a connector instance requires to function. */
 public class InstanceState {
   private static final Logger log = LoggerFactory.getLogger(InstanceState.class);
-  private final DseSession session;
+  private final CqlSession session;
   private final DseSinkConfig config;
   private final Map<String, TopicState> topicStates;
 
@@ -52,7 +52,7 @@ public class InstanceState {
 
   public InstanceState(
       @NotNull DseSinkConfig config,
-      @NotNull DseSession session,
+      @NotNull CqlSession session,
       @NotNull Map<String, TopicState> topicStates,
       @NotNull MetricRegistry metricRegistry) {
     this.session = session;
@@ -117,7 +117,7 @@ public class InstanceState {
   }
 
   @NotNull
-  public DseSession getSession() {
+  public CqlSession getSession() {
     return session;
   }
 

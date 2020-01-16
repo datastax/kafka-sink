@@ -20,7 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
 import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
@@ -28,6 +27,7 @@ import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TableConfigBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
@@ -57,14 +57,14 @@ class LifeCycleManagerTest {
   private ColumnMetadata col1;
   private ColumnMetadata col2;
   private ColumnMetadata col3;
-  private DseSession session;
+  private CqlSession session;
   private Metadata metadata;
   private DseKeyspaceMetadata keyspace;
   private DseTableMetadata table;
 
   @BeforeEach
   void setUp() {
-    session = mock(DseSession.class);
+    session = mock(CqlSession.class);
     DriverContext context = mock(DriverContext.class);
     CodecRegistry codecRegistry = mock(CodecRegistry.class);
     metadata = mock(Metadata.class);

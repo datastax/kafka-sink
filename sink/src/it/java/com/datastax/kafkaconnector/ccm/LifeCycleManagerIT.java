@@ -74,7 +74,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -106,7 +106,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -136,7 +136,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -165,7 +165,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -198,7 +198,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
