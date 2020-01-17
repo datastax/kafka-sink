@@ -32,8 +32,10 @@ import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
@@ -54,6 +56,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -127,6 +130,16 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
                     + ")")
             .setTimeout(Duration.ofSeconds(10))
             .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS pk_value_with_timeuuid ("
+                    + "my_pk bigint PRIMARY KEY,"
+                    + "my_value boolean,"
+                    + "loaded_at timeuuid"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
   }
 
   @BeforeEach
@@ -134,6 +147,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     session.execute("TRUNCATE small_simple");
     session.execute("TRUNCATE small_compound");
     session.execute("TRUNCATE pk_value");
+    session.execute("TRUNCATE pk_value_with_timeuuid");
   }
 
   @Test
@@ -1741,6 +1755,96 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void should_insert_value_using_now_function_json() {
+    // given
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, loaded_at=now()"));
+
+    // when
+    String json = "{\"bigint\": 1234567}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results = session.execute("SELECT bigintcol, loaded_at FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.get("loaded_at", TypeCodecs.TIMEUUID)).isLessThanOrEqualTo(Uuids.timeBased());
+  }
+
+  @Test
+  void should_insert_value_using_now_function_for_two_dse_columns() {
+    // given
+    conn.start(
+        makeConnectorProperties("bigintcol=value.bigint, loaded_at=now(), loaded_at2=now()"));
+
+    // when
+    String json = "{\"bigint\": 1234567}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+    runTaskWithRecords(record);
+
+    // then
+    List<Row> results = session.execute("SELECT bigintcol, loaded_at, loaded_at2 FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    UUID loadedAt = row.get("loaded_at", TypeCodecs.TIMEUUID);
+    UUID loadedAt2 = row.get("loaded_at2", TypeCodecs.TIMEUUID);
+    // columns inserted using now() should have different TIMEUUID values
+    assertThat(loadedAt).isNotEqualTo(loadedAt2);
+  }
+
+  @Test
+  void should_insert_value_using_now_function_avro() {
+    conn.start(
+        makeConnectorProperties("bigintcol=value.bigint, loaded_at=now(), loaded_at2=now()"));
+
+    Schema schema =
+        SchemaBuilder.struct().name("Kafka").field("bigint", Schema.INT64_SCHEMA).build();
+    Struct value = new Struct(schema).put("bigint", 1234567L);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, loaded_at, loaded_at2 FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    UUID loadedAt = row.get("loaded_at", TypeCodecs.TIMEUUID);
+    UUID loadedAt2 = row.get("loaded_at2", TypeCodecs.TIMEUUID);
+    assertThat(loadedAt).isNotEqualTo(loadedAt2);
+  }
+
+  @Test
+  void delete_simple_key_json_when_using_now_function_in_mapping() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO pk_value_with_timeuuid (my_pk, my_value, loaded_at) VALUES (1234567, true, now())");
+    List<Row> results = session.execute("SELECT * FROM pk_value_with_timeuuid").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    // now() function call is ignored when null value is send - DELETE will be performed
+    conn.start(
+        makeConnectorProperties(
+            "my_pk=value.my_pk, my_value=value.my_value, loaded_at=now()",
+            "pk_value_with_timeuuid",
+            null));
+
+    // Set up records for "mytopic"
+    String json = "{\"my_pk\": 1234567, \"my_value\": null}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from DSE.
+    results = session.execute("SELECT * FROM pk_value_with_timeuuid").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
+
+  @Test
   void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns() {
     // given
     conn.start(
@@ -2168,7 +2272,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
     assertThatThrownBy(() -> runTaskWithRecords(record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '[now()]'");
   }
 
   @Test

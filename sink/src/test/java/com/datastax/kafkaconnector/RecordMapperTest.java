@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector;
 
+import static com.datastax.kafkaconnector.util.FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING;
 import static com.datastax.kafkaconnector.util.SinkUtil.TIMESTAMP_VARNAME;
 import static com.datastax.oss.driver.api.core.DefaultProtocolVersion.V4;
 import static com.datastax.oss.driver.shaded.guava.common.collect.Lists.newArrayList;
@@ -21,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -666,7 +668,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'field3' (mapped to column \"My Fancy Column Name\") was missing from record. "
+            "Required field 'field3' (mapped to column \"My Fancy Column Name\") was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -689,7 +691,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'key' (mapped to column col1) was missing from record. "
+            "Required field 'key' (mapped to column col1) was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -712,7 +714,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'value' (mapped to column col1) was missing from record. "
+            "Required field 'value' (mapped to column col1) was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -735,7 +737,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'header.a' (mapped to column col1) was missing from record. "
+            "Required field 'header.a' (mapped to column col1) was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -758,6 +760,55 @@ class RecordMapperTest {
         .hasMessageContaining(
             "Extraneous field 'header.a' was found in record. "
                 + "Please declare it explicitly in the mapping.");
+  }
+
+  @ParameterizedTest
+  @MethodSource("supportedFunctions")
+  void should_return_statement_when_function_in_the_mapping(CqlIdentifier function) {
+    when(mapping.columnToField(C1)).thenReturn(function);
+
+    when(record.fields()).thenReturn(set(F1, F2, F3));
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            false,
+            false,
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
+
+    assertDoesNotThrow(() -> mapper.map(recordMetadata, record));
+  }
+
+  private static Stream<CqlIdentifier> supportedFunctions() {
+    return SUPPORTED_FUNCTIONS_IN_MAPPING.stream();
+  }
+
+  @Test
+  void should_throw_when_not_supported_function_in_the_mapping() {
+    when(mapping.columnToField(C1)).thenReturn(CqlIdentifier.fromInternal("some_weird_function()"));
+
+    when(record.fields()).thenReturn(set(F1, F2, F3));
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement,
+            null,
+            primaryKeys,
+            mapping,
+            false,
+            false,
+            false,
+            DEFAULT_TTL_TIME_UNIT,
+            DEFAULT_TIMESTAMP_TIME_UNIT);
+
+    assertThatThrownBy(() -> mapper.map(recordMetadata, record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "Required field 'some_weird_function()' (mapped to column col1) was missing from record (or may refer to an invalid function). "
+                + "Please remove it from the mapping.");
   }
 
   @ParameterizedTest(name = "[{index}] fieldToTransform={0}, exceptionFieldName={1}")
