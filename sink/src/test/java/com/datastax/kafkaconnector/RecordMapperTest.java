@@ -668,7 +668,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'field3' (mapped to column \"My Fancy Column Name\") was missing from record. "
+            "Required field 'field3' (mapped to column \"My Fancy Column Name\") was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -691,7 +691,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'key' (mapped to column col1) was missing from record. "
+            "Required field 'key' (mapped to column col1) was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -714,7 +714,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'value' (mapped to column col1) was missing from record. "
+            "Required field 'value' (mapped to column col1) was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -737,7 +737,7 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'header.a' (mapped to column col1) was missing from record. "
+            "Required field 'header.a' (mapped to column col1) was missing from record (or may refer to an invalid function). "
                 + "Please remove it from the mapping.");
   }
 
@@ -807,8 +807,8 @@ class RecordMapperTest {
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            "Required field 'some_weird_function()' (mapped to column col1) was missing from record. "
-                + "Please remove it from the mapping. Or provided function does not exists.");
+            "Required field 'some_weird_function()' (mapped to column col1) was missing from record (or may refer to an invalid function). "
+                + "Please remove it from the mapping.");
   }
 
   @ParameterizedTest(name = "[{index}] fieldToTransform={0}, exceptionFieldName={1}")

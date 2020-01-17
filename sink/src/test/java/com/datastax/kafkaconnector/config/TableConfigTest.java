@@ -117,8 +117,7 @@ class TableConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageStartingWith(
             "Invalid value 'c1=f1' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
-        .hasMessageContaining(
-            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '[now()]'");
+        .hasMessageContaining(MappingInspector.generateErrorMessage("f1"));
   }
 
   @Test
@@ -168,8 +167,7 @@ class TableConfigTest {
   void should_not_allow_to_have_mapping_that_contains_only_header() {
     assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "a=header").build())
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(
-            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '[now()]'");
+        .hasMessageContaining(MappingInspector.generateErrorMessage("header"));
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")

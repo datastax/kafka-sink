@@ -108,13 +108,16 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
         && !fieldString.startsWith("value.")
         && !fieldString.startsWith("header.")
         && !SUPPORTED_FUNCTIONS_IN_MAPPING.contains(field)) {
-      errors.add(
-          String.format(
-              "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '%s'.",
-              fieldString, SUPPORTED_FUNCTIONS_IN_MAPPING));
+      errors.add(generateErrorMessage(fieldString));
     }
     mapping.put(column, field);
     return null;
+  }
+
+  public static String generateErrorMessage(String fieldString) {
+    return String.format(
+        "Invalid field name '%s': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.', or be one of supported functions: '%s'.",
+        fieldString, SUPPORTED_FUNCTIONS_IN_MAPPING);
   }
 
   @Override

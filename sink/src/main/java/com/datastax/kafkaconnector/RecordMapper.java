@@ -318,14 +318,17 @@ public class RecordMapper {
         continue;
       }
       CqlIdentifier field = mapping.columnToField(variable);
-      if (field != null
-          && isFieldValue(field.asInternal())
-          && isValueSelfOnlyValueField(recordFields)) {
+      if (field == null) {
+        // if field == null don't analyze it because it may be delete
+        continue;
+      }
+
+      if (isFieldValue(field.asInternal()) && isValueSelfOnlyValueField(recordFields)) {
         // if kafka record value=null don't analyze fields mapped from value
         continue;
       }
 
-      if (field != null && fieldIsAFunction(field)) {
+      if (fieldIsAFunction(field)) {
         // if field is a function (i.e. now()) don't analyze it
         continue;
       }
@@ -336,8 +339,8 @@ public class RecordMapper {
                 + getExternalName(field.asInternal())
                 + "' (mapped to column "
                 + variable.asCql(true)
-                + ") was missing from record. "
-                + "Please remove it from the mapping. Or provided function does not exists.");
+                + ") was missing from record (or may refer to an invalid function). "
+                + "Please remove it from the mapping.");
       }
     }
   }
@@ -347,7 +350,7 @@ public class RecordMapper {
   }
 
   private static boolean noFieldInRecord(Set<String> recordFields, CqlIdentifier field) {
-    return field != null && !recordFields.contains(field.asInternal());
+    return !recordFields.contains(field.asInternal());
   }
 
   private static boolean isValueSelfOnlyValueField(Set<String> recordFields) {
