@@ -49,9 +49,10 @@ public class MetricsJmxReporter {
               .append(',');
       Iterator<String> tokens = Splitter.on("/").split(metricName).iterator();
       if (metricName.contains("batchSize")
+          || metricName.contains("batchSizeInBytes")
           || metricName.contains("failedRecordCount")
           || metricName.contains("recordCount")) {
-        // special-case batchSize, failedRecordCount, recordCount metrics
+        // special-case batchSize, batchSizeInBytes, failedRecordCount, recordCount metrics
         // and expose them per topic, ks and table
         sb.append("topic=")
             .append(quoteJMXIfNecessary(tokens.next()))

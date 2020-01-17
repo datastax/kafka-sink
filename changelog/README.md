@@ -1,7 +1,10 @@
 ## Changelog
 
 ### 1.3.0 (in progress)
+
 - [new feature] KAF-127: Add support for now()
+- [improvement] KAF:100: Add rates to failedRecordCount
+- [new feature] KAF-99: Add new BatchSizeInBytes metric
 - [improvement] KAF-163: Add test of auth configuration inferring auth.provider to DSE when both username and password are provided.	
 
 ### 1.2.1

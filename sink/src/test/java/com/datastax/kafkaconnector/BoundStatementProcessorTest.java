@@ -13,7 +13,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.datastax.kafkaconnector.record.RecordAndStatement;
+import com.datastax.kafkaconnector.state.InstanceState;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +50,8 @@ class BoundStatementProcessorTest {
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
 
     // We don't care about the args to the constructor for this test.
-    BoundStatementProcessor statementProcessor = new BoundStatementProcessor(null, null, null, 32);
+    BoundStatementProcessor statementProcessor =
+        new BoundStatementProcessor(mockDseSinkTask(), null, null, 32);
 
     // Categorize the two statements. Although they refer to the same ks/table and have the
     // same routing key, they should be in different buckets.
@@ -83,11 +87,10 @@ class BoundStatementProcessorTest {
       int totalNumberOfRecords, int maxNumberOfRecordsInBatch, int[] expectedBatchSizes)
       throws InterruptedException {
     // given
-    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
         new BoundStatementProcessor(
-            dseSinkTask, recordAndStatements, new ArrayList<>(), maxNumberOfRecordsInBatch);
+            mockDseSinkTask(), recordAndStatements, new ArrayList<>(), maxNumberOfRecordsInBatch);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -132,10 +135,9 @@ class BoundStatementProcessorTest {
   @Test
   void should_group_batch_by_a_partition_key_not_an_input_topic_key() throws InterruptedException {
     // given
-    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new ArrayList<>(), 3);
+        new BoundStatementProcessor(mockDseSinkTask(), recordAndStatements, new ArrayList<>(), 3);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -198,10 +200,9 @@ class BoundStatementProcessorTest {
   void should_create_two_batches_for_the_same_dse_tables_but_different_input_topics()
       throws InterruptedException {
     // given
-    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new ArrayList<>(), 3);
+        new BoundStatementProcessor(mockDseSinkTask(), recordAndStatements, new ArrayList<>(), 3);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -264,11 +265,9 @@ class BoundStatementProcessorTest {
   void should_create_two_batches_for_different_dse_tables_and_same_partition_key()
       throws InterruptedException {
     // given
-    // given
-    DseSinkTask dseSinkTask = mock(DseSinkTask.class);
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(dseSinkTask, recordAndStatements, new ArrayList<>(), 2);
+        new BoundStatementProcessor(mockDseSinkTask(), recordAndStatements, new ArrayList<>(), 2);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -341,5 +340,14 @@ class BoundStatementProcessorTest {
         Arguments.of(9, 5, new int[] {5, 4}),
         Arguments.of(11, 5, new int[] {5, 5, 1}),
         Arguments.of(0, 1, new int[] {}));
+  }
+
+  private DseSinkTask mockDseSinkTask() {
+    InstanceState instanceState = mock(InstanceState.class);
+    when(instanceState.getCodecRegistry()).thenReturn(mock(CodecRegistry.class));
+    when(instanceState.getProtocolVersion()).thenReturn(ProtocolVersion.DEFAULT);
+    DseSinkTask sinkTask = mock(DseSinkTask.class);
+    when(sinkTask.getInstanceState()).thenReturn(instanceState);
+    return sinkTask;
   }
 }
