@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector.state;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -126,7 +125,6 @@ public class InstanceState {
     return requestBarrier;
   }
 
-  @NotNull
   public int getMaxNumberOfRecordsInBatch() {
     return config.getMaxNumberOfRecordsInBatch();
   }
@@ -172,7 +170,7 @@ public class InstanceState {
   }
 
   @VisibleForTesting
-  public Counter getFailedRecordCounter(String topicName, String keyspaceAndTable) {
+  public Meter getFailedRecordCounter(String topicName, String keyspaceAndTable) {
     return getTopicState(topicName).getFailedRecordCounter(keyspaceAndTable);
   }
 

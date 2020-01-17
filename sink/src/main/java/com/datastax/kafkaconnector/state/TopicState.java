@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector.state;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -36,7 +35,7 @@ class TopicState {
   private final Map<TableConfig, RecordMapper> recordMappers;
   private Map<String, Histogram> batchSizeHistograms;
   private Map<String, Meter> recordCounters;
-  private Map<String, Counter> failedRecordCounters;
+  private Map<String, Meter> failedRecordCounters;
 
   TopicState(KafkaCodecRegistry codecRegistry) {
     this.codecRegistry = codecRegistry;
@@ -80,7 +79,7 @@ class TopicState {
         constructMetrics(
             recordMappers,
             MetricNamesCreator::createFailedRecordCountMetricName,
-            metricRegistry::counter);
+            metricRegistry::meter);
   }
 
   private <T> Map<String, T> constructMetrics(
@@ -107,7 +106,7 @@ class TopicState {
   }
 
   void incrementFailedCounter(String keyspaceAndTable) {
-    failedRecordCounters.get(keyspaceAndTable).inc();
+    failedRecordCounters.get(keyspaceAndTable).mark();
   }
 
   @VisibleForTesting
@@ -116,7 +115,7 @@ class TopicState {
   }
 
   @VisibleForTesting
-  Counter getFailedRecordCounter(String keyspaceAndTable) {
+  Meter getFailedRecordCounter(String keyspaceAndTable) {
     return failedRecordCounters.get(keyspaceAndTable);
   }
 
