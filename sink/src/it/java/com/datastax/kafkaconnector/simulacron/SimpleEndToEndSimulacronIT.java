@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
 import ch.qos.logback.core.joran.spi.JoranException;
+import com.codahale.metrics.Histogram;
 import com.datastax.dsbulk.commons.tests.logging.LogCapture;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
 import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
@@ -739,6 +740,45 @@ class SimpleEndToEndSimulacronIT {
                     message -> message.values.size()));
     assertThat(queryInfo)
         .containsOnly(entry(ConsistencyLevel.LOCAL_ONE, 2), entry(ConsistencyLevel.QUORUM, 3));
+
+    InstanceState instanceState =
+        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+
+    // verify that was one batch with 2 statements for mytopic
+    verifyOneBatchWithNStatements(instanceState.getBatchSizeHistogram("mytopic", "ks1.table1"), 2);
+
+    // verify that was one batch with 3 statements for yourtopic
+    verifyOneBatchWithNStatements(
+        instanceState.getBatchSizeHistogram("yourtopic", "ks1.table2"), 3);
+
+    // verify batchSizeInBytes updates for mytopic
+    verifyBatchSizeInBytesUpdate(
+        instanceState.getBatchSizeInBytesHistogram("mytopic", "ks1.table1"), 2, false);
+
+    // verify batchSizeInBytes updates for yourtopic
+    verifyBatchSizeInBytesUpdate(
+        instanceState.getBatchSizeInBytesHistogram("yourtopic", "ks1.table2"), 3, true);
+  }
+
+  private void verifyOneBatchWithNStatements(Histogram histogram, long numberOfStatements) {
+    // one batch
+    assertThat(histogram.getCount()).isEqualTo(1);
+    // that had numberOfStatements statements in it
+    assertThat(histogram.getSnapshot().getMax()).isEqualTo(numberOfStatements);
+    assertThat(histogram.getSnapshot().getMin()).isEqualTo(numberOfStatements);
+  }
+
+  private void verifyBatchSizeInBytesUpdate(
+      Histogram histogram, long numberOfUpdates, boolean allMessagesInBatchAreTheSame) {
+    // verify that size in bytes was updated for every statement in batch
+    assertThat(histogram.getCount()).isEqualTo(numberOfUpdates);
+    if (allMessagesInBatchAreTheSame) {
+      // min and max are the same because statements in batch are different
+      assertThat(histogram.getSnapshot().getMax()).isEqualTo(histogram.getSnapshot().getMin());
+    } else {
+      // min and max are different because statements in batch are different
+      assertThat(histogram.getSnapshot().getMax()).isNotEqualTo(histogram.getSnapshot().getMin());
+    }
   }
 
   @Test

@@ -36,6 +36,7 @@ class TopicState {
   private Map<String, Histogram> batchSizeHistograms;
   private Map<String, Meter> recordCounters;
   private Map<String, Meter> failedRecordCounters;
+  private Map<String, Histogram> batchSizeInBytesHistograms;
 
   TopicState(KafkaCodecRegistry codecRegistry) {
     this.codecRegistry = codecRegistry;
@@ -62,11 +63,18 @@ class TopicState {
   }
 
   void initializeMetrics(MetricRegistry metricRegistry) {
-    // Add histograms for all topic-tables.
+    // Add batch size histograms for all topic-tables.
     batchSizeHistograms =
         constructMetrics(
             recordMappers,
             MetricNamesCreator::createBatchSizeMetricName,
+            metricRegistry::histogram);
+
+    // Add batch size in bytes histograms for all topic-tables.
+    batchSizeInBytesHistograms =
+        constructMetrics(
+            recordMappers,
+            MetricNamesCreator::createBatchSizeInBytesMetricName,
             metricRegistry::histogram);
 
     // Add recordCounters for all topic-tables.
@@ -99,6 +107,11 @@ class TopicState {
   @NotNull
   Histogram getBatchSizeHistogram(String keyspaceAndTable) {
     return batchSizeHistograms.get(keyspaceAndTable);
+  }
+
+  @NotNull
+  Histogram getBatchSizeInBytesHistogram(String keyspaceAndTable) {
+    return batchSizeInBytesHistograms.get(keyspaceAndTable);
   }
 
   void incrementRecordCount(String keyspaceAndTable, int incrementBy) {

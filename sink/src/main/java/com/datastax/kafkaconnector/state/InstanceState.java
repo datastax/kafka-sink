@@ -21,6 +21,8 @@ import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.metrics.GlobalSinkMetrics;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.kafkaconnector.metrics.MetricsJmxReporter;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
@@ -147,6 +149,11 @@ public class InstanceState {
   }
 
   @NotNull
+  public Histogram getBatchSizeInBytesHistogram(String topicName, String keyspaceAndTable) {
+    return getTopicState(topicName).getBatchSizeInBytesHistogram(keyspaceAndTable);
+  }
+
+  @NotNull
   public Executor getMappingExecutor() {
     return mappingExecutor;
   }
@@ -205,5 +212,13 @@ public class InstanceState {
         log.debug(String.format("Failed to close %s", closeable), e);
       }
     }
+  }
+
+  public ProtocolVersion getProtocolVersion() {
+    return session.getContext().getProtocolVersion();
+  }
+
+  public CodecRegistry getCodecRegistry() {
+    return session.getContext().getCodecRegistry();
   }
 }
