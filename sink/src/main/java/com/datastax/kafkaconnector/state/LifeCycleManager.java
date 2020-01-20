@@ -214,6 +214,10 @@ public class LifeCycleManager {
         .append(valuesBuilder.toString())
         .append(") USING TIMESTAMP :")
         .append(SinkUtil.TIMESTAMP_VARNAME);
+    // todo when user provides own query and wants to leverage kafka timestamp should he provide
+    // :kafka_internal_timestamp in his query?
+    // todo same for ttl - if is in the mapping should he provide :kafka_internal_ttl or should we
+    // append it automatically?
 
     appendTtl(config, statementBuilder);
     return statementBuilder.toString();
@@ -614,14 +618,14 @@ public class LifeCycleManager {
       List<CqlIdentifier> primaryKey) {
     boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
     validateTtlConfig(tableConfig);
-    String insertUpdateStatement =
-        isCounterTable(table)
-            ? makeUpdateCounterStatement(tableConfig, table)
-            : makeInsertStatement(tableConfig);
+
+    String insertUpdateStatement = getInsertUpdateStatement(tableConfig, table);
 
     CompletionStage<? extends PreparedStatement> insertUpdateFuture =
         session.prepareAsync(insertUpdateStatement);
     CompletionStage<? extends PreparedStatement> deleteFuture;
+    // todo what about delete when query is provided? should there will be ability to provide this
+    // as well?
     String deleteStatement = makeDeleteStatement(tableConfig, table);
     if (tableConfig.isDeletesEnabled() && allColumnsMapped) {
       deleteFuture = session.prepareAsync(deleteStatement);
@@ -646,6 +650,18 @@ public class LifeCycleManager {
               throw new RuntimeException(
                   String.format("Prepare failed for statement: %s", statements), e.getCause());
             });
+  }
+
+  @NotNull
+  private static String getInsertUpdateStatement(TableConfig tableConfig, TableMetadata table) {
+    // if user provides query explicitly it has priority over any connector specific query
+    // construction logic
+    if (tableConfig.getQuery().isPresent()) {
+      return tableConfig.getQuery().get();
+    }
+    return isCounterTable(table)
+        ? makeUpdateCounterStatement(tableConfig, table)
+        : makeInsertStatement(tableConfig);
   }
 
   private static void validateTtlConfig(TableConfig config) {

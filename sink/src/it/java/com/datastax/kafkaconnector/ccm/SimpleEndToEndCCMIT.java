@@ -2365,7 +2365,7 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
-    return makeConnectorProperties(mappingString, null);
+    return makeConnectorProperties(mappingString, Collections.emptyMap());
   }
 
   private void assertTtl(int ttlValue, Number expectedTtlValue) {

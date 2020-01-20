@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,6 +41,7 @@ public class TableConfig extends AbstractConfig {
   public static final String TTL_TIME_UNIT_OPT = "ttlTimeUnit";
   static final String TIMESTAMP_TIME_UNIT_OPT = "timestampTimeUnit";
   static final String CL_OPT = "consistencyLevel";
+  static final String QUERY_OPT = "query";
 
   private static final String DELETES_ENABLED_OPT = "deletesEnabled";
   private static final String NULL_TO_UNSET_OPT = "nullToUnset";
@@ -56,6 +58,7 @@ public class TableConfig extends AbstractConfig {
   private final TimeUnit timestampTimeUnit;
   private final boolean nullToUnset;
   private final boolean deletesEnabled;
+  private final String query;
 
   private TableConfig(
       @NotNull String topicName,
@@ -97,6 +100,7 @@ public class TableConfig extends AbstractConfig {
     nullToUnset = getBoolean(getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT));
     deletesEnabled =
         getBoolean(getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT));
+    query = getString(getTableSettingPath(topicName, keyspace, table, QUERY_OPT));
   }
 
   private ConsistencyLevel convertToCloudCLIfNeeded(boolean cloud, ConsistencyLevel cl) {
@@ -166,6 +170,11 @@ public class TableConfig extends AbstractConfig {
   @NotNull
   public String getMappingString() {
     return mappingString;
+  }
+
+  @NotNull
+  public Optional<String> getQuery() {
+    return Optional.ofNullable(query);
   }
 
   @NotNull
@@ -292,7 +301,13 @@ public class TableConfig extends AbstractConfig {
             ConfigDef.Type.STRING,
             "MICROSECONDS",
             ConfigDef.Importance.HIGH,
-            "TimeUnit of provided timestamp mapping field.");
+            "TimeUnit of provided timestamp mapping field.")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, QUERY_OPT),
+            ConfigDef.Type.STRING,
+            null,
+            ConfigDef.Importance.HIGH,
+            "Custom query to use as a Prepared Statement for insert to this table.");
   }
 
   @NotNull
