@@ -616,8 +616,13 @@ public class LifeCycleManager {
       TableConfig tableConfig,
       TableMetadata table,
       List<CqlIdentifier> primaryKey) {
-    boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
-    validateTtlConfig(tableConfig);
+
+    // for custom query DELETE not supported yet
+    boolean allColumnsMapped = false;
+    if (!tableConfig.isQueryProvided()) {
+      allColumnsMapped = validateMappingColumns(table, tableConfig);
+      validateTtlConfig(tableConfig);
+    }
 
     String insertUpdateStatement = getInsertUpdateStatement(tableConfig, table);
 

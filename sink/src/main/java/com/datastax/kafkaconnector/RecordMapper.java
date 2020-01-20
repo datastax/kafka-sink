@@ -13,6 +13,7 @@ import static com.datastax.kafkaconnector.util.FunctionMapper.SUPPORTED_FUNCTION
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.ASCII;
 import static com.datastax.oss.protocol.internal.ProtocolConstants.DataType.VARCHAR;
 
+import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.record.JsonNodeTimeUnitConverter;
 import com.datastax.kafkaconnector.record.RawData;
 import com.datastax.kafkaconnector.record.Record;
@@ -62,25 +63,26 @@ public class RecordMapper {
   /** Whether to map null input to "unset" */
   private final boolean nullToUnset;
 
+  private final boolean isQueryProvided;
+
   public RecordMapper(
       PreparedStatement insertUpdateStatement,
       PreparedStatement deleteStatement,
       List<CqlIdentifier> primaryKey,
       Mapping mapping,
-      boolean nullToUnset,
       boolean allowExtraFields,
       boolean allowMissingFields,
-      TimeUnit ttlTimeUnit,
-      TimeUnit timestampTimeUnit) {
+      TableConfig tableConfig) {
     this.insertUpdateStatement = insertUpdateStatement;
     this.deleteStatement = deleteStatement;
     this.primaryKey = new LinkedHashSet<>(primaryKey);
     this.mapping = mapping;
-    this.nullToUnset = nullToUnset;
+    this.nullToUnset = tableConfig.isNullToUnset();
     this.allowExtraFields = allowExtraFields;
     this.allowMissingFields = allowMissingFields;
-    this.ttlTimeUnit = ttlTimeUnit;
-    this.timestampTimeUnit = timestampTimeUnit;
+    this.ttlTimeUnit = tableConfig.getTtlTimeUnit();
+    this.timestampTimeUnit = tableConfig.getTimestampTimeUnit();
+    this.isQueryProvided = tableConfig.isQueryProvided();
   }
 
   @NotNull
@@ -129,7 +131,13 @@ public class RecordMapper {
           GenericType.LONG);
     }
     BoundStatement bs = builder.build();
-    ensurePrimaryKeySet(bs);
+    // if user provided custom query we are not validating PKs because they may have different names
+    // in prepared statement
+    // than column definition on CQL table
+    if (!isQueryProvided) {
+      ensurePrimaryKeySet(bs);
+    }
+
     return bs;
   }
 

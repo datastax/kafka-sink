@@ -177,6 +177,10 @@ public class TableConfig extends AbstractConfig {
     return Optional.ofNullable(query);
   }
 
+  public boolean isQueryProvided() {
+    return query != null;
+  }
+
   @NotNull
   public ConsistencyLevel getConsistencyLevel() {
     return consistencyLevel;
