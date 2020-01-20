@@ -132,8 +132,7 @@ public class RecordMapper {
     }
     BoundStatement bs = builder.build();
     // if user provided custom query we are not validating PKs because they may have different names
-    // in prepared statement
-    // than column definition on CQL table
+    // in prepared statement than column definition on CQL table
     if (!isQueryProvided) {
       ensurePrimaryKeySet(bs);
     }

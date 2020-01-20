@@ -18,11 +18,9 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
@@ -71,15 +69,6 @@ public class ITConnectorBase {
 
   Map<String, String> makeConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras, String topicName) {
-    return makeConnectorProperties(mappingString, tableName, extras, topicName, Optional.empty());
-  }
-
-  Map<String, String> makeConnectorProperties(
-      String mappingString,
-      String tableName,
-      Map<String, String> extras,
-      String topicName,
-      Optional<String> query) {
     Map<String, String> props = new HashMap<>();
 
     props.put("name", "myinstance");
@@ -96,11 +85,6 @@ public class ITConnectorBase {
     props.put("topics", topicName);
     props.put(
         String.format("topic.%s.%s.%s.mapping", topicName, keyspaceName, tableName), mappingString);
-
-    query.map(
-        q ->
-            props.put(
-                String.format("topic.%s.%s.%s.query", topicName, keyspaceName, tableName), q));
 
     if (extras != null) {
       props.putAll(extras);
@@ -139,18 +123,13 @@ public class ITConnectorBase {
     return makeConnectorProperties(mappingString, "types", extras);
   }
 
-  Map<String, String> makeConnectorProperties(String mappingString, String query) {
-    return makeConnectorProperties(mappingString, "types", null, "mytopic", Optional.of(query));
-  }
-
   Map<String, String> makeConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras) {
-    return makeConnectorProperties(mappingString, tableName, extras, "mytopic", Optional.empty());
+    return makeConnectorProperties(mappingString, tableName, extras, "mytopic");
   }
 
   Map<String, String> makeConnectorPropertiesWithoutContactPointsAndPort(String mappingString) {
-    Map<String, String> connectorProperties =
-        makeConnectorProperties(mappingString, Collections.emptyMap());
+    Map<String, String> connectorProperties = makeConnectorProperties(mappingString, null);
     connectorProperties.remove("contactPoints");
     connectorProperties.remove("port");
     return connectorProperties;
