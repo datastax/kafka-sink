@@ -71,7 +71,7 @@ public class ITConnectorBase {
 
   Map<String, String> makeConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras, String topicName) {
-    return makeConnectorProperties(mappingString, tableName, extras, topicName);
+    return makeConnectorProperties(mappingString, tableName, extras, topicName, Optional.empty());
   }
 
   Map<String, String> makeConnectorProperties(
