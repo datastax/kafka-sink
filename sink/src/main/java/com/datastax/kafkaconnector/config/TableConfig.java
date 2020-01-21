@@ -43,7 +43,7 @@ public class TableConfig extends AbstractConfig {
   static final String CL_OPT = "consistencyLevel";
   static final String QUERY_OPT = "query";
 
-  private static final String DELETES_ENABLED_OPT = "deletesEnabled";
+  static final String DELETES_ENABLED_OPT = "deletesEnabled";
   private static final String NULL_TO_UNSET_OPT = "nullToUnset";
   private static final Pattern DELIM_PAT = Pattern.compile(", *");
 
@@ -101,6 +101,20 @@ public class TableConfig extends AbstractConfig {
     deletesEnabled =
         getBoolean(getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT));
     query = getString(getTableSettingPath(topicName, keyspace, table, QUERY_OPT));
+    validateQuery();
+  }
+
+  private void validateQuery() {
+    if (isQueryProvided() && deletesEnabled) {
+      throw new ConfigException(
+          String.format(
+              "You cannot provide both %s and %s. If you want to provide own %s, set the %s to false.",
+              getTableSettingPath(topicName, keyspace.asInternal(), table.asInternal(), QUERY_OPT),
+              getTableSettingPath(
+                  topicName, keyspace.asInternal(), table.asInternal(), DELETES_ENABLED_OPT),
+              QUERY_OPT,
+              DELETES_ENABLED_OPT));
+    }
   }
 
   private ConsistencyLevel convertToCloudCLIfNeeded(boolean cloud, ConsistencyLevel cl) {

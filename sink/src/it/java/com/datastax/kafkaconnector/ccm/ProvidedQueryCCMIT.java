@@ -9,6 +9,7 @@
 package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -18,7 +19,10 @@ import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -53,11 +57,14 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   @Test
   void should_insert_json_using_query_parameter() {
     ImmutableMap<String, String> extras =
-        ImmutableMap.of(
-            queryParameter(),
-            String.format(
-                "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol)",
-                keyspaceName));
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                String.format(
+                    "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol)",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .build();
 
     conn.start(makeConnectorProperties("bigintcol=value.bigint, intcol=value.int", extras));
 
@@ -90,16 +97,53 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
+  void should_fail_insert_json_using_query_parameter_with_deletes_enabled() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                String.format(
+                    "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol)",
+                    keyspaceName))
+            .put(deletesEnabled())
+            .build();
+
+    conn.start(makeConnectorProperties("bigintcol=value.bigint, intcol=value.int", extras));
+
+    String value = "{\"bigint\": 1234, \"int\": 10000}";
+
+    Long recordTimestamp = 123456L;
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic",
+            0,
+            null,
+            null,
+            null,
+            value,
+            1234L,
+            recordTimestamp,
+            TimestampType.CREATE_TIME);
+
+    assertThatThrownBy(() -> runTaskWithRecords(record))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("If you want to provide own query, set the deletesEnabled to false.");
+  }
+
+  @Test
   void
       should_allow_insert_json_using_query_parameter_with_bound_variables_different_than_cql_columns() {
     // when providing custom query, the connector is not validating bound variables from prepared
     // statements user needs to take care of the query requirements on their own.
     ImmutableMap<String, String> extras =
-        ImmutableMap.of(
-            queryParameter(),
-            String.format(
-                "INSERT INTO %s.types (bigintCol, intCol) VALUES (:some_name, :some_name_2)",
-                keyspaceName));
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                String.format(
+                    "INSERT INTO %s.types (bigintCol, intCol) VALUES (:some_name, :some_name_2)",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .build();
 
     conn.start(makeConnectorProperties("some_name=value.bigint, some_name_2=value.int", extras));
 
@@ -119,11 +163,14 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   @Test
   void should_update_json_using_query_parameter() {
     ImmutableMap<String, String> extras =
-        ImmutableMap.of(
-            queryParameter(),
-            String.format(
-                "UPDATE %s.types SET listCol = listCol + [1] where bigintcol = :pkey",
-                keyspaceName));
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                String.format(
+                    "UPDATE %s.types SET listCol = listCol + [1] where bigintcol = :pkey",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .build();
 
     conn.start(makeConnectorProperties("pkey=value.pkey, newitem=value.newitem", extras));
 
@@ -144,14 +191,17 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   @Test
   void should_insert_json_using_query_parameter_and_ttl() {
     ImmutableMap<String, String> extras =
-        ImmutableMap.of(
-            // when user provide own query, the ttlTimeUnit is ignored
-            String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"),
-            "HOURS",
-            queryParameter(),
-            String.format(
-                "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol) USING TTL :ttl",
-                keyspaceName));
+        ImmutableMap.<String, String>builder()
+            .put(
+                // when user provide own query, the ttlTimeUnit is ignored
+                String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"), "HOURS")
+            .put(
+                queryParameter(),
+                String.format(
+                    "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol) USING TTL :ttl",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .build();
 
     conn.start(
         makeConnectorProperties("bigintcol=value.bigint, intcol=value.int, ttl=value.ttl", extras));
@@ -173,14 +223,18 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   @Test
   void should_insert_json_using_query_parameter_and_timestamp() {
     ImmutableMap<String, String> extras =
-        ImmutableMap.of(
-            // when user provide own query, the timestampTimeUnit is ignored
-            String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
-            "HOURS",
-            queryParameter(),
-            String.format(
-                "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol) USING TIMESTAMP :timestamp",
-                keyspaceName));
+        ImmutableMap.<String, String>builder()
+            .put(
+                // when user provide own query, the timestampTimeUnit is ignored
+                String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
+                "HOURS")
+            .put(
+                queryParameter(),
+                String.format(
+                    "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol) USING TIMESTAMP :timestamp",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .build();
 
     conn.start(
         makeConnectorProperties(
@@ -204,11 +258,14 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   @Test
   void should_insert_struct_with_query_parameter() {
     ImmutableMap<String, String> extras =
-        ImmutableMap.of(
-            queryParameter(),
-            String.format(
-                "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigint_col, :int_col) USING TIMESTAMP :timestamp and TTL 1000",
-                keyspaceName));
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                String.format(
+                    "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigint_col, :int_col) USING TIMESTAMP :timestamp and TTL 1000",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .build();
 
     conn.start(
         makeConnectorProperties(
@@ -242,5 +299,15 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
 
   private String queryParameter() {
     return String.format("topic.mytopic.%s.%s.query", keyspaceName, "types");
+  }
+
+  private Map.Entry<? extends String, ? extends String> deletesDisabled() {
+    return new LinkedHashMap.SimpleEntry<>(
+        String.format("topic.mytopic.%s.%s.deletesEnabled", keyspaceName, "types"), "false");
+  }
+
+  private Map.Entry<? extends String, ? extends String> deletesEnabled() {
+    return new LinkedHashMap.SimpleEntry<>(
+        String.format("topic.mytopic.%s.%s.deletesEnabled", keyspaceName, "types"), "true");
   }
 }

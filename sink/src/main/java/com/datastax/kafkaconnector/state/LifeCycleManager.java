@@ -625,8 +625,6 @@ public class LifeCycleManager {
     CompletionStage<? extends PreparedStatement> insertUpdateFuture =
         session.prepareAsync(insertUpdateStatement);
     CompletionStage<? extends PreparedStatement> deleteFuture;
-    // todo what about delete when query is provided? should there will be ability to provide this
-    // as well?
     String deleteStatement = makeDeleteStatement(tableConfig, table);
     if (tableConfig.isDeletesEnabled() && allColumnsMapped) {
       deleteFuture = session.prepareAsync(deleteStatement);
