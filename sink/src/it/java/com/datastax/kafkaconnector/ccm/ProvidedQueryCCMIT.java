@@ -13,10 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
@@ -28,30 +25,14 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
-  private AttachmentPoint attachmentPoint;
 
   public ProvidedQueryCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    attachmentPoint =
-        new AttachmentPoint() {
-          @NotNull
-          @Override
-          public ProtocolVersion getProtocolVersion() {
-            return session.getContext().getProtocolVersion();
-          }
-
-          @NotNull
-          @Override
-          public CodecRegistry getCodecRegistry() {
-            return session.getContext().getCodecRegistry();
-          }
-        };
   }
 
   @Test
