@@ -214,10 +214,6 @@ public class LifeCycleManager {
         .append(valuesBuilder.toString())
         .append(") USING TIMESTAMP :")
         .append(SinkUtil.TIMESTAMP_VARNAME);
-    // todo when user provides own query and wants to leverage kafka timestamp should he provide
-    // :kafka_internal_timestamp in his query?
-    // todo same for ttl - if is in the mapping should he provide :kafka_internal_ttl or should we
-    // append it automatically?
 
     appendTtl(config, statementBuilder);
     return statementBuilder.toString();

@@ -19,6 +19,7 @@ import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.List;
+import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
@@ -59,7 +60,18 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
 
     String value = "{\"bigint\": 1234, \"int\": 10000}";
 
-    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    Long recordTimestamp = 123456L;
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic",
+            0,
+            null,
+            null,
+            null,
+            value,
+            1234L,
+            recordTimestamp,
+            TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
@@ -69,6 +81,9 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234);
     assertThat(row.getInt("intcol")).isEqualTo(10000);
+
+    // timestamp from record is ignored with user provided queries
+    assertThat(row.getLong(2)).isGreaterThan(recordTimestamp);
   }
 
   @Test
@@ -182,9 +197,6 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInt("intcol")).isEqualTo(10000);
     assertThat(row.getLong(2)).isEqualTo(100000L);
   }
-
-  // todo test that if you will use standard kafka_internal_timestamp, then transformation will
-  // apply
 
   private String queryParameter() {
     return String.format("topic.mytopic.%s.%s.query", keyspaceName, "types");
