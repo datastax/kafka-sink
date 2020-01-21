@@ -20,6 +20,9 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.List;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
@@ -196,6 +199,45 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     assertThat(row.getLong("bigintcol")).isEqualTo(1234);
     assertThat(row.getInt("intcol")).isEqualTo(10000);
     assertThat(row.getLong(2)).isEqualTo(100000L);
+  }
+
+  @Test
+  void should_insert_struct_with_query_parameter() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.of(
+            queryParameter(),
+            String.format(
+                "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigint_col, :int_col) USING TIMESTAMP :timestamp and TTL 1000",
+                keyspaceName));
+
+    conn.start(
+        makeConnectorProperties(
+            "bigint_col=value.bigint, int_col=value.int, timestamp=value.int", extras));
+
+    Schema schema =
+        SchemaBuilder.struct()
+            .name("Kafka")
+            .field("bigint", Schema.INT64_SCHEMA)
+            .field("int", Schema.INT32_SCHEMA)
+            .build();
+    Struct value = new Struct(schema).put("bigint", 1234567L).put("int", 1000);
+
+    SinkRecord record =
+        new SinkRecord(
+            "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results =
+        session
+            .execute("SELECT bigintcol, intcol, writetime(intcol), ttl(intcol) FROM types")
+            .all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
+    assertThat(row.getInt("intcol")).isEqualTo(1000);
+    assertThat(row.getLong(2)).isEqualTo(1000L);
+    assertTtl(row.getInt(3), 1000);
   }
 
   private String queryParameter() {
