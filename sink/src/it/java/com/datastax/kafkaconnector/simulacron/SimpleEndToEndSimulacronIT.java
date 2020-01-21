@@ -169,6 +169,7 @@ class SimpleEndToEndSimulacronIT {
                 "topic.yourTopic2.ks1.table1_custom_query.mapping",
                 "some1=value.some1, some2=value.some2")
             .put("topic.yourTopic2.ks1.table1_custom_query.query", INSERT_STATEMENT_CUSTOM_QUERY)
+            .put("topic.yourTopic2.ks1.table1_custom_query.deletesEnabled", "false")
             .build();
   }
 
