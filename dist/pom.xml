@@ -34,6 +34,12 @@
     </dependency>
 
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${oss.driver.version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dsbulk-commons</artifactId>
     </dependency>
