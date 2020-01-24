@@ -13,27 +13,28 @@ import com.datastax.kafkaconnector.config.TableConfig;
 public class MetricNamesCreator {
 
   public static String createBatchSizeMetricName(TableConfig tableConfig) {
-    return String.format(
-        "%s/%s/%s/batchSize",
-        tableConfig.getTopicName(),
-        tableConfig.getKeyspace().asInternal(),
-        tableConfig.getTable().asInternal());
+    return topicKeyspacePrefix(tableConfig, "batchSize");
+  }
+
+  public static String createBatchSizeInBytesMetricName(TableConfig tableConfig) {
+    return topicKeyspacePrefix(tableConfig, "batchSizeInBytes");
   }
 
   public static String createRecordCountMetricName(TableConfig tableConfig) {
-    return String.format(
-        "%s/%s/%s/recordCount",
-        tableConfig.getTopicName(),
-        tableConfig.getKeyspace().asInternal(),
-        tableConfig.getTable().asInternal());
+    return topicKeyspacePrefix(tableConfig, "recordCount");
   }
 
   public static String createFailedRecordCountMetricName(TableConfig tableConfig) {
+    return topicKeyspacePrefix(tableConfig, "failedRecordCount");
+  }
+
+  private static String topicKeyspacePrefix(TableConfig tableConfig, String metricName) {
     return String.format(
-        "%s/%s/%s/failedRecordCount",
+        "%s/%s/%s/%s",
         tableConfig.getTopicName(),
         tableConfig.getKeyspace().asInternal(),
-        tableConfig.getTable().asInternal());
+        tableConfig.getTable().asInternal(),
+        metricName);
   }
 
   public static String createDriverMetricName(String name) {

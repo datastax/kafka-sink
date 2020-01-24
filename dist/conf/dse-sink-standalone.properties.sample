@@ -114,7 +114,8 @@ topics=my_topic
 # You can use special __ttl and __timestamp fields in the mapping to denote the fact that the field from kafka record should
 # be inserted as the ttl or writetime of this DSE record.
 # You can extract value from kafka record header using "header." suffix with the name of the header.
-topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1
+# You can use now() function in the mapping to generate TIMEUUID and insert it as a value to the given column.
+topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1, col4=now()
 
 # When you specify ttl value to be used while inserting (by mapping __ttl or .ttl static config)
 # you may want to specify timeUnit of the provided ttl. Default is SECONDS.

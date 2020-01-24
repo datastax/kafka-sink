@@ -80,7 +80,9 @@ abstract class EndToEndCCMITBase extends ITConnectorBase {
                     + "dateCol date, "
                     + "timeCol time, "
                     + "timestampCol timestamp, "
-                    + "secondsCol timestamp"
+                    + "secondsCol timestamp,"
+                    + "loaded_at timeuuid,"
+                    + "loaded_at2 timeuuid"
                     + ")")
             .setTimeout(Duration.ofSeconds(10))
             .build());

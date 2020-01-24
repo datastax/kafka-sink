@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector.state;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -22,6 +21,8 @@ import com.datastax.kafkaconnector.metrics.GlobalSinkMetrics;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.kafkaconnector.metrics.MetricsJmxReporter;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
@@ -126,7 +127,6 @@ public class InstanceState {
     return requestBarrier;
   }
 
-  @NotNull
   public int getMaxNumberOfRecordsInBatch() {
     return config.getMaxNumberOfRecordsInBatch();
   }
@@ -146,6 +146,11 @@ public class InstanceState {
   @NotNull
   public Histogram getBatchSizeHistogram(String topicName, String keyspaceAndTable) {
     return getTopicState(topicName).getBatchSizeHistogram(keyspaceAndTable);
+  }
+
+  @NotNull
+  public Histogram getBatchSizeInBytesHistogram(String topicName, String keyspaceAndTable) {
+    return getTopicState(topicName).getBatchSizeInBytesHistogram(keyspaceAndTable);
   }
 
   @NotNull
@@ -172,7 +177,7 @@ public class InstanceState {
   }
 
   @VisibleForTesting
-  public Counter getFailedRecordCounter(String topicName, String keyspaceAndTable) {
+  public Meter getFailedRecordCounter(String topicName, String keyspaceAndTable) {
     return getTopicState(topicName).getFailedRecordCounter(keyspaceAndTable);
   }
 
@@ -207,5 +212,13 @@ public class InstanceState {
         log.debug(String.format("Failed to close %s", closeable), e);
       }
     }
+  }
+
+  public ProtocolVersion getProtocolVersion() {
+    return session.getContext().getProtocolVersion();
+  }
+
+  public CodecRegistry getCodecRegistry() {
+    return session.getContext().getCodecRegistry();
   }
 }
