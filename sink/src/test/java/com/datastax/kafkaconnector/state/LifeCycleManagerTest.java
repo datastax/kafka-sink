@@ -20,8 +20,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.datastax.dse.driver.api.core.metadata.schema.DseKeyspaceMetadata;
-import com.datastax.dse.driver.api.core.metadata.schema.DseTableMetadata;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TableConfigBuilder;
@@ -31,6 +29,8 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Arrays;
@@ -59,8 +59,8 @@ class LifeCycleManagerTest {
   private ColumnMetadata col3;
   private CqlSession session;
   private Metadata metadata;
-  private DseKeyspaceMetadata keyspace;
-  private DseTableMetadata table;
+  private KeyspaceMetadata keyspace;
+  private TableMetadata table;
 
   @BeforeEach
   void setUp() {
@@ -68,9 +68,9 @@ class LifeCycleManagerTest {
     DriverContext context = mock(DriverContext.class);
     CodecRegistry codecRegistry = mock(CodecRegistry.class);
     metadata = mock(Metadata.class);
-    keyspace = mock(DseKeyspaceMetadata.class);
-    table = mock(DseTableMetadata.class);
-    DseTableMetadata table2 = mock(DseTableMetadata.class);
+    keyspace = mock(KeyspaceMetadata.class);
+    table = mock(TableMetadata.class);
+    TableMetadata table2 = mock(TableMetadata.class);
     col1 = mock(ColumnMetadata.class);
     col2 = mock(ColumnMetadata.class);
     col3 = mock(ColumnMetadata.class);

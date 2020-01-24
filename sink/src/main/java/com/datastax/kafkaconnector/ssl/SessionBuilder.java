@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector.ssl;
 
-import com.datastax.dse.driver.api.core.session.DseProgrammaticArguments;
 import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
@@ -38,6 +37,6 @@ public class SessionBuilder extends CqlSessionBuilder {
     }
 
     return new com.datastax.kafkaconnector.ssl.DriverContext(
-        configLoader, programmaticArguments, DseProgrammaticArguments.builder().build(), sslConfig);
+        configLoader, programmaticArguments, sslConfig);
   }
 }
