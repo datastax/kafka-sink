@@ -1,7 +1,7 @@
 ## Changelog
 
 ### 1.3.0 (in progress)
-- [task] KAF-170: Update Kafka Connector to unified driver
+- [improvement] KAF-170: Update Kafka Connector to unified driver
 - [improvement] KAF-163: Add test of auth configuration inferring auth.provider to DSE when both username and password are provided.	
 
 ### 1.2.1
