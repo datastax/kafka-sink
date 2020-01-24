@@ -655,12 +655,13 @@ public class LifeCycleManager {
   private static String getInsertUpdateStatement(TableConfig tableConfig, TableMetadata table) {
     // if user provides query explicitly it has priority over any connector specific query
     // construction logic
-    if (tableConfig.getQuery().isPresent()) {
-      return tableConfig.getQuery().get();
-    }
-    return isCounterTable(table)
-        ? makeUpdateCounterStatement(tableConfig, table)
-        : makeInsertStatement(tableConfig);
+    return tableConfig
+        .getQuery()
+        .orElseGet(
+            () ->
+                isCounterTable(table)
+                    ? makeUpdateCounterStatement(tableConfig, table)
+                    : makeInsertStatement(tableConfig));
   }
 
   private static void validateTtlConfig(TableConfig config) {

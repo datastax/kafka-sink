@@ -121,19 +121,22 @@ public class RecordMapper {
       bindColumnsToBuilder(
           recordMetadata, record, builder, variableDefinitions, function.asInternal(), true);
     }
-    // if user provided query, do not set internal timestamp - it needs to be taken care in the
-    // query by the user
-    if (!isQueryProvided) {
-      // set timestamp from record only if it was not set from mapping
-      if (record.getTimestamp() != null && isInsertUpdate && timestampIsNotSet(builder)) {
-        bindColumn(
-            builder,
-            SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER,
-            record.getTimestamp() * 1000,
-            DataTypes.BIGINT,
-            GenericType.LONG);
-      }
+
+    // Set a timestamp if (a) the user did not explicitly provide a CQL query and (b) no timestamp
+    // was set
+    // in the mapping
+    if (!isQueryProvided
+        && record.getTimestamp() != null
+        && isInsertUpdate
+        && timestampIsNotSet(builder)) {
+      bindColumn(
+          builder,
+          SinkUtil.TIMESTAMP_VARNAME_CQL_IDENTIFIER,
+          record.getTimestamp() * 1000,
+          DataTypes.BIGINT,
+          GenericType.LONG);
     }
+
     BoundStatement bs = builder.build();
     // if user provided custom query we are not validating PKs because they may have different names
     // in prepared statement than column definition on CQL table
