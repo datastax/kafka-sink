@@ -21,7 +21,6 @@ java:
 os:
   - ubuntu/bionic64/java-driver
 cassandra:
-  - 2.1
   - 2.2
   - 3.0
   - 3.11
