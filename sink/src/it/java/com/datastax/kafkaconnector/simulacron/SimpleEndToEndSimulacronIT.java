@@ -85,6 +85,9 @@ class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =
       "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp";
+  // if user provided custom query, it does not have auto-generated :kafka_internal_timestamp
+  private static final String INSERT_STATEMENT_CUSTOM_QUERY =
+      "INSERT INTO ks1.table1_custom_query(col1,col2) VALUES (:some1,:some2)";
   private static final String INSERT_STATEMENT_TTL =
       "INSERT INTO ks1.table1_with_ttl(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp AND TTL :kafka_internal_ttl";
   private static final String DELETE_STATEMENT = "DELETE FROM ks1.table1 WHERE a = :a AND b = :b";
@@ -102,6 +105,10 @@ class SimpleEndToEndSimulacronIT {
           .put("kafka_internal_timestamp", "bigint")
           .put("kafka_internal_ttl", "bigint")
           .build();
+
+  private static final ImmutableMap<String, String> PARAM_TYPES_CUSTOM_QUERY =
+      ImmutableMap.<String, String>builder().put("some1", "int").put("some2", "varchar").build();
+
   private static final String INSTANCE_NAME = "myinstance";
   private final BoundCluster simulacron;
   private final SimulacronUtils.Keyspace schema;
@@ -141,7 +148,11 @@ class SimpleEndToEndSimulacronIT {
                 "mycounter",
                 new Column("a", DataTypes.INT),
                 new Column("b", DataTypes.TEXT),
-                new Column("c", DataTypes.COUNTER)));
+                new Column("c", DataTypes.COUNTER)),
+            new Table(
+                "table1_custom_query",
+                new Column("col1", DataTypes.INT),
+                new Column("col2", DataTypes.TEXT)));
     conn = new DseSinkConnector();
 
     connectorProperties =
@@ -154,6 +165,11 @@ class SimpleEndToEndSimulacronIT {
             .put("topic.mytopic_with_ttl.ks1.table1_with_ttl.mapping", "a=key, b=value, __ttl=key")
             .put("topic.yourtopic.ks1.table2.mapping", "a=key, b=value")
             .put("topic.yourtopic.ks1.table2.consistencyLevel", "QUORUM")
+            .put(
+                "topic.yourTopic2.ks1.table1_custom_query.mapping",
+                "some1=value.some1, some2=value.some2")
+            .put("topic.yourTopic2.ks1.table1_custom_query.query", INSERT_STATEMENT_CUSTOM_QUERY)
+            .put("topic.yourTopic2.ks1.table1_custom_query.deletesEnabled", "false")
             .build();
   }
 
@@ -174,6 +190,11 @@ class SimpleEndToEndSimulacronIT {
     return makeRecord(0, key, value, timestamp, offset);
   }
 
+  private static SinkRecord makeRecordCustomQuery(int key, String value, long offset) {
+    return new SinkRecord(
+        "yourTopic2", 0, null, key, null, value, offset, null, TimestampType.CREATE_TIME);
+  }
+
   private static SinkRecord makeRecord(
       int partition, int key, String value, long timestamp, long offset) {
     return new SinkRecord(
@@ -183,6 +204,14 @@ class SimpleEndToEndSimulacronIT {
   private static Query makeQuery(int a, String b, long timestamp) {
     return new Query(
         INSERT_STATEMENT, Collections.emptyList(), makeParams(a, b, timestamp), PARAM_TYPES);
+  }
+
+  private static Query makeQueryCustomInsert(int a, String b) {
+    return new Query(
+        INSERT_STATEMENT_CUSTOM_QUERY,
+        Collections.emptyList(),
+        makeParamsCustomQuery(a, b),
+        PARAM_TYPES_CUSTOM_QUERY);
   }
 
   private static Query makeTtlQuery(int a, String b, long timestamp, long ttl) {
@@ -208,6 +237,10 @@ class SimpleEndToEndSimulacronIT {
         .put("b", b)
         .put("kafka_internal_timestamp", timestamp)
         .build();
+  }
+
+  private static Map<String, Object> makeParamsCustomQuery(int a, String b) {
+    return ImmutableMap.<String, Object>builder().put("some1", a).put("some2", b).build();
   }
 
   @BeforeEach
@@ -842,6 +875,37 @@ class SimpleEndToEndSimulacronIT {
     assertThat(logs.getAllMessagesAsString())
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1234")
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=8888");
+  }
+
+  @Test
+  void success_offset_custom_query() {
+    SimulacronUtils.primeTables(simulacron, schema);
+
+    Query good1 = makeQueryCustomInsert(42, "abc");
+    simulacron.prime(when(good1).then(noRows()));
+
+    Query good2 = makeQueryCustomInsert(22, "abcd");
+    simulacron.prime(when(good2).then(noRows()));
+
+    conn.start(connectorProperties);
+
+    SinkRecord record1 = makeRecordCustomQuery(1, "{\"some1\" : 42, \"some2\": \"abc\" }", 1234);
+    SinkRecord record2 = makeRecordCustomQuery(2, "{\"some1\" : 22, \"some2\": \"abcd\" }", 1235);
+    runTaskWithRecords(record1, record2);
+
+    Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+    task.preCommit(currentOffsets);
+    assertThat(currentOffsets).isEmpty();
+
+    List<QueryLog> queryList =
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
+            .filter(q -> q.getType().equals("EXECUTE"))
+            .collect(Collectors.toList());
+    assertThat(queryList.size()).isEqualTo(2);
   }
 
   private void runTaskWithRecords(SinkRecord... records) {

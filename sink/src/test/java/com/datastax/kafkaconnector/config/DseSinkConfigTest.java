@@ -38,6 +38,7 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTAC
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.kafkaconnector.util.SinkUtil;
@@ -495,6 +496,78 @@ class DseSinkConfigTest {
             "The setting: "
                 + settingName
                 + " does not match topic.keyspace.table nor topic.codec regular expression pattern");
+  }
+
+  @ParameterizedTest
+  @MethodSource("topicKeyspaceTableSettings")
+  void should_match_all_topic_keyspace_table_settings(String setting, String value) {
+    // given
+    String mappingSettingName = String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "mapping");
+    String settingName = String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", setting);
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(settingName, value)
+                .put(mappingSettingName, "c1=value.f1")
+                .build());
+    // when then
+    assertThatCode(() -> new DseSinkConfig(props)).doesNotThrowAnyException();
+  }
+
+  private static Stream<? extends Arguments> topicKeyspaceTableSettings() {
+    return Stream.of(
+        Arguments.of("consistencyLevel", "ANY"),
+        Arguments.of("ttl", "1"),
+        Arguments.of("nullToUnset", "true"),
+        Arguments.of("deletesEnabled", "false"),
+        Arguments.of("ttlTimeUnit", "SECONDS"),
+        Arguments.of("timestampTimeUnit", "SECONDS"));
+  }
+
+  @Test
+  void should_allow_query_setting_for_topic_keyspace_table() {
+    // given
+    String mappingSettingName = String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "mapping");
+    String querySettingName = String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "query");
+    String deletesEnabledSettingName =
+        String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "deletesEnabled");
+
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(querySettingName, "query")
+                .put(mappingSettingName, "c1=value.f1")
+                // deletes needs to be disabled for query parameter
+                .put(deletesEnabledSettingName, "false")
+                .build());
+    // when then
+    assertThatCode(() -> new DseSinkConfig(props)).doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @MethodSource("topicKeyspaceTableCodecSettings")
+  void should_match_all_topic_keyspace_table_codec_settings(String setting, String value) {
+    // given
+    String mappingSettingName = String.format("topic.%s.%s.%s.%s", "t1", "ks", "tb", "mapping");
+    String settingName = String.format("topic.%s.codec.%s", "t1", setting);
+    Map<String, String> props =
+        Maps.newHashMap(
+            ImmutableMap.<String, String>builder()
+                .put(settingName, value)
+                .put(mappingSettingName, "c1=value.c1")
+                .build());
+    // when then
+    assertThatCode(() -> new DseSinkConfig(props)).doesNotThrowAnyException();
+  }
+
+  private static Stream<? extends Arguments> topicKeyspaceTableCodecSettings() {
+    return Stream.of(
+        Arguments.of("locale", "locale"),
+        Arguments.of("timeZone", "UK"),
+        Arguments.of("timestamp", "some_timestamp"),
+        Arguments.of("date", "some_date"),
+        Arguments.of("time", "some_time"),
+        Arguments.of("unit", "SECONDS"));
   }
 
   @Test

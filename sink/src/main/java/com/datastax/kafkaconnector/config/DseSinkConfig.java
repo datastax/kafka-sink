@@ -43,7 +43,7 @@ public class DseSinkConfig {
   private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
   private static final Pattern TOPIC_KS_TABLE_SETTING_PATTERN =
       Pattern.compile(
-          "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit|timestampTimeUnit)$");
+          "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit|timestampTimeUnit|query)$");
   public static final Pattern TOPIC_CODEC_PATTERN =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.(codec)\\.(locale|timeZone|timestamp|date|time|unit)$");

@@ -2,6 +2,7 @@
 
 ### 1.3.0 (in progress)
 
+- [new feature] KAF-108: Support providing CQL query
 - [new feature] KAF-127: Add support for now()
 - [improvement] KAF:100: Add rates to failedRecordCount
 - [new feature] KAF-99: Add new BatchSizeInBytes metric
