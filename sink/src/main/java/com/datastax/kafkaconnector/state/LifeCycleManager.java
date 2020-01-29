@@ -25,11 +25,8 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
-import com.datastax.dse.driver.api.core.DseSession;
-import com.datastax.dse.driver.api.core.DseSessionBuilder;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
-import com.datastax.dse.driver.internal.core.auth.DsePlainTextAuthProvider;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
 import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
@@ -43,6 +40,8 @@ import com.datastax.kafkaconnector.ssl.SessionBuilder;
 import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
@@ -50,6 +49,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.internal.core.auth.PlainTextAuthProvider;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfigLoader;
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
@@ -106,7 +106,7 @@ public class LifeCycleManager {
             props.get(SinkUtil.NAME_OPT),
             x -> {
               DseSinkConfig config = new DseSinkConfig(props);
-              DseSession session = buildDseSession(config, task.version());
+              CqlSession session = buildCqlSession(config, task.version());
               return buildInstanceState(session, config);
             });
     instanceState.registerTask(task);
@@ -343,7 +343,7 @@ public class LifeCycleManager {
    */
   @VisibleForTesting
   @NotNull
-  static TableMetadata getTableMetadata(DseSession session, TableConfig tableConfig) {
+  static TableMetadata getTableMetadata(CqlSession session, TableConfig tableConfig) {
     CqlIdentifier keyspaceName = tableConfig.getKeyspace();
     CqlIdentifier tableName = tableConfig.getTable();
     Metadata metadata = session.getMetadata();
@@ -399,7 +399,7 @@ public class LifeCycleManager {
    * @return a new InstanceState
    */
   @NotNull
-  private static InstanceState buildInstanceState(DseSession session, DseSinkConfig config) {
+  private static InstanceState buildInstanceState(CqlSession session, DseSinkConfig config) {
 
     // Compute the primary keys of all tables being mapped to (across topics).
     Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
@@ -475,18 +475,17 @@ public class LifeCycleManager {
   }
 
   /**
-   * Create a new {@link DseSession} based on the config
+   * Create a new {@link CqlSession} based on the config
    *
    * @param config the sink config
-   * @param version version of the connector
    * @return a new DseSession
    */
   @VisibleForTesting
   @NotNull
-  public static DseSession buildDseSession(DseSinkConfig config, String version) {
+  public static CqlSession buildCqlSession(DseSinkConfig config, String version) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
-    DseSessionBuilder builder =
+    CqlSessionBuilder builder =
         new SessionBuilder(sslConfig)
             .withApplicationVersion(version)
             .withApplicationName(KAFKA_CONNECTOR_APPLICATION_NAME)
@@ -494,7 +493,6 @@ public class LifeCycleManager {
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
-    // todo remove once JAVA-2519 will be done (see KAF-154)
     if (sslConfig != null && sslConfig.requireHostnameValidation()) {
       // if requireHostnameValidation then InetSocketAddress must be resolved
       config
@@ -564,7 +562,7 @@ public class LifeCycleManager {
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
     if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
       configLoaderBuilder
-          .withClass(AUTH_PROVIDER_CLASS, DsePlainTextAuthProvider.class)
+          .withClass(AUTH_PROVIDER_CLASS, PlainTextAuthProvider.class)
           .withString(AUTH_PROVIDER_USER_NAME, authConfig.getUsername())
           .withString(AUTH_PROVIDER_PASSWORD, authConfig.getPassword());
     } else if (authConfig.getProvider() == AuthenticatorConfig.Provider.GSSAPI) {
@@ -616,17 +614,20 @@ public class LifeCycleManager {
    */
   @NotNull
   private static CompletionStage<Void> prepareStatementsAsync(
-      DseSession session,
+      CqlSession session,
       TopicState topicState,
       TableConfig tableConfig,
       TableMetadata table,
       List<CqlIdentifier> primaryKey) {
-    boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
-    validateTtlConfig(tableConfig);
-    String insertUpdateStatement =
-        isCounterTable(table)
-            ? makeUpdateCounterStatement(tableConfig, table)
-            : makeInsertStatement(tableConfig);
+
+    // for custom query DELETE not supported yet
+    boolean allColumnsMapped = false;
+    if (!tableConfig.isQueryProvided()) {
+      allColumnsMapped = validateMappingColumns(table, tableConfig);
+      validateTtlConfig(tableConfig);
+    }
+
+    String insertUpdateStatement = getInsertUpdateStatement(tableConfig, table);
 
     CompletionStage<? extends PreparedStatement> insertUpdateFuture =
         session.prepareAsync(insertUpdateStatement);
@@ -655,6 +656,19 @@ public class LifeCycleManager {
               throw new RuntimeException(
                   String.format("Prepare failed for statement: %s", statements), e.getCause());
             });
+  }
+
+  @NotNull
+  private static String getInsertUpdateStatement(TableConfig tableConfig, TableMetadata table) {
+    // if user provides query explicitly it has priority over any connector specific query
+    // construction logic
+    return tableConfig
+        .getQuery()
+        .orElseGet(
+            () ->
+                isCounterTable(table)
+                    ? makeUpdateCounterStatement(tableConfig, table)
+                    : makeInsertStatement(tableConfig));
   }
 
   private static void validateTtlConfig(TableConfig config) {

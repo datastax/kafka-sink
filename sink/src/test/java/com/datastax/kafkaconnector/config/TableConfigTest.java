@@ -9,7 +9,9 @@
 package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.config.TableConfig.CL_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.DELETES_ENABLED_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.QUERY_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TIMESTAMP_TIME_UNIT_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_TIME_UNIT_OPT;
@@ -117,8 +119,7 @@ class TableConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessageStartingWith(
             "Invalid value 'c1=f1' for configuration topic.mytopic.myks.mytable.mapping: Encountered the following errors:")
-        .hasMessageContaining(
-            "Invalid field name 'f1': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+        .hasMessageContaining(MappingInspector.generateErrorMessage("f1"));
   }
 
   @Test
@@ -157,11 +158,40 @@ class TableConfigTest {
   }
 
   @Test
+  void should_parse_mapping_that_contains_now_function() {
+    TableConfig config = configBuilder.addSimpleSetting(MAPPING_OPT, "a=now()").build();
+
+    assertThat(config.getMapping())
+        .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("now()"));
+  }
+
+  @Test
+  void should_error_when_provide_query_without_disabling_deletes() {
+    assertThatThrownBy(
+            () -> configBuilder.addSimpleSetting(QUERY_OPT, "SELECT * FROM ks.table").build())
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "You cannot provide both topic.mytopic.myks.mytable.query and topic.mytopic.myks.mytable.deletesEnabled. If you want to provide own query, set the deletesEnabled to false");
+  }
+
+  @Test
+  void should_work_when_provide_query_with_disabling_deletes() {
+    // when
+    TableConfig tableConfig =
+        configBuilder
+            .addSimpleSetting(QUERY_OPT, "SELECT * FROM ks.table")
+            .addSimpleSetting(DELETES_ENABLED_OPT, "false")
+            .build();
+    // then
+    assertThat(tableConfig.isQueryProvided()).isTrue();
+    assertThat(tableConfig.isDeletesEnabled()).isFalse();
+  }
+
+  @Test
   void should_not_allow_to_have_mapping_that_contains_only_header() {
     assertThatThrownBy(() -> configBuilder.addSimpleSetting(MAPPING_OPT, "a=header").build())
         .isInstanceOf(ConfigException.class)
-        .hasMessageContaining(
-            "Invalid field name 'header': field names in mapping must be 'key', 'value', or start with 'key.' or 'value.' or 'header.'.");
+        .hasMessageContaining(MappingInspector.generateErrorMessage("header"));
   }
 
   @ParameterizedTest(name = "[{index}] ttlTimestampStringParameter={0}, expectedTimeUnit={1}")

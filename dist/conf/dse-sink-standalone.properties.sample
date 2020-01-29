@@ -114,7 +114,31 @@ topics=my_topic
 # You can use special __ttl and __timestamp fields in the mapping to denote the fact that the field from kafka record should
 # be inserted as the ttl or writetime of this DSE record.
 # You can extract value from kafka record header using "header." suffix with the name of the header.
-topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1
+# You can use now() function in the mapping to generate TIMEUUID and insert it as a value to the given column.
+topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1, col4=now()
+
+# You can provide own query to be executed when the new record to my_topic will arrive - this is intended for advanced use cases.
+# For the majority of use cases you should use standard mapping without `query` parameter.
+# This query will be used instead of an auto-generated one and has priority over it.
+# The bound variables used in the query needs to be provided in the mapping column, so for the given query:
+# topic.my_topic.my_ks.my_table.query=INSERT INTO %s.types (bigintCol, intCol) VALUES (:some_name, :some_name_2)
+# mapping can look like this:
+# topic.my_topic.my_ks.my_table.mapping=some_name=value.bigint, some_name_2=value.int
+#
+# Please note that bound variables that can be used in the query may not be present in the DSE table.
+# Due to that fact, when providing the query, validation of mapping columns is not performed.
+# Also, the primary keys are not validated.
+
+# TTL and TIMESTAMP support with `query` parameter:
+# If you are using query parameter all TTL and TIMESTAMP related settings are ignored. There is no automatic extraction
+# of write timestamp from Kafka record. If you wish to add those you need to take care of it
+# using query parameter for example:
+# `INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigint_col, :int_col) USING TIMESTAMP :timestamp and TTL 1000`
+#
+# DELETES and `query` parameter:
+# when using a user-provided query, DELETES operations are not supported - this is due to the fact that columns
+# are not validated and the conditions for deletes cannot be inferred.
+# If you want to provide a custom `query` parameter, you must set the `deletesEnabled` parameter to `false`.
 
 # When you specify ttl value to be used while inserting (by mapping __ttl or .ttl static config)
 # you may want to specify timeUnit of the provided ttl. Default is SECONDS.

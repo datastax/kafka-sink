@@ -8,26 +8,26 @@
  */
 package com.datastax.kafkaconnector.ssl;
 
-import com.datastax.dse.driver.api.core.session.DseProgrammaticArguments;
-import com.datastax.dse.driver.internal.core.context.DseDriverContext;
 import com.datastax.kafkaconnector.config.SslConfig;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
+import com.datastax.oss.driver.internal.core.context.DefaultDriverContext;
 import com.datastax.oss.driver.internal.core.ssl.JdkSslHandlerFactory;
 import com.datastax.oss.driver.internal.core.ssl.SslHandlerFactory;
 import java.util.Optional;
 import org.jetbrains.annotations.Nullable;
 
-/** Specialization of DseDriverContext that allows the connector to use OpenSSL or SniSslEngine. */
-public class DriverContext extends DseDriverContext {
+/**
+ * Specialization of DefaultDriverContext that allows the connector to use OpenSSL or SniSslEngine.
+ */
+public class DriverContext extends DefaultDriverContext {
   @Nullable private final SslConfig sslConfig;
 
   DriverContext(
       DriverConfigLoader configLoader,
       ProgrammaticArguments programmaticArguments,
-      DseProgrammaticArguments dseProgrammaticArguments,
       @Nullable SslConfig sslConfig) {
-    super(configLoader, programmaticArguments, dseProgrammaticArguments);
+    super(configLoader, programmaticArguments);
     this.sslConfig = sslConfig;
   }
 

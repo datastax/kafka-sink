@@ -8,16 +8,15 @@
  */
 package com.datastax.kafkaconnector.ssl;
 
-import com.datastax.dse.driver.api.core.DseSessionBuilder;
-import com.datastax.dse.driver.api.core.session.DseProgrammaticArguments;
 import com.datastax.kafkaconnector.config.SslConfig;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
 import org.jetbrains.annotations.Nullable;
 
 /** Session builder specialization that hooks in OpenSSL when that ssl provider is chosen. */
-public class SessionBuilder extends DseSessionBuilder {
+public class SessionBuilder extends CqlSessionBuilder {
   @Nullable private final SslConfig sslConfig;
 
   public SessionBuilder(@Nullable SslConfig sslConfig) {
@@ -27,7 +26,7 @@ public class SessionBuilder extends DseSessionBuilder {
   @Override
   protected DriverContext buildContext(
       DriverConfigLoader configLoader, ProgrammaticArguments programmaticArguments) {
-    // DseSessionBuilder.buildContext has some side-effects (adding dse type-codecs to typeCodecs)
+    // CqlSessionBuilder.buildContext has some side-effects (adding dse type-codecs to typeCodecs)
     // that we also need.
     DriverContext baseContext = super.buildContext(configLoader, programmaticArguments);
 
@@ -38,6 +37,6 @@ public class SessionBuilder extends DseSessionBuilder {
     }
 
     return new com.datastax.kafkaconnector.ssl.DriverContext(
-        configLoader, programmaticArguments, DseProgrammaticArguments.builder().build(), sslConfig);
+        configLoader, programmaticArguments, sslConfig);
   }
 }

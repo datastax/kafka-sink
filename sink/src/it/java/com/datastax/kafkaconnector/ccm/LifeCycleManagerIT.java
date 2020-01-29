@@ -79,7 +79,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -111,7 +111,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -141,7 +141,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -170,7 +170,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -203,7 +203,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -261,7 +261,7 @@ public class LifeCycleManagerIT {
     DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
 
     // when
-    try (CqlSession session = LifeCycleManager.buildDseSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       DriverContext context = session.getContext();
       // then
       assertThat((UUID) ReflectionUtils.getInternalState(context, "startupClientId")).isNotNull();

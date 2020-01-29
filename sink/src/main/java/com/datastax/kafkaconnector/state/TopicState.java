@@ -8,7 +8,6 @@
  */
 package com.datastax.kafkaconnector.state;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
@@ -36,7 +35,8 @@ class TopicState {
   private final Map<TableConfig, RecordMapper> recordMappers;
   private Map<String, Histogram> batchSizeHistograms;
   private Map<String, Meter> recordCounters;
-  private Map<String, Counter> failedRecordCounters;
+  private Map<String, Meter> failedRecordCounters;
+  private Map<String, Histogram> batchSizeInBytesHistograms;
 
   TopicState(KafkaCodecRegistry codecRegistry) {
     this.codecRegistry = codecRegistry;
@@ -55,19 +55,24 @@ class TopicState {
             deleteStatement,
             primaryKey,
             new Mapping(tableConfig.getMapping(), codecRegistry),
-            tableConfig.isNullToUnset(),
             true,
             false,
-            tableConfig.getTtlTimeUnit(),
-            tableConfig.getTimestampTimeUnit()));
+            tableConfig));
   }
 
   void initializeMetrics(MetricRegistry metricRegistry) {
-    // Add histograms for all topic-tables.
+    // Add batch size histograms for all topic-tables.
     batchSizeHistograms =
         constructMetrics(
             recordMappers,
             MetricNamesCreator::createBatchSizeMetricName,
+            metricRegistry::histogram);
+
+    // Add batch size in bytes histograms for all topic-tables.
+    batchSizeInBytesHistograms =
+        constructMetrics(
+            recordMappers,
+            MetricNamesCreator::createBatchSizeInBytesMetricName,
             metricRegistry::histogram);
 
     // Add recordCounters for all topic-tables.
@@ -80,7 +85,7 @@ class TopicState {
         constructMetrics(
             recordMappers,
             MetricNamesCreator::createFailedRecordCountMetricName,
-            metricRegistry::counter);
+            metricRegistry::meter);
   }
 
   private <T> Map<String, T> constructMetrics(
@@ -102,12 +107,17 @@ class TopicState {
     return batchSizeHistograms.get(keyspaceAndTable);
   }
 
+  @NotNull
+  Histogram getBatchSizeInBytesHistogram(String keyspaceAndTable) {
+    return batchSizeInBytesHistograms.get(keyspaceAndTable);
+  }
+
   void incrementRecordCount(String keyspaceAndTable, int incrementBy) {
     recordCounters.get(keyspaceAndTable).mark(incrementBy);
   }
 
   void incrementFailedCounter(String keyspaceAndTable) {
-    failedRecordCounters.get(keyspaceAndTable).inc();
+    failedRecordCounters.get(keyspaceAndTable).mark();
   }
 
   @VisibleForTesting
@@ -116,7 +126,7 @@ class TopicState {
   }
 
   @VisibleForTesting
-  Counter getFailedRecordCounter(String keyspaceAndTable) {
+  Meter getFailedRecordCounter(String keyspaceAndTable) {
     return failedRecordCounters.get(keyspaceAndTable);
   }
 

@@ -9,14 +9,17 @@
 package com.datastax.kafkaconnector;
 
 import com.codahale.metrics.Histogram;
+import com.datastax.dsbulk.commons.internal.utils.StatementUtils;
 import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.kafkaconnector.state.InstanceState;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
 import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
 import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import java.nio.ByteBuffer;
@@ -47,6 +50,8 @@ class BoundStatementProcessor implements Callable<Void> {
   private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
   private final int maxNumberOfRecordsInBatch;
   private final AtomicInteger successfulRecordCount = new AtomicInteger();
+  private final ProtocolVersion protocolVersion;
+  private final CodecRegistry codecRegistry;
 
   BoundStatementProcessor(
       DseSinkTask task,
@@ -57,6 +62,8 @@ class BoundStatementProcessor implements Callable<Void> {
     this.boundStatementsQueue = boundStatementsQueue;
     this.queryFutures = queryFutures;
     this.maxNumberOfRecordsInBatch = maxNumberOfRecordsInBatch;
+    this.protocolVersion = task.getInstanceState().getProtocolVersion();
+    this.codecRegistry = task.getInstanceState().getCodecRegistry();
   }
 
   /**
@@ -77,6 +84,10 @@ class BoundStatementProcessor implements Callable<Void> {
     Histogram batchSizeHistogram =
         instanceState.getBatchSizeHistogram(
             firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+    Histogram batchSizeInBytesHistogram =
+        instanceState.getBatchSizeInBytesHistogram(
+            firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+
     Consumer<Integer> recordIncrement =
         v ->
             instanceState.incrementRecordCounter(
@@ -88,7 +99,7 @@ class BoundStatementProcessor implements Callable<Void> {
 
     if (statements.size() == 1) {
       statement = firstStatement.getStatement();
-      batchSizeHistogram.update(1);
+      updateBatchSizeMetrics(statement, batchSizeHistogram, batchSizeInBytesHistogram);
     } else {
       BatchStatementBuilder bsb = BatchStatement.builder(DefaultBatchType.UNLOGGED);
       statements.stream().map(RecordAndStatement::getStatement).forEach(bsb::addStatement);
@@ -96,7 +107,7 @@ class BoundStatementProcessor implements Callable<Void> {
       // bound statement. All bound statements in a bucket have the same CL, so this is fine.
       statement =
           bsb.build().setConsistencyLevel(firstStatement.getStatement().getConsistencyLevel());
-      batchSizeHistogram.update(statements.size());
+      updateBatchSizeMetrics(statements, batchSizeHistogram, batchSizeInBytesHistogram);
     }
     @NotNull Semaphore requestBarrier = instanceState.getRequestBarrier();
     requestBarrier.acquireUninterruptibly();
@@ -121,6 +132,24 @@ class BoundStatementProcessor implements Callable<Void> {
               }
               recordIncrement.accept(statements.size());
             }));
+  }
+
+  private void updateBatchSizeMetrics(
+      List<RecordAndStatement> statements,
+      Histogram batchSizeHistogram,
+      Histogram batchSizeInBytesHistogram) {
+    statements.forEach(
+        s ->
+            batchSizeInBytesHistogram.update(
+                StatementUtils.getDataSize(s.getStatement(), protocolVersion, codecRegistry)));
+    batchSizeHistogram.update(statements.size());
+  }
+
+  private void updateBatchSizeMetrics(
+      Statement<?> statement, Histogram batchSizeHistogram, Histogram batchSizeInBytesHistogram) {
+    batchSizeInBytesHistogram.update(
+        StatementUtils.getDataSize(statement, protocolVersion, codecRegistry));
+    batchSizeHistogram.update(1);
   }
 
   int getSuccessfulRecordCount() {
