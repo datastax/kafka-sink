@@ -1,7 +1,7 @@
 ## Changelog
 
 ### 1.3.0 (in progress)
-
+- [improvement] KAF-170: Update Kafka Connector to unified driver
 - [improvement] KAF-108: Validate Connect Converter Headers support with our connector and upgrade to kafka 2.4
 - [new feature] KAF-108: Support providing CQL query
 - [new feature] KAF-127: Add support for now()

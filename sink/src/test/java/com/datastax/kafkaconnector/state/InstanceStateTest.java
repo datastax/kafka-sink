@@ -15,10 +15,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.dse.driver.api.core.DseSession;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TableConfigBuilder;
+import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 class InstanceStateTest {
   private DseSinkConfig config = mock(DseSinkConfig.class);
-  private DseSession session = mock(DseSession.class);
+  private CqlSession session = mock(CqlSession.class);
 
   private Map<String, TopicState> topicStates = new HashMap<>();
   private InstanceState instanceState =
@@ -77,7 +77,7 @@ class InstanceStateTest {
     InstanceState instanceState =
         new InstanceState(
             new DseSinkConfig(ImmutableMap.of("name", "instance-a")),
-            mock(DseSession.class),
+            mock(CqlSession.class),
             topicStates,
             metricRegistry);
 
@@ -91,7 +91,7 @@ class InstanceStateTest {
     InstanceState instanceState2 =
         new InstanceState(
             new DseSinkConfig(ImmutableMap.of("name", "instance-b")),
-            mock(DseSession.class),
+            mock(CqlSession.class),
             topicStates,
             metricRegistry);
 
