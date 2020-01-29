@@ -9,7 +9,9 @@
 package com.datastax.kafkaconnector.config;
 
 import static com.datastax.kafkaconnector.config.TableConfig.CL_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.DELETES_ENABLED_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.config.TableConfig.QUERY_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TIMESTAMP_TIME_UNIT_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_OPT;
 import static com.datastax.kafkaconnector.config.TableConfig.TTL_TIME_UNIT_OPT;
@@ -161,6 +163,28 @@ class TableConfigTest {
 
     assertThat(config.getMapping())
         .containsEntry(CqlIdentifier.fromInternal("a"), CqlIdentifier.fromInternal("now()"));
+  }
+
+  @Test
+  void should_error_when_provide_query_without_disabling_deletes() {
+    assertThatThrownBy(
+            () -> configBuilder.addSimpleSetting(QUERY_OPT, "SELECT * FROM ks.table").build())
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining(
+            "You cannot provide both topic.mytopic.myks.mytable.query and topic.mytopic.myks.mytable.deletesEnabled. If you want to provide own query, set the deletesEnabled to false");
+  }
+
+  @Test
+  void should_work_when_provide_query_with_disabling_deletes() {
+    // when
+    TableConfig tableConfig =
+        configBuilder
+            .addSimpleSetting(QUERY_OPT, "SELECT * FROM ks.table")
+            .addSimpleSetting(DELETES_ENABLED_OPT, "false")
+            .build();
+    // then
+    assertThat(tableConfig.isQueryProvided()).isTrue();
+    assertThat(tableConfig.isDeletesEnabled()).isFalse();
   }
 
   @Test

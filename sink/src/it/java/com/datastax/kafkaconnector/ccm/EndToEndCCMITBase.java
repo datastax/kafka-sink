@@ -10,6 +10,8 @@ package com.datastax.kafkaconnector.ccm;
 
 import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DDAC;
 import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
+import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.OSS;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
@@ -23,7 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CCMExtension.class)
-@CCMRequirements(compatibleTypes = {DSE, DDAC})
+@CCMRequirements(compatibleTypes = {DSE, DDAC, OSS})
 abstract class EndToEndCCMITBase extends ITConnectorBase {
   final boolean hasDateRange;
   final CCMCluster ccm;
@@ -91,5 +93,15 @@ abstract class EndToEndCCMITBase extends ITConnectorBase {
   @BeforeEach
   void truncateTable() {
     session.execute("TRUNCATE types");
+  }
+
+  protected void assertTtl(int ttlValue, Number expectedTtlValue) {
+    if (expectedTtlValue.equals(0)) {
+      assertThat(ttlValue).isEqualTo(expectedTtlValue.intValue());
+    } else {
+      // actual ttl value can be less that or equal to expectedTtlValue because some time may elapse
+      // between the moment the record was inserted and retrieved from db.
+      assertThat(ttlValue).isLessThanOrEqualTo(expectedTtlValue.intValue()).isGreaterThan(0);
+    }
   }
 }

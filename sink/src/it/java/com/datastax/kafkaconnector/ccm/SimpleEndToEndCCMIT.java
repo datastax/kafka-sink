@@ -2365,16 +2365,6 @@ class SimpleEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   private Map<String, String> makeConnectorProperties(String mappingString) {
-    return makeConnectorProperties(mappingString, null);
-  }
-
-  private void assertTtl(int ttlValue, Number expectedTtlValue) {
-    if (expectedTtlValue.equals(0)) {
-      assertThat(ttlValue).isEqualTo(expectedTtlValue.intValue());
-    } else {
-      // actual ttl value can be less that or equal to expectedTtlValue because some time may elapse
-      // between the moment the record was inserted and retrieved from db.
-      assertThat(ttlValue).isLessThanOrEqualTo(expectedTtlValue.intValue()).isGreaterThan(0);
-    }
+    return makeConnectorProperties(mappingString, Collections.emptyMap());
   }
 }

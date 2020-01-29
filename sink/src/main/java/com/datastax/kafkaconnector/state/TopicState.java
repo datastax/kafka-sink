@@ -55,11 +55,9 @@ class TopicState {
             deleteStatement,
             primaryKey,
             new Mapping(tableConfig.getMapping(), codecRegistry),
-            tableConfig.isNullToUnset(),
             true,
             false,
-            tableConfig.getTtlTimeUnit(),
-            tableConfig.getTimestampTimeUnit()));
+            tableConfig));
   }
 
   void initializeMetrics(MetricRegistry metricRegistry) {

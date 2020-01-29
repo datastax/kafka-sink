@@ -21,6 +21,7 @@ import static java.util.Locale.US;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +38,7 @@ import com.datastax.dsbulk.commons.codecs.util.CqlTemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.OverflowStrategy;
 import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
 import com.datastax.dsbulk.commons.codecs.util.ZonedTemporalFormat;
+import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.record.Record;
 import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.kafkaconnector.util.SinkUtil;
@@ -124,6 +126,10 @@ class RecordMapperTest {
 
   private final TimeUnit DEFAULT_TTL_TIME_UNIT = TimeUnit.SECONDS;
   private final TimeUnit DEFAULT_TIMESTAMP_TIME_UNIT = TimeUnit.MICROSECONDS;
+
+  private TableConfig tableConfigNullToUnsetTrue;
+  private TableConfig tableConfigNullToUnsetFalse;
+  private TableConfig tableConfigCustomQuery;
 
   @BeforeEach
   void setUp() {
@@ -225,6 +231,23 @@ class RecordMapperTest {
     when(deleteVariables.contains(C3)).thenReturn(true);
     when(deleteVariables.get(C1)).thenReturn(c1Def);
     when(deleteVariables.get(C3)).thenReturn(c3Def);
+
+    tableConfigNullToUnsetTrue = mock(TableConfig.class);
+    when(tableConfigNullToUnsetTrue.isNullToUnset()).thenReturn(true);
+    when(tableConfigNullToUnsetTrue.getTtlTimeUnit()).thenReturn(DEFAULT_TTL_TIME_UNIT);
+    when(tableConfigNullToUnsetTrue.getTimestampTimeUnit()).thenReturn(DEFAULT_TIMESTAMP_TIME_UNIT);
+
+    tableConfigNullToUnsetFalse = mock(TableConfig.class);
+    when(tableConfigNullToUnsetFalse.isNullToUnset()).thenReturn(false);
+    when(tableConfigNullToUnsetFalse.getTtlTimeUnit()).thenReturn(DEFAULT_TTL_TIME_UNIT);
+    when(tableConfigNullToUnsetFalse.getTimestampTimeUnit())
+        .thenReturn(DEFAULT_TIMESTAMP_TIME_UNIT);
+
+    tableConfigCustomQuery = mock(TableConfig.class);
+    when(tableConfigCustomQuery.isNullToUnset()).thenReturn(false);
+    when(tableConfigCustomQuery.getTtlTimeUnit()).thenReturn(DEFAULT_TTL_TIME_UNIT);
+    when(tableConfigCustomQuery.getTimestampTimeUnit()).thenReturn(DEFAULT_TIMESTAMP_TIME_UNIT);
+    when(tableConfigCustomQuery.isQueryProvided()).thenReturn(true);
   }
 
   @Test
@@ -237,10 +260,8 @@ class RecordMapperTest {
             primaryKeys,
             mapping,
             true,
-            true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
@@ -260,10 +281,8 @@ class RecordMapperTest {
             primaryKeys,
             mapping,
             true,
-            true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(3))
@@ -284,10 +303,8 @@ class RecordMapperTest {
             primaryKeys,
             mapping,
             true,
-            true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -307,10 +324,8 @@ class RecordMapperTest {
             primaryKeys,
             mapping,
             true,
-            true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
 
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(deleteBoundStatement);
@@ -349,9 +364,7 @@ class RecordMapperTest {
             mapping,
             true,
             true,
-            true,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -388,9 +401,7 @@ class RecordMapperTest {
             mapping,
             true,
             true,
-            true,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder).setBytesUnsafe(C1, TypeCodecs.BIGINT.encode(-1L, V4));
@@ -424,9 +435,7 @@ class RecordMapperTest {
             mapping,
             true,
             true,
-            true,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -464,9 +473,7 @@ class RecordMapperTest {
             mapping,
             true,
             true,
-            true,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -486,10 +493,8 @@ class RecordMapperTest {
             primaryKeys,
             mapping,
             true,
-            true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetTrue);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -509,11 +514,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             true,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     Statement result = mapper.map(recordMetadata, record);
     assertThat(result).isSameAs(insertUpdateBoundStatement);
     verify(insertUpdateBoundStatementBuilder)
@@ -532,11 +535,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(CodecNotFoundException.class);
     verify(insertUpdateBoundStatementBuilder, times(2))
@@ -555,11 +556,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Primary key column col1 cannot be mapped to null");
@@ -575,16 +574,25 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
 
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             "Primary key column(s) \"My Fancy Column Name\" cannot be left unmapped");
+  }
+
+  @Test
+  void should_return_mappable_statement_when_pk_column_unmapped_but_custom_query_provided() {
+    when(record.fields()).thenReturn(set(F1, F2, F3));
+    when(insertUpdateBoundStatement.isSet(C3)).thenReturn(false);
+    RecordMapper mapper =
+        new RecordMapper(
+            insertUpdateStatement, null, primaryKeys, mapping, true, false, tableConfigCustomQuery);
+
+    assertThatCode(() -> mapper.map(recordMetadata, record)).doesNotThrowAnyException();
   }
 
   @Test
@@ -599,9 +607,7 @@ class RecordMapperTest {
             mapping,
             false,
             false,
-            false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -620,9 +626,7 @@ class RecordMapperTest {
             mapping,
             false,
             false,
-            false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -641,9 +645,7 @@ class RecordMapperTest {
             mapping,
             false,
             false,
-            false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -660,11 +662,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -683,11 +683,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -706,11 +704,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -729,11 +725,9 @@ class RecordMapperTest {
             null,
             primaryKeys,
             mapping,
-            false,
             true,
             false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -752,9 +746,7 @@ class RecordMapperTest {
             mapping,
             false,
             false,
-            false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
@@ -776,9 +768,7 @@ class RecordMapperTest {
             mapping,
             false,
             false,
-            false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
 
     assertDoesNotThrow(() -> mapper.map(recordMetadata, record));
   }
@@ -800,9 +790,7 @@ class RecordMapperTest {
             mapping,
             false,
             false,
-            false,
-            DEFAULT_TTL_TIME_UNIT,
-            DEFAULT_TIMESTAMP_TIME_UNIT);
+            tableConfigNullToUnsetFalse);
 
     assertThatThrownBy(() -> mapper.map(recordMetadata, record))
         .isInstanceOf(ConfigException.class)

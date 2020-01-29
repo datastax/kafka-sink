@@ -612,12 +612,15 @@ public class LifeCycleManager {
       TableConfig tableConfig,
       TableMetadata table,
       List<CqlIdentifier> primaryKey) {
-    boolean allColumnsMapped = validateMappingColumns(table, tableConfig);
-    validateTtlConfig(tableConfig);
-    String insertUpdateStatement =
-        isCounterTable(table)
-            ? makeUpdateCounterStatement(tableConfig, table)
-            : makeInsertStatement(tableConfig);
+
+    // for custom query DELETE not supported yet
+    boolean allColumnsMapped = false;
+    if (!tableConfig.isQueryProvided()) {
+      allColumnsMapped = validateMappingColumns(table, tableConfig);
+      validateTtlConfig(tableConfig);
+    }
+
+    String insertUpdateStatement = getInsertUpdateStatement(tableConfig, table);
 
     CompletionStage<? extends PreparedStatement> insertUpdateFuture =
         session.prepareAsync(insertUpdateStatement);
@@ -646,6 +649,19 @@ public class LifeCycleManager {
               throw new RuntimeException(
                   String.format("Prepare failed for statement: %s", statements), e.getCause());
             });
+  }
+
+  @NotNull
+  private static String getInsertUpdateStatement(TableConfig tableConfig, TableMetadata table) {
+    // if user provides query explicitly it has priority over any connector specific query
+    // construction logic
+    return tableConfig
+        .getQuery()
+        .orElseGet(
+            () ->
+                isCounterTable(table)
+                    ? makeUpdateCounterStatement(tableConfig, table)
+                    : makeInsertStatement(tableConfig));
   }
 
   private static void validateTtlConfig(TableConfig config) {
