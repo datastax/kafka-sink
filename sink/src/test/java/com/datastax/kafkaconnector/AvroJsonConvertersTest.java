@@ -53,11 +53,20 @@ import org.mockito.Mockito;
  * Kafka Connector >= 1.3.0 and Confluent >= 5.4.0)
  *
  * <ol>
- *   <li>if the client will set this setting to BASE64, then the deserialized BigDecimal will be of
- *       a String type that needs to be decoded
+ *   <li>if the client will set this setting to BASE64 (or leave it unset), then the deserialized
+ *       BigDecimal will be of a String type that needs to be decoded
  *   <li>if the client will set this setting to NUMERIC, then the deserialized BigDecimal will be of
  *       a DoubleNode numeric type.
  * </ol>
+ *
+ * This setting is set per key or value, so you need to set (you need to set BASE64 or NUMERIC):
+ *
+ * <ul>
+ *   <li>for value: value.converter.decimal.format=BASE64 | NUMERIC
+ *   <li>for key: key.converter.decimal.format=BASE64 | NUMERIC
+ * </ul>
+ *
+ * Default is backward compatible BASE64
  */
 public class AvroJsonConvertersTest {
 
