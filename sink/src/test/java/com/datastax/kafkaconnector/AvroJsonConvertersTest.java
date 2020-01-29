@@ -48,12 +48,15 @@ import org.mockito.Mockito;
  * Tests to validate discussion in KAF-91. These tests are intended to prove that the behaviour
  * described in the ticket is a function of JsonConverter or AvroConverter alone.
  *
- * KAF-168 introduces the tests of two ways of handling BigDecimal in JsonConverter with new decimal.format config setting.
- * This will work only from kafka connect-api >= 2.4 (so DataStax Kafka Connector >= 1.3.0 and Confluent >= 5.4.0)
+ * <p>KAF-168 introduces the tests of two ways of handling BigDecimal in JsonConverter with new
+ * decimal.format config setting. This will work only from kafka connect-api >= 2.4 (so DataStax
+ * Kafka Connector >= 1.3.0 and Confluent >= 5.4.0)
+ *
  * <ol>
- *    <li>if the client will set this setting to BASE64, then the deserialized BigDecimal will be of a String type
- *        that needs to be decoded
- *     <li> if the client will set this setting to NUMERIC, then the deserialized BigDecimal will be of a DoubleNode numeric type.
+ *   <li>if the client will set this setting to BASE64, then the deserialized BigDecimal will be of
+ *       a String type that needs to be decoded
+ *   <li>if the client will set this setting to NUMERIC, then the deserialized BigDecimal will be of
+ *       a DoubleNode numeric type.
  * </ol>
  */
 public class AvroJsonConvertersTest {
