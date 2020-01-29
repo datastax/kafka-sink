@@ -10,6 +10,7 @@ package com.datastax.kafkaconnector.ccm;
 
 import static com.datastax.kafkaconnector.config.DseSinkConfig.*;
 import static com.datastax.kafkaconnector.config.SslConfig.HOSTNAME_VALIDATION_OPT;
+import static com.datastax.kafkaconnector.state.LifeCycleManager.KAFKA_CONNECTOR_APPLICATION_NAME;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONFIG_RELOAD_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE;
@@ -29,10 +30,12 @@ import static org.junit.Assert.assertTrue;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
+import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
+import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import com.google.common.collect.ImmutableMap;
@@ -41,6 +44,7 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -49,6 +53,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Tag("medium")
 @ExtendWith(CCMExtension.class)
 public class LifeCycleManagerIT {
+  private static final String VERSION = "v1";
 
   private final CCMCluster ccm;
 
@@ -74,7 +79,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -106,7 +111,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -136,7 +141,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -165,7 +170,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -198,7 +203,7 @@ public class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -234,6 +239,36 @@ public class LifeCycleManagerIT {
           .isEqualTo(Duration.ofSeconds(30));
       assertThat(profile.getStringList(METRICS_SESSION_ENABLED))
           .containsOnly("cql-client-timeouts", "cql-requests");
+    }
+  }
+
+  @Test
+  void should_build_session_with_application_version_name_and_client_id() {
+    // given
+    String contactPointDns = "localhost";
+    Map<String, String> config =
+        ImmutableMap.of(
+            "name",
+            "the-connector-name",
+            "contactPoints",
+            contactPointDns,
+            "loadBalancing.localDc",
+            ccm.getDC(1),
+            "port",
+            String.valueOf(ccm.getBinaryPort()),
+            HOSTNAME_VALIDATION_OPT,
+            "false");
+    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+
+    // when
+    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+      DriverContext context = session.getContext();
+      // then
+      assertThat((UUID) ReflectionUtils.getInternalState(context, "startupClientId")).isNotNull();
+      assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationName"))
+          .isEqualTo(KAFKA_CONNECTOR_APPLICATION_NAME);
+      assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationVersion"))
+          .isEqualTo(VERSION);
     }
   }
 

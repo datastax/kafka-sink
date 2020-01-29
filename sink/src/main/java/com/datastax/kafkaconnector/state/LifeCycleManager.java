@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector.state;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SERVICE;
 import static com.datastax.kafkaconnector.config.TableConfig.MAPPING_OPT;
+import static com.datastax.kafkaconnector.util.UUIDUtil.generateClientId;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
@@ -40,6 +41,7 @@ import com.datastax.kafkaconnector.util.SinkUtil;
 import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.ProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
@@ -84,6 +86,8 @@ public class LifeCycleManager {
       new ConcurrentHashMap<>();
   private static MetricRegistry metricRegistry = new MetricRegistry();
 
+  public static final String KAFKA_CONNECTOR_APPLICATION_NAME = "DataStax Apache Kafka Connector";
+
   /** This is a utility class that no one should instantiate. */
   private LifeCycleManager() {}
 
@@ -102,7 +106,7 @@ public class LifeCycleManager {
             props.get(SinkUtil.NAME_OPT),
             x -> {
               DseSinkConfig config = new DseSinkConfig(props);
-              CqlSession session = buildCqlSession(config);
+              CqlSession session = buildCqlSession(config, task.version());
               return buildInstanceState(session, config);
             });
     instanceState.registerTask(task);
@@ -478,14 +482,17 @@ public class LifeCycleManager {
    */
   @VisibleForTesting
   @NotNull
-  public static CqlSession buildCqlSession(DseSinkConfig config) {
+  public static CqlSession buildCqlSession(DseSinkConfig config, String version) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
-    SessionBuilder builder = new SessionBuilder(sslConfig);
+    CqlSessionBuilder builder =
+        new SessionBuilder(sslConfig)
+            .withApplicationVersion(version)
+            .withApplicationName(KAFKA_CONNECTOR_APPLICATION_NAME)
+            .withClientId(generateClientId(config.getInstanceName()));
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());
 
-    // todo remove once JAVA-2519 will be done (see KAF-154)
     if (sslConfig != null && sslConfig.requireHostnameValidation()) {
       // if requireHostnameValidation then InetSocketAddress must be resolved
       config
