@@ -478,7 +478,7 @@ public class LifeCycleManager {
    * Create a new {@link CqlSession} based on the config
    *
    * @param config the sink config
-   * @return a new DseSession
+   * @return a new CqlSession
    */
   @VisibleForTesting
   @NotNull
