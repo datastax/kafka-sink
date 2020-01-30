@@ -28,6 +28,7 @@ cassandra:
   - dse-5.1
   - dse-6.0
   - dse-6.7
+  - dse-6.8
   - ddac-5.1
 build:
   - type: maven
