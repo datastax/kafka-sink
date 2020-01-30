@@ -18,6 +18,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -133,6 +134,10 @@ public class ITConnectorBase {
     connectorProperties.remove("contactPoints");
     connectorProperties.remove("port");
     return connectorProperties;
+  }
+
+  Map<String, String> makeConnectorProperties(String mappingString) {
+    return makeConnectorProperties(mappingString, Collections.emptyMap());
   }
 
   public List<EndPoint> getContactPoints() {

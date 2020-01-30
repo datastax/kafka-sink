@@ -88,11 +88,32 @@ abstract class EndToEndCCMITBase extends ITConnectorBase {
                     + ")")
             .setTimeout(Duration.ofSeconds(10))
             .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS pk_value ("
+                    + "my_pk bigint PRIMARY KEY,"
+                    + "my_value boolean"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS pk_value_with_timeuuid ("
+                    + "my_pk bigint PRIMARY KEY,"
+                    + "my_value boolean,"
+                    + "loaded_at timeuuid"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
   }
 
   @BeforeEach
   void truncateTable() {
     session.execute("TRUNCATE types");
+    session.execute("TRUNCATE pk_value");
+    session.execute("TRUNCATE pk_value_with_timeuuid");
   }
 
   protected void assertTtl(int ttlValue, Number expectedTtlValue) {
