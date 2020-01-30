@@ -107,6 +107,27 @@ abstract class EndToEndCCMITBase extends ITConnectorBase {
                     + ")")
             .setTimeout(Duration.ofSeconds(10))
             .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS small_simple ("
+                    + "bigintCol bigint PRIMARY KEY, "
+                    + "booleanCol boolean, "
+                    + "intCol int"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
+
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS small_compound ("
+                    + "bigintCol bigint, "
+                    + "booleanCol boolean, "
+                    + "intCol int,"
+                    + "PRIMARY KEY (bigintcol, booleancol)"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
   }
 
   @BeforeEach
@@ -114,6 +135,8 @@ abstract class EndToEndCCMITBase extends ITConnectorBase {
     session.execute("TRUNCATE types");
     session.execute("TRUNCATE pk_value");
     session.execute("TRUNCATE pk_value_with_timeuuid");
+    session.execute("TRUNCATE small_simple");
+    session.execute("TRUNCATE small_compound");
   }
 
   protected void assertTtl(int ttlValue, Number expectedTtlValue) {
