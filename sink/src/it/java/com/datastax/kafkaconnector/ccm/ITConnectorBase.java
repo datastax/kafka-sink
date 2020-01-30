@@ -18,6 +18,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class ITConnectorBase {
   private final String localDc;
   String keyspaceName;
   protected DseSinkConnector conn = new DseSinkConnector();
-  DseSinkTask task = new DseSinkTask();
+  protected DseSinkTask task = new DseSinkTask();
 
   public ITConnectorBase(
       List<EndPoint> contactPoints,
@@ -67,7 +68,7 @@ public class ITConnectorBase {
     task.start(taskProps.get(0));
   }
 
-  Map<String, String> makeConnectorProperties(
+  protected Map<String, String> makeConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras, String topicName) {
     Map<String, String> props = new HashMap<>();
 
@@ -115,24 +116,30 @@ public class ITConnectorBase {
     return props;
   }
 
-  Map<String, String> makeConnectorProperties(Map<String, String> extras) {
+  protected Map<String, String> makeConnectorProperties(Map<String, String> extras) {
     return makeConnectorProperties("bigintcol=value", extras);
   }
 
-  Map<String, String> makeConnectorProperties(String mappingString, Map<String, String> extras) {
+  protected Map<String, String> makeConnectorProperties(
+      String mappingString, Map<String, String> extras) {
     return makeConnectorProperties(mappingString, "types", extras);
   }
 
-  Map<String, String> makeConnectorProperties(
+  protected Map<String, String> makeConnectorProperties(
       String mappingString, String tableName, Map<String, String> extras) {
     return makeConnectorProperties(mappingString, tableName, extras, "mytopic");
   }
 
-  Map<String, String> makeConnectorPropertiesWithoutContactPointsAndPort(String mappingString) {
+  protected Map<String, String> makeConnectorPropertiesWithoutContactPointsAndPort(
+      String mappingString) {
     Map<String, String> connectorProperties = makeConnectorProperties(mappingString, null);
     connectorProperties.remove("contactPoints");
     connectorProperties.remove("port");
     return connectorProperties;
+  }
+
+  protected Map<String, String> makeConnectorProperties(String mappingString) {
+    return makeConnectorProperties(mappingString, Collections.emptyMap());
   }
 
   public List<EndPoint> getContactPoints() {
