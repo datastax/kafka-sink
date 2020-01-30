@@ -59,14 +59,14 @@ import org.mockito.Mockito;
  *       a DoubleNode numeric type.
  * </ol>
  *
- * This setting is set per key or value, so you need to set (you need to set BASE64 or NUMERIC):
+ * <p>This setting is set per key or value, so you need to set (you need to set BASE64 or NUMERIC):
  *
  * <ul>
  *   <li>for value: value.converter.decimal.format=BASE64 | NUMERIC
  *   <li>for key: key.converter.decimal.format=BASE64 | NUMERIC
  * </ul>
  *
- * Default is backward compatible BASE64
+ * <p>Default is backward compatible BASE64
  */
 public class AvroJsonConvertersTest {
 
@@ -120,7 +120,7 @@ public class AvroJsonConvertersTest {
   }
 
   @Test
-  public void should_convert_big_decimal_to_bytes_with_json_converter_decimal_format_numeric()
+  public void should_keep_big_decimal_with_json_converter_decimal_format_numeric()
       throws Exception {
 
     String topic = "topic";
