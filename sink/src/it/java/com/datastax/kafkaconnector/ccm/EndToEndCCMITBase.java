@@ -26,12 +26,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CCMExtension.class)
 @CCMRequirements(compatibleTypes = {DSE, DDAC, OSS})
-abstract class EndToEndCCMITBase extends ITConnectorBase {
-  final boolean hasDateRange;
-  final CCMCluster ccm;
-  final CqlSession session;
+public abstract class EndToEndCCMITBase extends ITConnectorBase {
+  protected final boolean hasDateRange;
+  protected final CCMCluster ccm;
+  protected final CqlSession session;
 
-  EndToEndCCMITBase(CCMCluster ccm, CqlSession session) {
+  protected EndToEndCCMITBase(CCMCluster ccm, CqlSession session) {
     super(ccm.getInitialContactPoints(), ccm.getBinaryPort(), ccm.getDC(1), session);
     this.ccm = ccm;
     this.session = session;

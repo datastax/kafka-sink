@@ -6,7 +6,7 @@
  *   and will post the amended terms at
  *   https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
  */
-package com.datastax.kafkaconnector.ccm;
+package com.datastax.kafkaconnector.ccm.auth;
 
 import static com.datastax.kafkaconnector.config.AuthenticatorConfig.PASSWORD_OPT;
 import static com.datastax.kafkaconnector.config.AuthenticatorConfig.PROVIDER_OPT;
@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMConfig;
 import com.datastax.dsbulk.commons.tests.driver.annotations.SessionConfig;
+import com.datastax.kafkaconnector.ccm.EndToEndCCMITBase;
 import com.datastax.kafkaconnector.config.AuthenticatorConfig.Provider;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlSession;

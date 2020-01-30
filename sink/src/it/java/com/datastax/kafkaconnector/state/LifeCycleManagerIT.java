@@ -6,7 +6,7 @@
  *   and will post the amended terms at
  *   https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
  */
-package com.datastax.kafkaconnector.ccm;
+package com.datastax.kafkaconnector.state;
 
 import static com.datastax.kafkaconnector.config.DseSinkConfig.*;
 import static com.datastax.kafkaconnector.config.SslConfig.HOSTNAME_VALIDATION_OPT;
@@ -32,7 +32,6 @@ import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
 import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
-import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import com.datastax.oss.driver.api.core.context.DriverContext;
