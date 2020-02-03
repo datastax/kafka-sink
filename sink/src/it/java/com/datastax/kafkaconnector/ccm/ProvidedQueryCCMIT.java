@@ -13,7 +13,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
+import com.datastax.oss.driver.api.core.type.DataTypes;
+import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
+import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
@@ -25,14 +31,36 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
+  private AttachmentPoint attachmentPoint;
+  public static final Schema UDT_SCHEMA =
+      SchemaBuilder.struct()
+          .name("Kafka")
+          .field("udtmem1", Schema.INT32_SCHEMA)
+          .field("udtmem2", Schema.STRING_SCHEMA)
+          .build();
 
   public ProvidedQueryCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
+    attachmentPoint =
+        new AttachmentPoint() {
+          @NotNull
+          @Override
+          public ProtocolVersion getProtocolVersion() {
+            return session.getContext().getProtocolVersion();
+          }
+
+          @NotNull
+          @Override
+          public CodecRegistry getCodecRegistry() {
+            return session.getContext().getCodecRegistry();
+          }
+        };
   }
 
   @Test
@@ -276,6 +304,117 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     assertThat(row.getInt("intcol")).isEqualTo(1000);
     assertThat(row.getLong(2)).isEqualTo(1000L);
     assertTtl(row.getInt(3), 1000);
+  }
+
+  @Test
+  void should_use_query_to_partially_update_non_frozen_udt_when_null_to_unset() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                // to make a partial update of UDT to work, the UDT column type definition must be
+                // not frozen
+                String.format(
+                    "UPDATE %s.types set udtColNotFrozen.udtmem1=:udtcol1, udtColNotFrozen.udtmem2=:udtcol2 where bigintCol=:bigintcol",
+                    keyspaceName))
+            .put(deletesDisabled())
+            // nullToUnset = true is default but it makes this requirement explicit for the test
+            .put(String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "true")
+            .build();
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2", extras));
+
+    Struct value = new Struct(UDT_SCHEMA).put("udtmem1", 42).put("udtmem2", "the answer");
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, "the answer"));
+
+    // insert record with only one column from udt - udtmem2 is null
+    value = new Struct(UDT_SCHEMA).put("udtmem1", 42);
+
+    record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    udt.attach(attachmentPoint);
+    // default for topic is nullToUnset, so the udtmem2 field was not updated, the value was not
+    // overridden
+    assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, "the answer"));
+  }
+
+  @Test
+  void should_use_update_query_on_non_frozen_udt_and_override_with_null_when_null_to_unset_false() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter(),
+                // to make a partial update of UDT to work, the UDT column type definition must be
+                // not frozen
+                String.format(
+                    "UPDATE %s.types set udtColNotFrozen.udtmem1=:udtcol1, udtColNotFrozen.udtmem2=:udtcol2 where bigintCol=:bigintcol",
+                    keyspaceName))
+            .put(deletesDisabled())
+            .put(String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "false")
+            .build();
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2", extras));
+
+    Struct value = new Struct(UDT_SCHEMA).put("udtmem1", 42).put("udtmem2", "the answer");
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UserDefinedType udt =
+        new UserDefinedTypeBuilder(keyspaceName, "myudt")
+            .withField("udtmem1", DataTypes.INT)
+            .withField("udtmem2", DataTypes.TEXT)
+            .build();
+    udt.attach(attachmentPoint);
+    assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, "the answer"));
+
+    // insert record with only one column from udt - udtmem2 is null
+    value = new Struct(UDT_SCHEMA).put("udtmem1", 42);
+
+    record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    udt.attach(attachmentPoint);
+    // nullToUnset for this topic was set to false, so the udtmem2 field was updated, the value was
+    // overridden with null
+    assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, null));
   }
 
   private String queryParameter() {

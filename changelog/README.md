@@ -1,6 +1,7 @@
 ## Changelog
 
 ### 1.3.0 (in progress)
+- [improvement] KAF-98: Selectively update Maps and UDTs based on present Kafka fields
 - [improvement] KAF-161: Set ApplicationName and ClientId for DseProgrammaticBuilder to identify kafka-connector in Insights
 - [improvement] KAF-170: Update Kafka Connector to unified driver
 - [improvement] KAF-108: Validate Connect Converter Headers support with our connector and upgrade to kafka 2.4
