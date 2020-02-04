@@ -29,7 +29,7 @@ topics=my_topic
 # You can leverage the mechanism of configuring the underlying java-driver via:
 # datastax-java-driver.basic.contact-points. This property takes a list of host:port pairs,
 # so every contact point can have a different port, i.e:
-# basic.contact-points = 127.0.0.1:9042, 127.0.0.2:9043
+#  datastax-java-driver.basic.contact-points = 127.0.0.1:9042, 127.0.0.2:9043
 #port=9042
 
 # Maximum number of requests to send to DSE at a single time. Defaults to 500.
