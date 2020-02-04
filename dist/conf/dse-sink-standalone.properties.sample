@@ -25,6 +25,11 @@ topics=my_topic
 #loadBalancing.localDc=
 
 # Native transport port to connect to on DSE nodes; defaults to 9042.
+# If you need to configure different ports per host, do not use the contactPoints and port settings.
+# Instead, you can leverage the ability to configure the underlying Java driver with the following setting:
+# datastax-java-driver.basic.contact-points. This property takes a list of host:port pairs,
+# so every contact point can have a different port, i.e:
+#  datastax-java-driver.basic.contact-points = 127.0.0.1:9042, 127.0.0.2:9043
 #port=9042
 
 # Maximum number of requests to send to DSE at a single time. Defaults to 500.
