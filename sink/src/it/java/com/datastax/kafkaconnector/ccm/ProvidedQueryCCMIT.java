@@ -45,7 +45,7 @@ import org.junit.jupiter.api.Test;
 @Tag("medium")
 @CCMRequirements(
   compatibleTypes = {DSE, DDAC, OSS},
-  versionRequirements = {@CCMVersionRequirement(type = OSS, min = "3.11")}
+  versionRequirements = {@CCMVersionRequirement(type = OSS, min = "3.6")}
 )
 // minimum version required because support of non frozen types
 public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
