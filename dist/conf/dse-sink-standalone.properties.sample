@@ -27,7 +27,7 @@ topics=my_topic
 # Native transport port to connect to on DSE nodes; defaults to 9042.
 # If you need to configure different ports per host, do not use the contactPoints and port settings.
 # You can leverage the mechanism of configuring the underlying java-driver via:
-# datastax-java-driver.basic.contact-points setting. This property is taking a list of host:port settings,
+# datastax-java-driver.basic.contact-points. This property takes a list of host:port pairs,
 # so every contact point can have a different port, i.e:
 # basic.contact-points = 127.0.0.1:9042, 127.0.0.2:9043
 #port=9042
