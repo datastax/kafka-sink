@@ -8,20 +8,25 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
+import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DDAC;
+import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
+import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.OSS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
+import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMRequirements;
+import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMVersionRequirement;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +37,21 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
+@CCMRequirements(
+  compatibleTypes = {DSE, DDAC, OSS},
+  versionRequirements = {
+    @CCMVersionRequirement(type = DSE, min = "5.1"),
+    @CCMVersionRequirement(type = OSS, min = "3.0")
+  }
+)
+// minimum version required because support of non frozen types
 public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
-  private AttachmentPoint attachmentPoint;
   public static final Schema UDT_SCHEMA =
       SchemaBuilder.struct()
           .name("Kafka")
@@ -47,20 +61,24 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
 
   public ProvidedQueryCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    attachmentPoint =
-        new AttachmentPoint() {
-          @NotNull
-          @Override
-          public ProtocolVersion getProtocolVersion() {
-            return session.getContext().getProtocolVersion();
-          }
+  }
 
-          @NotNull
-          @Override
-          public CodecRegistry getCodecRegistry() {
-            return session.getContext().getCodecRegistry();
-          }
-        };
+  @BeforeAll
+  public void setup() {
+    session.execute(
+        SimpleStatement.builder(
+                "CREATE TABLE IF NOT EXISTS types_with_frozen ("
+                    + "bigintCol bigint PRIMARY KEY, "
+                    + "udtCol frozen<myudt>, "
+                    + "udtColNotFrozen myudt"
+                    + ")")
+            .setTimeout(Duration.ofSeconds(10))
+            .build());
+  }
+
+  @AfterAll
+  public void cleanup() {
+    session.execute("TRUNCATE types_with_frozen");
   }
 
   @Test
@@ -68,11 +86,11 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol)",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types"))
             .build();
 
     conn.start(makeConnectorProperties("bigintcol=value.bigint, intcol=value.int", extras));
@@ -110,7 +128,7 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol)",
                     keyspaceName))
@@ -147,11 +165,11 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "INSERT INTO %s.types (bigintCol, intCol) VALUES (:some_name, :some_name_2)",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types"))
             .build();
 
     conn.start(makeConnectorProperties("some_name=value.bigint, some_name_2=value.int", extras));
@@ -174,11 +192,11 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "UPDATE %s.types SET listCol = listCol + [1] where bigintcol = :pkey",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types"))
             .build();
 
     conn.start(makeConnectorProperties("pkey=value.pkey, newitem=value.newitem", extras));
@@ -205,11 +223,11 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
                 // when user provide own query, the ttlTimeUnit is ignored
                 String.format("topic.mytopic.%s.%s.ttlTimeUnit", keyspaceName, "types"), "HOURS")
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol) USING TTL :ttl",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types"))
             .build();
 
     conn.start(
@@ -238,11 +256,11 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
                 String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
                 "HOURS")
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigintcol, :intcol) USING TIMESTAMP :timestamp",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types"))
             .build();
 
     conn.start(
@@ -269,11 +287,11 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types"),
                 String.format(
                     "INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigint_col, :int_col) USING TIMESTAMP :timestamp and TTL 1000",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types"))
             .build();
 
     conn.start(
@@ -311,20 +329,24 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types_with_frozen"),
                 // to make a partial update of UDT to work, the UDT column type definition must be
                 // not frozen
                 String.format(
-                    "UPDATE %s.types set udtColNotFrozen.udtmem1=:udtcol1, udtColNotFrozen.udtmem2=:udtcol2 where bigintCol=:bigintcol",
+                    "UPDATE %s.types_with_frozen set udtColNotFrozen.udtmem1=:udtcol1, udtColNotFrozen.udtmem2=:udtcol2 where bigintCol=:bigintcol",
                     keyspaceName))
-            .put(deletesDisabled())
+            .put(deletesDisabled("types_with_frozen"))
             // nullToUnset = true is default but it makes this requirement explicit for the test
-            .put(String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "true")
+            .put(
+                String.format("topic.mytopic.%s.types_with_frozen.nullToUnset", keyspaceName),
+                "true")
             .build();
 
     conn.start(
         makeConnectorProperties(
-            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2", extras));
+            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2",
+            "types_with_frozen",
+            extras));
 
     Struct value = new Struct(UDT_SCHEMA).put("udtmem1", 42).put("udtmem2", "the answer");
 
@@ -332,17 +354,16 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
-    List<Row> results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    List<Row> results =
+        session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
+    Row row = extractAndAssertThatOneRowInResult(results);
 
     UserDefinedType udt =
         new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
+            .withAttachmentPoint(session.getContext())
             .build();
-    udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, "the answer"));
 
     // insert record with only one column from udt - udtmem2 is null
@@ -351,12 +372,9 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     runTaskWithRecords(record);
 
-    results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
+    row = extractAndAssertThatOneRowInResult(results);
 
-    udt.attach(attachmentPoint);
     // default for topic is nullToUnset, so the udtmem2 field was not updated, the value was not
     // overridden
     assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, "the answer"));
@@ -367,19 +385,23 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     ImmutableMap<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(
-                queryParameter(),
+                queryParameter("types_with_frozen"),
                 // to make a partial update of UDT to work, the UDT column type definition must be
                 // not frozen
                 String.format(
-                    "UPDATE %s.types set udtColNotFrozen.udtmem1=:udtcol1, udtColNotFrozen.udtmem2=:udtcol2 where bigintCol=:bigintcol",
+                    "UPDATE %s.types_with_frozen set udtColNotFrozen.udtmem1=:udtcol1, udtColNotFrozen.udtmem2=:udtcol2 where bigintCol=:bigintcol",
                     keyspaceName))
-            .put(deletesDisabled())
-            .put(String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "false")
+            .put(deletesDisabled("types_with_frozen"))
+            .put(
+                String.format("topic.mytopic.%s.types_with_frozen.nullToUnset", keyspaceName),
+                "false")
             .build();
 
     conn.start(
         makeConnectorProperties(
-            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2", extras));
+            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2",
+            "types_with_frozen",
+            extras));
 
     Struct value = new Struct(UDT_SCHEMA).put("udtmem1", 42).put("udtmem2", "the answer");
 
@@ -387,17 +409,16 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in DSE.
-    List<Row> results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    List<Row> results =
+        session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
+    Row row = extractAndAssertThatOneRowInResult(results);
 
     UserDefinedType udt =
         new UserDefinedTypeBuilder(keyspaceName, "myudt")
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
+            .withAttachmentPoint(session.getContext())
             .build();
-    udt.attach(attachmentPoint);
     assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, "the answer"));
 
     // insert record with only one column from udt - udtmem2 is null
@@ -406,24 +427,62 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     runTaskWithRecords(record);
 
-    results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
+    row = extractAndAssertThatOneRowInResult(results);
 
-    udt.attach(attachmentPoint);
     // nullToUnset for this topic was set to false, so the udtmem2 field was updated, the value was
     // overridden with null
     assertThat(row.getUdtValue("udtColNotFrozen")).isEqualTo(udt.newValue(42, null));
   }
 
-  private String queryParameter() {
-    return String.format("topic.mytopic.%s.%s.query", keyspaceName, "types");
+  @Test
+  void should_fail_when_use_query_to_partially_update_frozen_udt() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter("types_with_frozen"),
+                // to make a partial update of UDT to work, the UDT column type definition must be
+                // not frozen - here we are using frozen so the execption will be thrown
+                String.format(
+                    "UPDATE %s.types_with_frozen set udtCol.udtmem1=:udtcol1, udtCol.udtmem2=:udtcol2 where bigintCol=:bigintcol",
+                    keyspaceName))
+            .put(deletesDisabled("types_with_frozen"))
+            .put(
+                String.format("topic.mytopic.%s.types_with_frozen.nullToUnset", keyspaceName),
+                "true")
+            .build();
+
+    conn.start(
+        makeConnectorProperties(
+            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2",
+            "types_with_frozen",
+            extras));
+
+    Struct value = new Struct(UDT_SCHEMA).put("udtmem1", 42).put("udtmem2", "the answer");
+
+    SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
+
+    assertThatThrownBy(() -> runTaskWithRecords(record))
+        .hasCauseInstanceOf(InvalidQueryException.class)
+        .hasStackTraceContaining("for frozen UDT column udtcol");
   }
 
-  private Map.Entry<? extends String, ? extends String> deletesDisabled() {
+  @NotNull
+  private Row extractAndAssertThatOneRowInResult(List<Row> results) {
+    Row row;
+    assertThat(results.size()).isEqualTo(1);
+    row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    return row;
+  }
+
+  private String queryParameter(String topicName) {
+    return String.format("topic.mytopic.%s.%s.query", keyspaceName, topicName);
+  }
+
+  private Map.Entry<? extends String, ? extends String> deletesDisabled(String topicName) {
     return new LinkedHashMap.SimpleEntry<>(
-        String.format("topic.mytopic.%s.%s.deletesEnabled", keyspaceName, "types"), "false");
+        String.format("topic.mytopic.%s.%s.deletesEnabled", keyspaceName, topicName), "false");
   }
 
   private Map.Entry<? extends String, ? extends String> deletesEnabled() {

@@ -130,8 +130,8 @@ topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
 # Also, the primary keys are not validated.
 #
 # You can leverage the query parameter to selectively update Maps or UDTs.
-# To make it work, your UDT field definition must be non-frozen.
-# The behavior of the Update vs Override is defined via the nullToUnset parameter.
+# To make it work, the target column must not be frozen.
+# The update vs override behavior is defined via the nullToUnset parameter.
 
 # TTL and TIMESTAMP support with `query` parameter:
 # If you are using query parameter all TTL and TIMESTAMP related settings are ignored. There is no automatic extraction

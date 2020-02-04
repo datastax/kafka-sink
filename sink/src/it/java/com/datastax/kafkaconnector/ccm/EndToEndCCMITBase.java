@@ -72,7 +72,6 @@ public abstract class EndToEndCCMITBase extends ITConnectorBase {
                     + "setNestedCol frozen<set<list<int>>>, "
                     + "tupleCol tuple<smallint, int, int>, "
                     + "udtCol frozen<myudt>, "
-                    + "udtColNotFrozen myudt, "
                     + "udtFromListCol frozen<myudt>, "
                     + "booleanUdtCol frozen<mybooleanudt>, "
                     + "booleanUdtFromListCol frozen<mybooleanudt>, "
