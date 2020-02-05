@@ -37,8 +37,8 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.jetbrains.annotations.NotNull;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -73,7 +73,7 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
             .build());
   }
 
-  @AfterAll
+  @BeforeEach
   public void cleanup() {
     session.execute("TRUNCATE types_with_frozen");
   }
@@ -464,11 +464,82 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
         .hasStackTraceContaining("for frozen UDT column udtcol");
   }
 
+  @Test
+  void should_use_query_to_partially_update_map_when_null_to_unset() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter("types"),
+                String.format(
+                    "UPDATE %s.types SET mapCol[:key]=:value where bigintcol = :pk", keyspaceName))
+            .put(deletesDisabled("types"))
+            .put(String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "true")
+            .build();
+
+    conn.start(makeConnectorProperties("pk=value.pk, key=value.key, value=value.value", extras));
+
+    String value = "{\"pk\": 98761234, \"key\": \"key_1\", \"value\": 10}}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    Row row = extractAndAssertThatOneRowInResult(results);
+    Map<String, Integer> mapcol = row.getMap("mapcol", String.class, Integer.class);
+    assert mapcol != null;
+    assertThat(mapcol.size()).isEqualTo(1);
+    assertThat(mapcol).containsEntry("key_1", 10);
+
+    value = "{\"pk\": 42, \"key\": \"key_1\", \"value\": null}";
+    record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+    results = session.execute("SELECT * FROM types").all();
+    row = extractAndAssertThatOneRowInResult(results);
+    mapcol = row.getMap("mapcol", String.class, Integer.class);
+    assert mapcol != null;
+    assertThat(mapcol.size()).isEqualTo(1);
+    // update will null value will be skipped because nullToUnset = true
+    assertThat(mapcol).containsEntry("key_1", 10);
+  }
+
+  @Test
+  void should_use_query_to_partially_update_map_and_remove_when_using_null_to_unset_false() {
+    ImmutableMap<String, String> extras =
+        ImmutableMap.<String, String>builder()
+            .put(
+                queryParameter("types"),
+                String.format(
+                    "UPDATE %s.types SET mapCol[:key]=:value where bigintcol = :pk", keyspaceName))
+            .put(deletesDisabled("types"))
+            .put(String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "false")
+            .build();
+
+    conn.start(makeConnectorProperties("pk=value.pk, key=value.key, value=value.value", extras));
+
+    String value = "{\"pk\": 98761234, \"key\": \"key_1\", \"value\": 10}}";
+    SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+
+    // Verify that the record was inserted properly in DSE.
+    List<Row> results = session.execute("SELECT * FROM types").all();
+    Row row = extractAndAssertThatOneRowInResult(results);
+    Map<String, Integer> mapcol = row.getMap("mapcol", String.class, Integer.class);
+    assert mapcol != null;
+    assertThat(mapcol.size()).isEqualTo(1);
+    assertThat(mapcol).containsEntry("key_1", 10);
+
+    value = "{\"pk\": 98761234, \"key\": \"key_1\", \"value\": null}";
+    record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
+    runTaskWithRecords(record);
+    results = session.execute("SELECT * FROM types").all();
+    // setting value for map = null when nullToUnset = false will cause the record to be removed
+    assertThat(results.size()).isEqualTo(0);
+  }
+
   @NotNull
   private Row extractAndAssertThatOneRowInResult(List<Row> results) {
-    Row row;
     assertThat(results.size()).isEqualTo(1);
-    row = results.get(0);
+    Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
     return row;
   }
