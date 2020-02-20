@@ -214,7 +214,7 @@ workload:
             BROKER_SECOND_ADDRESS=${FALLOUT_KAFKABROKERS_NODE1_NODE_INFO_PUBLICNETWORKADDRESS}
             BROKER_THIRD_ADDRESS=${FALLOUT_KAFKABROKERS_NODE2_NODE_INFO_PUBLICNETWORKADDRESS}
             sed -i "s/^bootstrap.servers=.*/bootstrap.servers=$BROKER_FIRST_ADDRESS:9092,$BROKER_SECOND_ADDRESS:9092,$BROKER_THIRD_ADDRESS:9092/" confluent/etc/kafka/connect-distributed.properties
-            curl -O http://central.maven.org/maven2/org/jmxtrans/agent/jmxtrans-agent/1.2.6/jmxtrans-agent-1.2.6.jar
+            curl -O https://repo1.maven.org/maven2/org/jmxtrans/agent/jmxtrans-agent/1.2.6/jmxtrans-agent-1.2.6.jar
 
             # clone and build connector
             git clone -b {{branch}} git@github.com:riptano/kafka-sink.git
