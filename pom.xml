@@ -42,8 +42,8 @@
     <kafka.connect.version>2.4.0</kafka.connect.version>
     <confluent.version>5.2.1</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
-    <oss.driver.version>4.4.0</oss.driver.version>
-    <dsbulk.version>1.4.2+20200124</dsbulk.version>
+    <oss.driver.version>4.5.0-ngdg+20200217</oss.driver.version>
+    <dsbulk.version>1.5.0+20200221</dsbulk.version>
     <guava.version>25.1-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
@@ -247,6 +247,19 @@
           <exclusion>
             <groupId>org.brotli</groupId>
             <artifactId>dec</artifactId>
+          </exclusion>
+
+          <exclusion>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-core</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>tinkergraph-gremlin</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
