@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.3.1
+- [bug] KAF-189: Tinkerpop dependency in driver is required, while it should not be
+
 ### 1.3.0
 - [improvement] KAF-98: Selectively update Maps and UDTs based on present Kafka fields
 - [improvement] KAF-161: Set ApplicationName and ClientId for DseProgrammaticBuilder to identify kafka-connector in Insights
