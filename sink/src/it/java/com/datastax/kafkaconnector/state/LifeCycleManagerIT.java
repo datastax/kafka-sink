@@ -37,6 +37,7 @@ import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
+import com.datastax.oss.driver.internal.core.util.DependencyCheck;
 import com.google.common.collect.ImmutableMap;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -269,6 +270,11 @@ public class LifeCycleManagerIT {
       assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationVersion"))
           .isEqualTo(VERSION);
     }
+  }
+
+  @Test
+  public void tinkerpop_should_be_excluded() {
+    assertFalse(DependencyCheck.TINKERPOP.isPresent());
   }
 
   @NotNull
