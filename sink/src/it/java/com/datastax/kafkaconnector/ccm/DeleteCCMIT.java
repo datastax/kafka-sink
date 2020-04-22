@@ -10,11 +10,11 @@ package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
-public class DeleteCCMIT extends EndToEndCCMITBase {
+class DeleteCCMIT extends EndToEndCCMITBase {
   DeleteCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
   }

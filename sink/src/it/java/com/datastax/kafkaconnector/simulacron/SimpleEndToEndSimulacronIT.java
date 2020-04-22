@@ -8,8 +8,8 @@
  */
 package com.datastax.kafkaconnector.simulacron;
 
-import static com.datastax.dsbulk.commons.tests.logging.StreamType.STDERR;
-import static com.datastax.dsbulk.commons.tests.logging.StreamType.STDOUT;
+import static com.datastax.oss.dsbulk.tests.logging.StreamType.STDERR;
+import static com.datastax.oss.dsbulk.tests.logging.StreamType.STDOUT;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.noRows;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.serverError;
 import static com.datastax.oss.simulacron.common.stubbing.PrimeDsl.when;
@@ -20,28 +20,25 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import com.codahale.metrics.Histogram;
-import com.datastax.dsbulk.commons.tests.logging.LogCapture;
-import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
-import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
-import com.datastax.dsbulk.commons.tests.logging.StreamCapture;
-import com.datastax.dsbulk.commons.tests.logging.StreamInterceptingExtension;
-import com.datastax.dsbulk.commons.tests.logging.StreamInterceptor;
-import com.datastax.dsbulk.commons.tests.simulacron.SimulacronExtension;
-import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils;
-import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils.Column;
-import com.datastax.dsbulk.commons.tests.simulacron.SimulacronUtils.Table;
-import com.datastax.dsbulk.commons.tests.simulacron.annotations.SimulacronConfig;
-import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.DseSinkConnector;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.kafkaconnector.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.tests.logging.LogCapture;
+import com.datastax.oss.dsbulk.tests.logging.LogInterceptingExtension;
+import com.datastax.oss.dsbulk.tests.logging.LogInterceptor;
+import com.datastax.oss.dsbulk.tests.logging.StreamCapture;
+import com.datastax.oss.dsbulk.tests.logging.StreamInterceptingExtension;
+import com.datastax.oss.dsbulk.tests.logging.StreamInterceptor;
+import com.datastax.oss.dsbulk.tests.simulacron.SimulacronExtension;
+import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils;
+import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Column;
+import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Table;
+import com.datastax.oss.dsbulk.tests.simulacron.annotations.SimulacronConfig;
+import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import com.datastax.oss.protocol.internal.request.Batch;
 import com.datastax.oss.protocol.internal.request.Execute;
 import com.datastax.oss.simulacron.common.cluster.QueryLog;
@@ -73,7 +70,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"SameParameterValue", "deprecation"})
 @ExtendWith(SimulacronExtension.class)
@@ -247,15 +243,6 @@ class SimpleEndToEndSimulacronIT {
   void resetPrimes() {
     simulacron.clearPrimes(true);
     simulacron.node(0).acceptConnections();
-  }
-
-  @AfterEach
-  void resetLogbackConfiguration() throws JoranException {
-    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-    JoranConfigurator configurator = new JoranConfigurator();
-    configurator.setContext(context);
-    context.reset();
-    configurator.doConfigure(ClassLoader.getSystemResource("logback-test.xml"));
   }
 
   @AfterEach

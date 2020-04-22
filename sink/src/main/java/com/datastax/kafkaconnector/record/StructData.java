@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.record;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,7 +17,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.Nullable;
 
 /** The key or value of a {@link SinkRecord} when it is a {@link Struct}. */
 public class StructData implements KeyOrValue {

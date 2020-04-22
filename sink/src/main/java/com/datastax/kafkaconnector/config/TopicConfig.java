@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector.config;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -21,7 +22,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.NotNull;
 
 /** Topic-specific connector configuration. */
 public class TopicConfig extends AbstractConfig {
@@ -85,18 +85,18 @@ public class TopicConfig extends AbstractConfig {
     this.topicName = topicName;
   }
 
-  @NotNull
+  @NonNull
   public String getTopicName() {
     return topicName;
   }
 
-  @NotNull
+  @NonNull
   public Collection<TableConfig> getTableConfigs() {
     return tableConfigs;
   }
 
   @Override
-  @NotNull
+  @NonNull
   public String toString() {
     String[] codecSettings = {
       LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
@@ -127,7 +127,7 @@ public class TopicConfig extends AbstractConfig {
             .collect(Collectors.joining("\n")));
   }
 
-  @NotNull
+  @NonNull
   public Config getCodecConfigOverrides() {
     String[] settingNames = {
       LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
@@ -151,7 +151,7 @@ public class TopicConfig extends AbstractConfig {
    * @return a ConfigDef of topic settings, where each setting name is the full setting path (e.g.
    *     topic.[topicname]).
    */
-  @NotNull
+  @NonNull
   private static ConfigDef makeTopicConfigDef(String topicName) {
     return new ConfigDef()
         .define(

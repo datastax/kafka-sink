@@ -8,15 +8,12 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DDAC;
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.OSS;
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DDAC;
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DSE;
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.OSS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
-import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMRequirements;
-import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMVersionRequirement;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
@@ -26,6 +23,10 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
+import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMRequirements;
+import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMVersionRequirement;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,7 +37,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -48,8 +48,8 @@ import org.junit.jupiter.api.Test;
   versionRequirements = {@CCMVersionRequirement(type = OSS, min = "3.6")}
 )
 // minimum version required because support of non frozen types
-public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
-  public static final Schema UDT_SCHEMA =
+class ProvidedQueryCCMIT extends EndToEndCCMITBase {
+  private static final Schema UDT_SCHEMA =
       SchemaBuilder.struct()
           .name("Kafka")
           .field("udtmem1", Schema.INT32_SCHEMA)
@@ -61,7 +61,7 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   }
 
   @BeforeAll
-  public void setup() {
+  void setup() {
     session.execute(
         SimpleStatement.builder(
                 "CREATE TABLE IF NOT EXISTS types_with_frozen ("
@@ -74,7 +74,7 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
   }
 
   @BeforeEach
-  public void cleanup() {
+  void cleanup() {
     session.execute("TRUNCATE types_with_frozen");
   }
 
@@ -536,7 +536,7 @@ public class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     assertThat(results.size()).isEqualTo(0);
   }
 
-  @NotNull
+  @NonNull
   private Row extractAndAssertThatOneRowInResult(List<Row> results) {
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);

@@ -8,7 +8,7 @@
  */
 package com.datastax.kafkaconnector.metadata;
 
-import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.PrimitiveType;

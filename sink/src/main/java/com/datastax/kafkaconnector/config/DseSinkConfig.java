@@ -20,6 +20,7 @@ import com.datastax.kafkaconnector.util.StringUtil;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,7 +34,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -284,7 +284,7 @@ public class DseSinkConfig {
     }
   }
 
-  private void putAsTypesafeListProperty(@NotNull String key, @NotNull String value) {
+  private void putAsTypesafeListProperty(@NonNull String key, @NonNull String value) {
     List<String> values = COMA_SPLITTER.splitToList(value);
     for (int i = 0; i < values.size(); i++) {
       javaDriverSettings.put(String.format("%s.%d", key, i), values.get(i).trim());
@@ -384,11 +384,11 @@ public class DseSinkConfig {
   }
 
   private void handleDeprecatedSetting(
-      @NotNull Map<String, String> connectorSettings,
-      @NotNull String connectorDeprecatedSetting,
-      @NotNull String driverSetting,
+      @NonNull Map<String, String> connectorSettings,
+      @NonNull String connectorDeprecatedSetting,
+      @NonNull String driverSetting,
       @Nullable String defaultValue,
-      @NotNull Function<String, String> deprecatedValueConverter) {
+      @NonNull Function<String, String> deprecatedValueConverter) {
     // handle usage of deprecated setting
     if (connectorSettings.containsKey(connectorDeprecatedSetting)) {
       // put or override if setting with datastax-java-driver prefix provided

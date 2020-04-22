@@ -31,13 +31,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.datastax.dsbulk.commons.codecs.string.StringToIntegerCodec;
-import com.datastax.dsbulk.commons.codecs.string.StringToLongCodec;
-import com.datastax.dsbulk.commons.codecs.util.CodecUtils;
-import com.datastax.dsbulk.commons.codecs.util.CqlTemporalFormat;
-import com.datastax.dsbulk.commons.codecs.util.OverflowStrategy;
-import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
-import com.datastax.dsbulk.commons.codecs.util.ZonedTemporalFormat;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.record.Record;
 import com.datastax.kafkaconnector.record.RecordMetadata;
@@ -60,10 +53,18 @@ import com.datastax.oss.driver.internal.core.cql.DefaultColumnDefinitions;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import com.datastax.oss.dsbulk.codecs.text.string.StringToIntegerCodec;
+import com.datastax.oss.dsbulk.codecs.text.string.StringToLongCodec;
+import com.datastax.oss.dsbulk.codecs.util.CodecUtils;
+import com.datastax.oss.dsbulk.codecs.util.CqlTemporalFormat;
+import com.datastax.oss.dsbulk.codecs.util.OverflowStrategy;
+import com.datastax.oss.dsbulk.codecs.util.TemporalFormat;
+import com.datastax.oss.dsbulk.codecs.util.ZonedTemporalFormat;
 import com.datastax.oss.protocol.internal.response.result.ColumnSpec;
 import com.datastax.oss.protocol.internal.response.result.RawType;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.NullNode;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.netty.util.concurrent.FastThreadLocal;
 import java.nio.ByteBuffer;
 import java.text.NumberFormat;
@@ -78,7 +79,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.assertj.core.util.Sets;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -1121,7 +1121,7 @@ class RecordMapperTest {
                 CqlIdentifier.fromInternal("PK"), CqlIdentifier.fromInternal("header"))));
   }
 
-  @NotNull
+  @NonNull
   private static DefaultColumnDefinition createColumnDefinition(String columnName) {
     return new DefaultColumnDefinition(
         new ColumnSpec("ks", "tb", columnName, 0, RawType.PRIMITIVES.get(1)), AttachmentPoint.NONE);

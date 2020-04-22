@@ -33,6 +33,7 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.NumericNode;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -41,7 +42,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,8 +85,8 @@ public class RecordMapper {
     this.isQueryProvided = tableConfig.isQueryProvided();
   }
 
-  @NotNull
-  private static String getExternalName(@NotNull String field) {
+  @NonNull
+  private static String getExternalName(@NonNull String field) {
     if (field.endsWith(RawData.FIELD_NAME)) {
       // e.g. value.__self => value
       return field.substring(0, field.length() - RawData.FIELD_NAME.length() - 1);
@@ -94,7 +94,7 @@ public class RecordMapper {
     return field;
   }
 
-  @NotNull
+  @NonNull
   public BoundStatement map(RecordMetadata recordMetadata, Record record) {
     if (!allowMissingFields) {
       ensureAllFieldsPresent(

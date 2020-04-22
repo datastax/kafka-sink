@@ -9,7 +9,6 @@
 package com.datastax.kafkaconnector;
 
 import com.codahale.metrics.Histogram;
-import com.datastax.dsbulk.commons.internal.utils.StatementUtils;
 import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
@@ -22,6 +21,8 @@ import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.dsbulk.commons.utils.StatementUtils;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -35,7 +36,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Runnable class that pulls [sink-record, bound-statement] pairs from a queue and groups them based
@@ -109,7 +109,7 @@ class BoundStatementProcessor implements Callable<Void> {
           bsb.build().setConsistencyLevel(firstStatement.getStatement().getConsistencyLevel());
       updateBatchSizeMetrics(statements, batchSizeHistogram, batchSizeInBytesHistogram);
     }
-    @NotNull Semaphore requestBarrier = instanceState.getRequestBarrier();
+    @NonNull Semaphore requestBarrier = instanceState.getRequestBarrier();
     requestBarrier.acquireUninterruptibly();
     CompletionStage<? extends AsyncResultSet> future =
         instanceState.getSession().executeAsync(statement);
@@ -166,7 +166,6 @@ class BoundStatementProcessor implements Callable<Void> {
   void runLoop(Consumer<List<RecordAndStatement>> consumer) throws InterruptedException {
     // Map of <topic, map<partition-key, list<recordAndStatement>>
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
-    //noinspection InfiniteLoopStatement
     while (true) {
 
       // Note: this call may block indefinitely if stop() is never called.
@@ -214,7 +213,7 @@ class BoundStatementProcessor implements Callable<Void> {
    * @return The specific bucket (list) to which the record/statement was added.
    */
   @VisibleForTesting
-  @NotNull
+  @NonNull
   List<RecordAndStatement> categorizeStatement(
       Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups,
       RecordAndStatement recordAndStatement) {

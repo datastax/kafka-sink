@@ -10,11 +10,11 @@ package com.datastax.kafkaconnector.ccm;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import java.util.List;
 import java.util.UUID;
 import org.apache.kafka.common.record.TimestampType;
@@ -22,9 +22,11 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-public class NowFunctionCCMIT extends EndToEndCCMITBase {
+@Tag("medium")
+class NowFunctionCCMIT extends EndToEndCCMITBase {
 
   NowFunctionCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);

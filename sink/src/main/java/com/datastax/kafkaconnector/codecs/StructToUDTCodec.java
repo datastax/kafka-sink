@@ -8,12 +8,14 @@
  */
 package com.datastax.kafkaconnector.codecs;
 
-import com.datastax.dsbulk.commons.codecs.ConvertingCodec;
 import com.datastax.kafkaconnector.record.StructDataMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodec;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,14 +25,13 @@ import org.apache.kafka.connect.data.Struct;
 
 /** Codec to convert a Kafka {@link Struct} to a UDT. */
 public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
-  private final KafkaCodecRegistry codecRegistry;
+
+  private final ConvertingCodecFactory codecFactory;
   private final UserDefinedType definition;
 
-  @SuppressWarnings("unchecked")
-  StructToUDTCodec(KafkaCodecRegistry codecRegistry, UserDefinedType cqlType) {
-    super(codecRegistry.codecFor(cqlType), Struct.class);
-
-    this.codecRegistry = codecRegistry;
+  StructToUDTCodec(ConvertingCodecFactory codecFactory, UserDefinedType cqlType) {
+    super(codecFactory.getCodecRegistry().codecFor(cqlType), Struct.class);
+    this.codecFactory = codecFactory;
     definition = cqlType;
   }
 
@@ -65,9 +66,12 @@ public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
                 "Field %s in UDT %s not found in input struct",
                 udtFieldName, definition.getName()));
       }
+      @SuppressWarnings("unchecked")
+      GenericType<Object> fieldType =
+          (GenericType<Object>)
+              structMetadata.getFieldType(udtFieldName.asInternal(), udtFieldType);
       ConvertingCodec<Object, Object> fieldCodec =
-          codecRegistry.convertingCodecFor(
-              udtFieldType, structMetadata.getFieldType(udtFieldName.asInternal(), udtFieldType));
+          codecFactory.createConvertingCodec(udtFieldType, fieldType, false);
       Object o = fieldCodec.externalToInternal(external.get(udtFieldName.asInternal()));
       value = value.set(udtFieldName, o, fieldCodec.getInternalJavaType());
     }

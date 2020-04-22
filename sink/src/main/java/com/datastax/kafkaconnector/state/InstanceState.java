@@ -26,13 +26,13 @@ import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import org.apache.kafka.common.KafkaException;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +52,10 @@ public class InstanceState {
   private final GlobalSinkMetrics globalSinkMetrics;
 
   public InstanceState(
-      @NotNull DseSinkConfig config,
-      @NotNull CqlSession session,
-      @NotNull Map<String, TopicState> topicStates,
-      @NotNull MetricRegistry metricRegistry) {
+      @NonNull DseSinkConfig config,
+      @NonNull CqlSession session,
+      @NonNull Map<String, TopicState> topicStates,
+      @NonNull MetricRegistry metricRegistry) {
     this.session = session;
     this.config = config;
     this.topicStates = topicStates;
@@ -112,17 +112,17 @@ public class InstanceState {
     return false;
   }
 
-  @NotNull
+  @NonNull
   public DseSinkConfig getConfig() {
     return config;
   }
 
-  @NotNull
+  @NonNull
   public CqlSession getSession() {
     return session;
   }
 
-  @NotNull
+  @NonNull
   public Semaphore getRequestBarrier() {
     return requestBarrier;
   }
@@ -131,7 +131,7 @@ public class InstanceState {
     return config.getMaxNumberOfRecordsInBatch();
   }
 
-  @NotNull
+  @NonNull
   public TopicConfig getTopicConfig(String topicName) {
     TopicConfig topicConfig = this.config.getTopicConfigs().get(topicName);
     if (topicConfig == null) {
@@ -143,22 +143,22 @@ public class InstanceState {
     return topicConfig;
   }
 
-  @NotNull
+  @NonNull
   public Histogram getBatchSizeHistogram(String topicName, String keyspaceAndTable) {
     return getTopicState(topicName).getBatchSizeHistogram(keyspaceAndTable);
   }
 
-  @NotNull
+  @NonNull
   public Histogram getBatchSizeInBytesHistogram(String topicName, String keyspaceAndTable) {
     return getTopicState(topicName).getBatchSizeInBytesHistogram(keyspaceAndTable);
   }
 
-  @NotNull
+  @NonNull
   public Executor getMappingExecutor() {
     return mappingExecutor;
   }
 
-  @NotNull
+  @NonNull
   public RecordMapper getRecordMapper(TableConfig tableConfig) {
     return getTopicState(tableConfig.getTopicName()).getRecordMapper(tableConfig);
   }
@@ -185,7 +185,7 @@ public class InstanceState {
     globalSinkMetrics.incrementFailedWithUnknownTopicCounter();
   }
 
-  @NotNull
+  @NonNull
   private TopicState getTopicState(String topicName) {
     TopicState topicState = topicStates.get(topicName);
     if (topicState == null) {

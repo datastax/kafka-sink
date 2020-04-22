@@ -17,14 +17,14 @@ import static com.datastax.kafkaconnector.config.SslConfig.TRUSTSTORE_PASSWORD_O
 import static com.datastax.kafkaconnector.config.SslConfig.TRUSTSTORE_PATH_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
-import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMConfig;
-import com.datastax.dsbulk.commons.tests.driver.annotations.SessionConfig;
 import com.datastax.kafkaconnector.ccm.EndToEndCCMITBase;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
+import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMConfig;
+import com.datastax.oss.dsbulk.tests.driver.annotations.SessionConfig;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;

@@ -11,7 +11,6 @@ package com.datastax.kafkaconnector.ccm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -21,7 +20,9 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,25 +37,24 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
-public class HeadersCCMIT extends EndToEndCCMITBase {
+class HeadersCCMIT extends EndToEndCCMITBase {
   private AttachmentPoint attachmentPoint;
 
   HeadersCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
     attachmentPoint =
         new AttachmentPoint() {
-          @NotNull
+          @NonNull
           @Override
           public ProtocolVersion getProtocolVersion() {
             return session.getContext().getProtocolVersion();
           }
 
-          @NotNull
+          @NonNull
           @Override
           public CodecRegistry getCodecRegistry() {
             return session.getContext().getCodecRegistry();

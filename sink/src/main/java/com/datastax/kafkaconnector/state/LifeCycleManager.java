@@ -24,12 +24,10 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TR
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PATH;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
 import com.datastax.kafkaconnector.DseSinkTask;
 import com.datastax.kafkaconnector.codecs.CodecSettings;
-import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.AuthenticatorConfig;
 import com.datastax.kafkaconnector.config.ContactPointsValidator;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
@@ -54,6 +52,7 @@ import com.datastax.oss.driver.internal.core.config.typesafe.DefaultDriverConfig
 import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammaticDriverConfigLoaderBuilder;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -71,7 +70,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,7 +184,7 @@ public class LifeCycleManager {
    * @return INSERT CQL string
    */
   @VisibleForTesting
-  @NotNull
+  @NonNull
   static String makeInsertStatement(TableConfig config) {
     Map<CqlIdentifier, CqlIdentifier> mapping = config.getMapping();
     StringBuilder statementBuilder = new StringBuilder("INSERT INTO ");
@@ -239,7 +237,7 @@ public class LifeCycleManager {
    * @return UPDATE CQL string
    */
   @VisibleForTesting
-  @NotNull
+  @NonNull
   static String makeUpdateCounterStatement(TableConfig config, TableMetadata table) {
     if (config.getTtl() != -1 || config.hasTtlMappingColumn()) {
       throw new ConfigException("Cannot set ttl when updating a counter table");
@@ -302,7 +300,7 @@ public class LifeCycleManager {
    * @return DELETE CQL string
    */
   @VisibleForTesting
-  @NotNull
+  @NonNull
   static String makeDeleteStatement(TableConfig config, TableMetadata table) {
 
     // Create a DELETE statement that looks like this:
@@ -342,7 +340,7 @@ public class LifeCycleManager {
    * @throws ConfigException if the table or keyspace doesn't exist
    */
   @VisibleForTesting
-  @NotNull
+  @NonNull
   static TableMetadata getTableMetadata(CqlSession session, TableConfig tableConfig) {
     CqlIdentifier keyspaceName = tableConfig.getKeyspace();
     CqlIdentifier tableName = tableConfig.getTable();
@@ -398,7 +396,7 @@ public class LifeCycleManager {
    * @param config the sink config
    * @return a new InstanceState
    */
-  @NotNull
+  @NonNull
   private static InstanceState buildInstanceState(CqlSession session, DseSinkConfig config) {
 
     // Compute the primary keys of all tables being mapped to (across topics).
@@ -422,11 +420,12 @@ public class LifeCycleManager {
                 topicConfig -> {
                   CodecSettings codecSettings =
                       new CodecSettings(
-                          new DefaultLoaderConfig(topicConfig.getCodecConfigOverrides())
+                          topicConfig
+                              .getCodecConfigOverrides()
                               .withFallback(kafkaConfig.getConfig("codec")));
                   codecSettings.init();
-                  KafkaCodecRegistry codecRegistry = codecSettings.createCodecRegistry();
-                  TopicState topicState = new TopicState(codecRegistry);
+                  ConvertingCodecFactory codecFactory = codecSettings.createCodecFactory();
+                  TopicState topicState = new TopicState(codecFactory);
                   topicStates.put(topicConfig.getTopicName(), topicState);
 
                   return topicConfig
@@ -481,7 +480,7 @@ public class LifeCycleManager {
    * @return a new CqlSession
    */
   @VisibleForTesting
-  @NotNull
+  @NonNull
   public static CqlSession buildCqlSession(DseSinkConfig config, String version) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
@@ -612,7 +611,7 @@ public class LifeCycleManager {
    * @param primaryKey the primary key of the table
    * @return a future
    */
-  @NotNull
+  @NonNull
   private static CompletionStage<Void> prepareStatementsAsync(
       CqlSession session,
       TopicState topicState,
@@ -658,7 +657,7 @@ public class LifeCycleManager {
             });
   }
 
-  @NotNull
+  @NonNull
   private static String getInsertUpdateStatement(TableConfig tableConfig, TableMetadata table) {
     // if user provides query explicitly it has priority over any connector specific query
     // construction logic

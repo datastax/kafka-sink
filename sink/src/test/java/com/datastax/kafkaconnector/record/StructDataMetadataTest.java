@@ -12,9 +12,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
 class StructDataMetadataTest {
@@ -66,7 +66,7 @@ class StructDataMetadataTest {
         .isEqualTo(GenericType.listOf(GenericType.listOf(GenericType.INTEGER)));
   }
 
-  private GenericType<?> getFieldType(@NotNull String field) {
+  private GenericType<?> getFieldType(@NonNull String field) {
     return metadata.getFieldType(field, DataTypes.TEXT);
   }
 }

@@ -12,20 +12,20 @@ import static com.datastax.kafkaconnector.record.StructDataMetadataSupport.getGe
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.jetbrains.annotations.NotNull;
 
 /** Metadata associated with a {@link StructData}. */
 public class StructDataMetadata implements RecordMetadata {
   private final Schema schema;
 
-  public StructDataMetadata(@NotNull Schema schema) {
+  public StructDataMetadata(@NonNull Schema schema) {
     this.schema = schema;
   }
 
   @Override
-  public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
+  public GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType) {
     if (field.equals(RawData.FIELD_NAME)) {
       return GenericType.of(Struct.class);
     }

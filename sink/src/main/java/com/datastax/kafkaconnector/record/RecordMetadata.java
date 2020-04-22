@@ -10,7 +10,7 @@ package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import org.jetbrains.annotations.NotNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /** Defines metadata applicable to a record, in particular which field types it contains. */
 public interface RecordMetadata {
@@ -22,5 +22,5 @@ public interface RecordMetadata {
    * @param cqlType the CQL type associated with the given field.
    * @return the type of the given field, or {@code null} if the field isn't defined in this schema.
    */
-  GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType);
+  GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType);
 }

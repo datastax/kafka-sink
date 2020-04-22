@@ -14,13 +14,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.config.TopicConfig;
 import com.datastax.kafkaconnector.record.RecordAndStatement;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

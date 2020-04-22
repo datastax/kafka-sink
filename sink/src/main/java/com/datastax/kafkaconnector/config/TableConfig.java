@@ -17,6 +17,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +30,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,10 +61,10 @@ public class TableConfig extends AbstractConfig {
   private final String query;
 
   private TableConfig(
-      @NotNull String topicName,
-      @NotNull String keyspace,
-      @NotNull String table,
-      @NotNull Map<String, String> settings,
+      @NonNull String topicName,
+      @NonNull String keyspace,
+      @NonNull String table,
+      @NonNull Map<String, String> settings,
       boolean cloud) {
     super(makeTableConfigDef(topicName, keyspace, table), settings, false);
 
@@ -142,51 +142,51 @@ public class TableConfig extends AbstractConfig {
    * @param setting base name of setting
    * @return full path of the setting in the form "topic.[topicname].[keyspace].[table].[setting]".
    */
-  @NotNull
+  @NonNull
   public static String getTableSettingPath(
-      @NotNull String topicName,
-      @NotNull String keyspace,
-      @NotNull String table,
-      @NotNull String setting) {
+      @NonNull String topicName,
+      @NonNull String keyspace,
+      @NonNull String table,
+      @NonNull String setting) {
     return String.format("topic.%s.%s.%s.%s", topicName, keyspace, table, setting);
   }
 
-  @NotNull
-  public String getSettingPath(@NotNull String settingName) {
+  @NonNull
+  public String getSettingPath(@NonNull String settingName) {
     return getTableSettingPath(topicName, keyspace.asInternal(), table.asInternal(), settingName);
   }
 
-  @NotNull
+  @NonNull
   public CqlIdentifier getKeyspace() {
     return keyspace;
   }
 
-  @NotNull
+  @NonNull
   public CqlIdentifier getTable() {
     return table;
   }
 
-  @NotNull
+  @NonNull
   public String getTopicName() {
     return topicName;
   }
 
-  @NotNull
+  @NonNull
   public String getKeyspaceAndTable() {
     return String.format("%s.%s", keyspace.asCql(true), table.asCql(true));
   }
 
-  @NotNull
+  @NonNull
   public Map<CqlIdentifier, CqlIdentifier> getMapping() {
     return mapping;
   }
 
-  @NotNull
+  @NonNull
   public String getMappingString() {
     return mappingString;
   }
 
-  @NotNull
+  @NonNull
   public Optional<String> getQuery() {
     return Optional.ofNullable(query);
   }
@@ -195,7 +195,7 @@ public class TableConfig extends AbstractConfig {
     return query != null;
   }
 
-  @NotNull
+  @NonNull
   public ConsistencyLevel getConsistencyLevel() {
     return consistencyLevel;
   }
@@ -246,7 +246,7 @@ public class TableConfig extends AbstractConfig {
   }
 
   @Override
-  @NotNull
+  @NonNull
   public String toString() {
     return String.format(
         "{keyspace: %s, table: %s, cl: %s, ttl: %d, nullToUnset: %b, "
@@ -274,9 +274,9 @@ public class TableConfig extends AbstractConfig {
    * @return a ConfigDef of table-settings, where each setting name is the full setting path (e.g.
    *     topic.[topicname].[keyspace].[table].[setting]).
    */
-  @NotNull
+  @NonNull
   private static ConfigDef makeTableConfigDef(
-      @NotNull String topicName, @NotNull String keyspace, @NotNull String table) {
+      @NonNull String topicName, @NonNull String keyspace, @NonNull String table) {
     return new ConfigDef()
         .define(
             getTableSettingPath(topicName, keyspace, table, MAPPING_OPT),
@@ -328,8 +328,8 @@ public class TableConfig extends AbstractConfig {
             "Custom query to use as a Prepared Statement for insert to this table.");
   }
 
-  @NotNull
-  private static CqlIdentifier parseLoosely(@NotNull String value) {
+  @NonNull
+  private static CqlIdentifier parseLoosely(@NonNull String value) {
     // If the value is unquoted, treat it as a literal (no real parsing).
     // Otherwise parse it as cql. The idea is that users should be able to specify
     // case-sensitive identifiers in the mapping spec without quotes.
@@ -339,7 +339,7 @@ public class TableConfig extends AbstractConfig {
         : CqlIdentifier.fromInternal(value);
   }
 
-  @NotNull
+  @NonNull
   private Map<CqlIdentifier, CqlIdentifier> parseMappingString(String mappingString) {
     MappingInspector inspector =
         new MappingInspector(

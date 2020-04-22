@@ -8,14 +8,14 @@
  */
 package com.datastax.kafkaconnector.record;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.header.Header;
 import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * The fully parsed {@link SinkRecord} in a form where we can apply mappings of fields to DSE
@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
 public class KeyValueRecord implements Record {
   @Nullable private final KeyOrValue key;
   @Nullable private final KeyOrValue value;
-  @NotNull private final Set<String> fields;
+  @NonNull private final Set<String> fields;
   @Nullable private final Long timestamp;
   @Nullable private final Headers headers;
 
@@ -50,14 +50,14 @@ public class KeyValueRecord implements Record {
   }
 
   @Override
-  @NotNull
+  @NonNull
   public Set<String> fields() {
     return fields;
   }
 
   @Override
   @Nullable
-  public Object getFieldValue(@NotNull String field) {
+  public Object getFieldValue(@NonNull String field) {
     if (field.startsWith("key.")) {
       return key != null ? key.getFieldValue(field.substring(4)) : null;
     } else if (field.startsWith("value.")) {
@@ -71,7 +71,7 @@ public class KeyValueRecord implements Record {
   }
 
   @Nullable
-  private Object findHeaderValue(@NotNull String field, @NotNull Headers headers) {
+  private Object findHeaderValue(@NonNull String field, @NonNull Headers headers) {
     for (Header h : headers) {
       if (h.key().equals(field)) {
         return h.value();

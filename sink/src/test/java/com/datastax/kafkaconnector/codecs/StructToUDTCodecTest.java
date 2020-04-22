@@ -8,15 +8,15 @@
  */
 package com.datastax.kafkaconnector.codecs;
 
-import static com.datastax.dsbulk.commons.tests.assertions.CommonsAssertions.assertThat;
+import static com.datastax.oss.dsbulk.tests.assertions.TestAssertions.assertThat;
 
-import com.datastax.dsbulk.commons.config.LoaderConfig;
-import com.datastax.dsbulk.commons.internal.config.DefaultLoaderConfig;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -33,7 +33,9 @@ class StructToUDTCodecTest {
   private final UdtValue udt1Value = udt1.newValue().setInt("f1a", 42).setDouble("f1b", 0.12d);
 
   private final StructToUDTCodec udtCodec1 =
-      (StructToUDTCodec) newCodecRegistry().codecFor(udt1, GenericType.of(Struct.class));
+      (StructToUDTCodec)
+          newCodecRegistry()
+              .<Struct, UdtValue>createConvertingCodec(udt1, GenericType.of(Struct.class), true);
 
   private final Schema schema =
       SchemaBuilder.struct()
@@ -67,10 +69,10 @@ class StructToUDTCodecTest {
     assertThat(udtCodec1).cannotConvertFromExternal(other).cannotConvertFromExternal(other2);
   }
 
-  private KafkaCodecRegistry newCodecRegistry() {
-    LoaderConfig config = new DefaultLoaderConfig(ConfigFactory.load().getConfig("kafka.codec"));
+  private ConvertingCodecFactory newCodecRegistry() {
+    Config config = ConfigFactory.load().getConfig("kafka.codec");
     CodecSettings settings = new CodecSettings(config);
     settings.init();
-    return settings.createCodecRegistry();
+    return settings.createCodecFactory();
   }
 }

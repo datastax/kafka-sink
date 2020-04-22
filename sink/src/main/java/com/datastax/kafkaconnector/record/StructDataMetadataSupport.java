@@ -10,9 +10,9 @@ package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
-import org.jetbrains.annotations.NotNull;
 
 public class StructDataMetadataSupport {
   private static final ImmutableMap<Schema.Type, GenericType<?>> TYPE_MAP =
@@ -28,8 +28,8 @@ public class StructDataMetadataSupport {
           .put(Schema.Type.BYTES, GenericType.BYTE_BUFFER)
           .build();
 
-  @NotNull
-  static GenericType<?> getGenericType(@NotNull Schema fieldType) {
+  @NonNull
+  static GenericType<?> getGenericType(@NonNull Schema fieldType) {
     GenericType<?> result = TYPE_MAP.get(fieldType.type());
     if (result != null) {
       return result;

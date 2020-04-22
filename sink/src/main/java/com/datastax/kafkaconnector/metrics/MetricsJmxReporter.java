@@ -8,16 +8,16 @@
  */
 package com.datastax.kafkaconnector.metrics;
 
-import static com.datastax.dsbulk.commons.internal.utils.StringUtils.quoteJMXIfNecessary;
+import static com.datastax.oss.dsbulk.commons.utils.StringUtils.quoteJMXIfNecessary;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Iterator;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,7 @@ public class MetricsJmxReporter {
   }
 
   @VisibleForTesting
-  @NotNull
+  @NonNull
   static ObjectName getObjectName(String instanceName, String jmxDomain, String metricName) {
     log.debug(
         "registering JMX objectName - instanceName: {}, jmxDomain: {}, metricName: {}",

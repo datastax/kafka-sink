@@ -8,8 +8,8 @@
  */
 package com.datastax.kafkaconnector.util;
 
-import com.datastax.dsbulk.commons.internal.platform.PlatformUtils;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.datastax.oss.dsbulk.commons.utils.PlatformUtils;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 

@@ -8,7 +8,9 @@
  */
 package com.datastax.kafkaconnector.state;
 
-import static com.datastax.kafkaconnector.config.DseSinkConfig.*;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.COMPRESSION_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
+import static com.datastax.kafkaconnector.config.DseSinkConfig.withDriverPrefix;
 import static com.datastax.kafkaconnector.config.SslConfig.HOSTNAME_VALIDATION_OPT;
 import static com.datastax.kafkaconnector.state.LifeCycleManager.KAFKA_CONNECTOR_APPLICATION_NAME;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
@@ -28,9 +30,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
-import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
-import com.datastax.dsbulk.commons.tests.utils.ReflectionUtils;
 import com.datastax.kafkaconnector.config.DseSinkConfig;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
@@ -38,26 +37,29 @@ import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
 import com.datastax.oss.driver.internal.core.util.DependencyCheck;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
+import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
+import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @Tag("medium")
 @ExtendWith(CCMExtension.class)
-public class LifeCycleManagerIT {
+class LifeCycleManagerIT {
   private static final String VERSION = "v1";
 
   private final CCMCluster ccm;
 
-  public LifeCycleManagerIT(CCMCluster ccm) {
+  LifeCycleManagerIT(CCMCluster ccm) {
     this.ccm = ccm;
   }
 
@@ -273,11 +275,11 @@ public class LifeCycleManagerIT {
   }
 
   @Test
-  public void tinkerpop_should_be_excluded() {
+  void tinkerpop_should_be_excluded() {
     assertFalse(DependencyCheck.TINKERPOP.isPresent());
   }
 
-  @NotNull
+  @NonNull
   private EndPoint getEndPoint(CqlSession session) {
     return session.getMetadata().getNodes().values().iterator().next().getEndPoint();
   }

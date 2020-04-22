@@ -13,10 +13,10 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.jetbrains.annotations.Nullable;
 
 public class FunctionMapper {
   private static final CqlIdentifier NOW_FUNCTION = CqlIdentifier.fromInternal("now()");

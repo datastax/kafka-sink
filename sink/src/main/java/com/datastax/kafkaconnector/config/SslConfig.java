@@ -11,6 +11,7 @@ package com.datastax.kafkaconnector.config;
 import static com.datastax.kafkaconnector.config.ConfigUtil.configToString;
 import static com.datastax.kafkaconnector.config.ConfigUtil.getFilePath;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslProvider;
@@ -30,7 +31,6 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.Nullable;
 
 /** SSL configuration */
 public class SslConfig extends AbstractConfig {

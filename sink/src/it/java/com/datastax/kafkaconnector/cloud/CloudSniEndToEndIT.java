@@ -18,11 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
 import static ru.lanwen.wiremock.ext.WiremockResolver.*;
 
-import com.datastax.dsbulk.commons.tests.cloud.SNIProxyServer;
-import com.datastax.dsbulk.commons.tests.cloud.SNIProxyServerExtension;
-import com.datastax.dsbulk.commons.tests.logging.LogCapture;
-import com.datastax.dsbulk.commons.tests.logging.LogInterceptingExtension;
-import com.datastax.dsbulk.commons.tests.logging.LogInterceptor;
 import com.datastax.kafkaconnector.ccm.ITConnectorBase;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
@@ -31,6 +26,11 @@ import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.dsbulk.tests.cloud.SNIProxyServer;
+import com.datastax.oss.dsbulk.tests.cloud.SNIProxyServerExtension;
+import com.datastax.oss.dsbulk.tests.logging.LogCapture;
+import com.datastax.oss.dsbulk.tests.logging.LogInterceptingExtension;
+import com.datastax.oss.dsbulk.tests.logging.LogInterceptor;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -80,11 +80,6 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
   @BeforeEach
   void truncateTable() {
     session.execute("TRUNCATE types");
-  }
-
-  @BeforeEach
-  void clearLogs() {
-    logs.clear();
   }
 
   @Test

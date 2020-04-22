@@ -11,12 +11,12 @@ package com.datastax.kafkaconnector.ccm;
 import static com.datastax.kafkaconnector.config.DseSinkConfig.withDriverPrefix;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.kafkaconnector.state.InstanceState;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
-public class ConnectorSettingsCCMIT extends EndToEndCCMITBase {
+class ConnectorSettingsCCMIT extends EndToEndCCMITBase {
 
   ConnectorSettingsCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);

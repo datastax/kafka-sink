@@ -10,8 +10,8 @@ package com.datastax.kafkaconnector.record;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 /** Metadata associated with a {@link KeyValueRecord}. */
 public class KeyValueRecordMetadata implements RecordMetadata {
@@ -30,7 +30,7 @@ public class KeyValueRecordMetadata implements RecordMetadata {
   }
 
   @Override
-  public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
+  public GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType) {
     if (field.startsWith("key.")) {
       return keyMetadata != null ? keyMetadata.getFieldType(field.substring(4), cqlType) : null;
     } else if (field.startsWith("value.")) {

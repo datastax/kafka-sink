@@ -14,8 +14,8 @@ import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
 import com.datastax.oss.driver.internal.core.context.DefaultDriverContext;
 import com.datastax.oss.driver.internal.core.ssl.JdkSslHandlerFactory;
 import com.datastax.oss.driver.internal.core.ssl.SslHandlerFactory;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Optional;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Specialization of DefaultDriverContext that allows the connector to use OpenSSL or SniSslEngine.

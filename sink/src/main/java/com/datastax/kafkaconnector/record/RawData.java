@@ -11,10 +11,10 @@ package com.datastax.kafkaconnector.record;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.jetbrains.annotations.NotNull;
 
 /** The key or value of a {@link SinkRecord} when it is a primitive type. */
 public class RawData implements KeyOrValue, RecordMetadata {
@@ -38,7 +38,7 @@ public class RawData implements KeyOrValue, RecordMetadata {
   }
 
   @Override
-  public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
+  public GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType) {
     return type;
   }
 

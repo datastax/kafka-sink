@@ -12,7 +12,7 @@ import com.datastax.kafkaconnector.record.RecordMetadata;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import org.jetbrains.annotations.NotNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class TestRecordMetadata implements RecordMetadata {
   private final ImmutableMap<Object, GenericType<?>> fieldsToTypes;
@@ -22,7 +22,7 @@ public class TestRecordMetadata implements RecordMetadata {
   }
 
   @Override
-  public GenericType<?> getFieldType(@NotNull String field, @NotNull DataType cqlType) {
+  public GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType) {
     return fieldsToTypes.get(field);
   }
 }

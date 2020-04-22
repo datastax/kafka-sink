@@ -8,6 +8,7 @@
  */
 package com.datastax.kafkaconnector.config;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,7 +16,6 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigException;
-import org.jetbrains.annotations.Nullable;
 
 /** Helper methods useful for performing common tasks in *Config classes. */
 class ConfigUtil {

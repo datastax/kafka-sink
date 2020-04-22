@@ -8,29 +8,29 @@
  */
 package com.datastax.kafkaconnector.codecs;
 
-import com.datastax.dsbulk.commons.codecs.json.JsonCodecUtils;
-import com.datastax.dsbulk.commons.codecs.util.CodecUtils;
-import com.datastax.dsbulk.commons.codecs.util.OverflowStrategy;
-import com.datastax.dsbulk.commons.codecs.util.TemporalFormat;
-import com.datastax.dsbulk.commons.codecs.util.TimeUUIDGenerator;
-import com.datastax.dsbulk.commons.config.BulkConfigurationException;
-import com.datastax.dsbulk.commons.config.LoaderConfig;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.oss.dsbulk.codecs.ConversionContext;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.datastax.oss.dsbulk.codecs.text.TextConversionContext;
+import com.datastax.oss.dsbulk.codecs.text.json.JsonCodecUtils;
+import com.datastax.oss.dsbulk.codecs.util.CodecUtils;
+import com.datastax.oss.dsbulk.codecs.util.OverflowStrategy;
+import com.datastax.oss.dsbulk.codecs.util.TimeUUIDGenerator;
+import com.datastax.oss.dsbulk.commons.config.ConfigUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
-import io.netty.util.concurrent.FastThreadLocal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-/** Copied from dsbulk. Convenient for initializing the {@link KafkaCodecRegistry}. */
+/** Copied from dsbulk. Convenient for initializing the {@link ConvertingCodecFactory}. */
 public class CodecSettings {
   private static final String LOCALE = "locale";
   private static final String NULL_STRINGS = "nullStrings";
@@ -48,32 +48,34 @@ public class CodecSettings {
   private static final String NUMERIC_TIMESTAMP_EPOCH = "epoch";
   private static final String TIME_UUID_GENERATOR = "uuidStrategy";
 
-  private final LoaderConfig config;
+  private final Config config;
 
+  private Locale locale;
   private ImmutableList<String> nullStrings;
-  private Map<String, Boolean> booleanInputWords;
-  private Map<Boolean, String> booleanOutputWords;
   private List<BigDecimal> booleanNumbers;
-  private FastThreadLocal<NumberFormat> numberFormat;
+  private boolean formatNumbers;
+  private String numberFormat;
   private RoundingMode roundingMode;
   private OverflowStrategy overflowStrategy;
-  private TemporalFormat localDateFormat;
-  private TemporalFormat localTimeFormat;
-  private TemporalFormat timestampFormat;
+  private String dateFormat;
+  private String timeFormat;
+  private String timestampFormat;
   private ObjectMapper objectMapper;
   private ZoneId timeZone;
   private TimeUnit timeUnit;
   private ZonedDateTime epoch;
   private TimeUUIDGenerator generator;
+  private List<String> booleanStrings;
 
-  public CodecSettings(LoaderConfig config) {
+  @VisibleForTesting
+  public CodecSettings(Config config) {
     this.config = config;
   }
 
   public void init() {
     try {
 
-      Locale locale = CodecUtils.parseLocale(config.getString(LOCALE));
+      locale = CodecUtils.parseLocale(config.getString(LOCALE));
 
       // strings
       nullStrings = ImmutableList.copyOf(config.getStringList(NULL_STRINGS));
@@ -81,10 +83,8 @@ public class CodecSettings {
       // numeric
       roundingMode = config.getEnum(RoundingMode.class, ROUNDING_STRATEGY);
       overflowStrategy = config.getEnum(OverflowStrategy.class, OVERFLOW_STRATEGY);
-      boolean formatNumbers = config.getBoolean(FORMAT_NUMERIC_OUTPUT);
-      numberFormat =
-          CodecUtils.getNumberFormatThreadLocal(
-              config.getString(NUMBER), locale, roundingMode, formatNumbers);
+      formatNumbers = config.getBoolean(FORMAT_NUMERIC_OUTPUT);
+      numberFormat = config.getString(NUMBER);
 
       // temporal
       timeZone = ZoneId.of(config.getString(TIME_ZONE));
@@ -93,36 +93,25 @@ public class CodecSettings {
       try {
         epoch = ZonedDateTime.parse(epochStr);
       } catch (Exception e) {
-        throw new BulkConfigurationException(
+        throw new IllegalArgumentException(
             String.format(
                 "Expecting codec.%s to be in ISO_ZONED_DATE_TIME format but got '%s'",
                 NUMERIC_TIMESTAMP_EPOCH, epochStr));
       }
-
-      localDateFormat =
-          CodecUtils.getTemporalFormat(
-              config.getString(DATE), timeZone, locale, timeUnit, epoch, numberFormat, false);
-      localTimeFormat =
-          CodecUtils.getTemporalFormat(
-              config.getString(TIME), timeZone, locale, timeUnit, epoch, numberFormat, false);
-      timestampFormat =
-          CodecUtils.getTemporalFormat(
-              config.getString(TIMESTAMP), timeZone, locale, timeUnit, epoch, numberFormat, true);
+      dateFormat = config.getString(DATE);
+      timeFormat = config.getString(TIME);
+      timestampFormat = config.getString(TIMESTAMP);
 
       // boolean
       booleanNumbers =
-          config
-              .getStringList(BOOLEAN_NUMBERS)
-              .stream()
+          config.getStringList(BOOLEAN_NUMBERS).stream()
               .map(BigDecimal::new)
               .collect(Collectors.toList());
       if (booleanNumbers.size() != 2) {
-        throw new BulkConfigurationException(
+        throw new IllegalArgumentException(
             "Invalid boolean numbers list, expecting two elements, got " + booleanNumbers);
       }
-      List<String> booleanStrings = config.getStringList(BOOLEAN_STRINGS);
-      booleanInputWords = CodecUtils.getBooleanInputWords(booleanStrings);
-      booleanOutputWords = CodecUtils.getBooleanOutputWords(booleanStrings);
+      booleanStrings = config.getStringList(BOOLEAN_STRINGS);
 
       // UUID
       generator = config.getEnum(TimeUUIDGenerator.class, TIME_UUID_GENERATOR);
@@ -131,26 +120,29 @@ public class CodecSettings {
       objectMapper = JsonCodecUtils.getObjectMapper();
 
     } catch (ConfigException e) {
-      throw BulkConfigurationException.fromTypeSafeConfigException(e, "codec");
+      throw ConfigUtils.convertConfigException(e, "dsbulk.codec");
     }
   }
 
-  public KafkaCodecRegistry createCodecRegistry() {
-    return new KafkaCodecRegistry(
-        nullStrings,
-        booleanInputWords,
-        booleanOutputWords,
-        booleanNumbers,
-        numberFormat,
-        overflowStrategy,
-        roundingMode,
-        localDateFormat,
-        localTimeFormat,
-        timestampFormat,
-        timeZone,
-        timeUnit,
-        epoch,
-        generator,
-        objectMapper);
+  public ConvertingCodecFactory createCodecFactory() {
+    ConversionContext context =
+        new TextConversionContext()
+            .setObjectMapper(objectMapper)
+            .setLocale(locale)
+            .setNullStrings(nullStrings)
+            .setBooleanStrings(booleanStrings)
+            .setBooleanNumbers(booleanNumbers.get(0), booleanNumbers.get(1))
+            .setNumberFormat(numberFormat)
+            .setFormatNumbers(formatNumbers)
+            .setOverflowStrategy(overflowStrategy)
+            .setRoundingMode(roundingMode)
+            .setDateFormat(dateFormat)
+            .setTimeFormat(timeFormat)
+            .setTimestampFormat(timestampFormat)
+            .setTimeZone(timeZone)
+            .setTimeUnit(timeUnit)
+            .setEpoch(epoch)
+            .setTimeUUIDGenerator(generator);
+    return new ConvertingCodecFactory(context);
   }
 }

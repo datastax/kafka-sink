@@ -8,17 +8,17 @@
  */
 package com.datastax.kafkaconnector.ccm;
 
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DDAC;
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.DSE;
-import static com.datastax.dsbulk.commons.tests.ccm.CCMCluster.Type.OSS;
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DDAC;
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DSE;
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.OSS;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.dsbulk.commons.tests.ccm.CCMCluster;
-import com.datastax.dsbulk.commons.tests.ccm.CCMExtension;
-import com.datastax.dsbulk.commons.tests.ccm.annotations.CCMRequirements;
-import com.datastax.dsbulk.commons.tests.utils.Version;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
+import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
+import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMRequirements;
+import com.datastax.oss.dsbulk.tests.utils.Version;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;

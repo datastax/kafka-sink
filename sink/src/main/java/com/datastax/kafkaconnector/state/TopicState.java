@@ -13,33 +13,33 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.kafkaconnector.Mapping;
 import com.datastax.kafkaconnector.RecordMapper;
-import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.kafkaconnector.config.TableConfig;
 import com.datastax.kafkaconnector.metrics.MetricNamesCreator;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Container for a topic-scoped entities that the sink tasks need (codec-registry, prepared
  * statement, etc.)
  */
 class TopicState {
-  private final KafkaCodecRegistry codecRegistry;
+  private final ConvertingCodecFactory codecFactory;
   private final Map<TableConfig, RecordMapper> recordMappers;
   private Map<String, Histogram> batchSizeHistograms;
   private Map<String, Meter> recordCounters;
   private Map<String, Meter> failedRecordCounters;
   private Map<String, Histogram> batchSizeInBytesHistograms;
 
-  TopicState(KafkaCodecRegistry codecRegistry) {
-    this.codecRegistry = codecRegistry;
+  TopicState(ConvertingCodecFactory codecFactory) {
+    this.codecFactory = codecFactory;
     recordMappers = new ConcurrentHashMap<>();
   }
 
@@ -54,7 +54,7 @@ class TopicState {
             insertUpdateStatement,
             deleteStatement,
             primaryKey,
-            new Mapping(tableConfig.getMapping(), codecRegistry),
+            new Mapping(tableConfig.getMapping(), codecFactory),
             true,
             false,
             tableConfig));
@@ -102,12 +102,12 @@ class TopicState {
                 t -> metricCreator.apply(metricNameCreator.apply(t))));
   }
 
-  @NotNull
+  @NonNull
   Histogram getBatchSizeHistogram(String keyspaceAndTable) {
     return batchSizeHistograms.get(keyspaceAndTable);
   }
 
-  @NotNull
+  @NonNull
   Histogram getBatchSizeInBytesHistogram(String keyspaceAndTable) {
     return batchSizeInBytesHistograms.get(keyspaceAndTable);
   }
@@ -130,7 +130,7 @@ class TopicState {
     return failedRecordCounters.get(keyspaceAndTable);
   }
 
-  @NotNull
+  @NonNull
   RecordMapper getRecordMapper(TableConfig tableConfig) {
     return recordMappers.get(tableConfig);
   }

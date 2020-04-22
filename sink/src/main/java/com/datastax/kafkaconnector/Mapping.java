@@ -10,7 +10,6 @@ package com.datastax.kafkaconnector;
 
 import static com.datastax.kafkaconnector.util.FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING;
 
-import com.datastax.kafkaconnector.codecs.KafkaCodecRegistry;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
@@ -18,13 +17,14 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMultimap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Multimap;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Modeled after the DefaultMapping class in DSBulk. A few key diffs: 1. "variable" in dsbulk =&gt;
@@ -34,14 +34,15 @@ public class Mapping {
 
   private final Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields;
   private final Multimap<CqlIdentifier, CqlIdentifier> kafkaFieldsToDseColumns;
-  private final KafkaCodecRegistry codecRegistry;
+  private final ConvertingCodecFactory codecFactory;
   private final Cache<CqlIdentifier, TypeCodec<?>> dseColumnsToCodecs;
   private final List<CqlIdentifier> functions;
 
   public Mapping(
-      Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields, KafkaCodecRegistry codecRegistry) {
+      Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields,
+      ConvertingCodecFactory codecFactory) {
     this.dseColumnsToKafkaFields = dseColumnsToKafkaFields;
-    this.codecRegistry = codecRegistry;
+    this.codecFactory = codecFactory;
     dseColumnsToCodecs = Caffeine.newBuilder().build();
     ImmutableMultimap.Builder<CqlIdentifier, CqlIdentifier> builder = ImmutableMultimap.builder();
     dseColumnsToKafkaFields.forEach((c, f) -> builder.put(f, c));
@@ -55,34 +56,35 @@ public class Mapping {
   }
 
   @Nullable
-  CqlIdentifier columnToField(@NotNull CqlIdentifier column) {
+  CqlIdentifier columnToField(@NonNull CqlIdentifier column) {
     return dseColumnsToKafkaFields.get(column);
   }
 
-  @NotNull
+  @NonNull
   Collection<CqlIdentifier> getMappedColumns() {
     return dseColumnsToKafkaFields.keySet();
   }
 
   @Nullable
-  Collection<CqlIdentifier> fieldToColumns(@NotNull CqlIdentifier field) {
+  Collection<CqlIdentifier> fieldToColumns(@NonNull CqlIdentifier field) {
     return kafkaFieldsToDseColumns.get(field);
   }
 
-  @NotNull
+  @NonNull
   <T> TypeCodec<T> codec(
-      @NotNull CqlIdentifier column,
-      @NotNull DataType cqlType,
-      @NotNull GenericType<? extends T> javaType) {
+      @NonNull CqlIdentifier column,
+      @NonNull DataType cqlType,
+      @NonNull GenericType<? extends T> javaType) {
     @SuppressWarnings("unchecked")
     TypeCodec<T> codec =
         (TypeCodec<T>)
-            dseColumnsToCodecs.get(column, n -> codecRegistry.codecFor(cqlType, javaType));
+            dseColumnsToCodecs.get(
+                column, n -> codecFactory.createConvertingCodec(cqlType, javaType, true));
     assert codec != null;
     return codec;
   }
 
-  @NotNull
+  @NonNull
   public List<CqlIdentifier> functions() {
     return functions;
   }
