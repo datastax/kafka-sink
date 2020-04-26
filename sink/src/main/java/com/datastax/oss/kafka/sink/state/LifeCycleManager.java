@@ -566,7 +566,7 @@ public class LifeCycleManager {
   private static void processAuthenticatorConfig(
       CassandraSinkConfig config, ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder) {
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
-    if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
+    if (authConfig.getProvider() == AuthenticatorConfig.Provider.PLAIN) {
       configLoaderBuilder
           .withClass(AUTH_PROVIDER_CLASS, PlainTextAuthProvider.class)
           .withString(AUTH_PROVIDER_USER_NAME, authConfig.getUsername())

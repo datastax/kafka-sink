@@ -49,37 +49,37 @@ public class AuthenticatorConfig extends AbstractConfig {
               ConfigDef.Type.STRING,
               "None",
               ConfigDef.Importance.HIGH,
-              "None | DSE | GSSAPI")
+              "None | PLAIN | GSSAPI")
           .define(
               USERNAME_OPT,
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
-              "Username for DSE provider authentication")
+              "Username for PLAIN (username/password) provider authentication")
           .define(
               PASSWORD_OPT,
               ConfigDef.Type.PASSWORD,
               "",
               ConfigDef.Importance.HIGH,
-              "Password for DSE provider authentication")
+              "Password for PLAIN (username/password) provider authentication")
           .define(
               KEYTAB_OPT,
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
-              "Kerberos keytab file")
+              "Kerberos keytab file for GSSAPI provider authentication")
           .define(
               PRINCIPAL_OPT,
               ConfigDef.Type.STRING,
               "",
               ConfigDef.Importance.HIGH,
-              "Kerberos principal")
+              "Kerberos principal for GSSAPI provider authentication")
           .define(
               SERVICE_OPT,
               ConfigDef.Type.STRING,
               "dse",
               ConfigDef.Importance.HIGH,
-              "SASL service name to use");
+              "SASL service name to use for GSSAPI provider authentication");
 
   @Nullable private final Path keyTabPath;
 
@@ -90,7 +90,7 @@ public class AuthenticatorConfig extends AbstractConfig {
     Provider provider = getProvider();
 
     // If password is specified, username must be.
-    if (provider == Provider.DSE && !getPassword().isEmpty() && getUsername().isEmpty()) {
+    if (provider == Provider.PLAIN && !getPassword().isEmpty() && getUsername().isEmpty()) {
       throw new ConfigException(
           String.format("%s was specified without %s", PASSWORD_OPT, USERNAME_OPT));
     }
@@ -109,7 +109,7 @@ public class AuthenticatorConfig extends AbstractConfig {
    * Auth settings may not be fully specified. Fill in the gaps as appropriate:
    *
    * <ol>
-   *   <li>If username or password is provided, and auth-provider is None, coerce it to be the DSE
+   *   <li>If username or password is provided, and auth-provider is None, coerce it to be the PLAIN
    *       auth provider.
    *   <li>If using GSSAPI and the principal isn't provided, try to find it from the keytab (if
    *       provided).
@@ -124,7 +124,7 @@ public class AuthenticatorConfig extends AbstractConfig {
     if ((authSettings.containsKey(USERNAME_OPT) || authSettings.containsKey(PASSWORD_OPT))
         && ("None".equals(provider) || provider == null)) {
       // Username/password was provided. Coerce the provider type to DSE.
-      mutated.put(PROVIDER_OPT, "DSE");
+      mutated.put(PROVIDER_OPT, "PLAIN");
     }
 
     // If the provider is GSSAPI and the principal isn't specified,
@@ -189,7 +189,8 @@ public class AuthenticatorConfig extends AbstractConfig {
     try {
       return Provider.valueOf(providerString);
     } catch (IllegalArgumentException e) {
-      throw new ConfigException(PROVIDER_OPT, providerString, "valid values are None, DSE, GSSAPI");
+      throw new ConfigException(
+          PROVIDER_OPT, providerString, "valid values are None, PLAIN, GSSAPI");
     }
   }
 
@@ -229,7 +230,7 @@ public class AuthenticatorConfig extends AbstractConfig {
 
   public enum Provider {
     None,
-    DSE,
+    PLAIN,
     GSSAPI
   }
 }

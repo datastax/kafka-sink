@@ -38,13 +38,13 @@ class AuthenticatorConfigTest {
         ImmutableMap.<String, String>builder()
             .put(USERNAME_OPT, "user1")
             .put(PASSWORD_OPT, "pass1")
-            .put(PROVIDER_OPT, "DSE")
+            .put(PROVIDER_OPT, "PLAIN")
             .put(KEYTAB_OPT, "/keytab")
             .put(SERVICE_OPT, "mysvc")
             .put(PRINCIPAL_OPT, "principal")
             .build();
     AuthenticatorConfig config = new AuthenticatorConfig(props);
-    assertThat(config.getProvider()).isEqualTo(AuthenticatorConfig.Provider.DSE);
+    assertThat(config.getProvider()).isEqualTo(AuthenticatorConfig.Provider.PLAIN);
     assertThat(config.getUsername()).isEqualTo("user1");
     assertThat(config.getPassword()).isEqualTo("pass1");
     assertThat(config.getKeyTabPath()).isEqualTo(Paths.get("/keytab").toAbsolutePath().normalize());
@@ -120,7 +120,7 @@ class AuthenticatorConfigTest {
       Map<String, String> props =
           ImmutableMap.<String, String>builder().put(USERNAME_OPT, "user1").build();
       AuthenticatorConfig config = new AuthenticatorConfig(props);
-      assertThat(config.getProvider()).isEqualTo(AuthenticatorConfig.Provider.DSE);
+      assertThat(config.getProvider()).isEqualTo(AuthenticatorConfig.Provider.PLAIN);
     }
     {
       Map<String, String> props =
@@ -129,7 +129,7 @@ class AuthenticatorConfigTest {
               .put(PROVIDER_OPT, "None")
               .build();
       AuthenticatorConfig config = new AuthenticatorConfig(props);
-      assertThat(config.getProvider()).isEqualTo(AuthenticatorConfig.Provider.DSE);
+      assertThat(config.getProvider()).isEqualTo(AuthenticatorConfig.Provider.PLAIN);
     }
   }
 
@@ -154,7 +154,7 @@ class AuthenticatorConfigTest {
         .isInstanceOf(ConfigException.class)
         .hasMessage(
             String.format(
-                "Invalid value foo for configuration %s: valid values are None, DSE, GSSAPI",
+                "Invalid value foo for configuration %s: valid values are None, PLAIN, GSSAPI",
                 PROVIDER_OPT));
   }
 

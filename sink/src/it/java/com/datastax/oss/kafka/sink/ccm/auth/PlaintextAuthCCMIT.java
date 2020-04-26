@@ -65,7 +65,7 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
 
     // auth.provider was coerced to DSE
     assertThat(task.getInstanceState().getConfig().getAuthenticatorConfig().getProvider())
-        .isEqualTo(Provider.DSE);
+        .isEqualTo(Provider.PLAIN);
   }
 
   @ParameterizedTest(name = "[{index}] extras={0}")
