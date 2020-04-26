@@ -269,23 +269,6 @@
           <groupId>au.com.acegi</groupId>
           <artifactId>xml-format-maven-plugin</artifactId>
           <version>3.1.1</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>xml-format</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <excludes>
-              <exclude>.idea/**</exclude>
-              <exclude>perf/**</exclude>
-              <exclude>certify_confluent/**</exclude>
-              <exclude>**/target/**</exclude>
-              <exclude>**/dependency-reduced-pom.xml</exclude>
-              <exclude>**/.flattened-pom.xml</exclude>
-            </excludes>
-          </configuration>
         </plugin>
         <plugin>
           <groupId>com.coveo</groupId>
@@ -489,6 +472,24 @@ limitations under the License.]]></inlineHeader>
       <plugin>
         <groupId>au.com.acegi</groupId>
         <artifactId>xml-format-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>xml-format</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <excludes>
+            <exclude>.idea/**</exclude>
+            <exclude>perf/**</exclude>
+            <exclude>certify_confluent/**</exclude>
+            <exclude>**/target/**</exclude>
+            <exclude>**/dependency-reduced-pom.xml</exclude>
+            <exclude>**/.flattened-pom.xml</exclude>
+          </excludes>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>com.coveo</groupId>
