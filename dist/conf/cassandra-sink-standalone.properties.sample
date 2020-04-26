@@ -1,24 +1,24 @@
-name=dse-sink
-connector.class=com.datastax.oss.kafka.sink.DseSinkConnector
+name=cassandra-sink
+connector.class=com.datastax.oss.kafka.sink.CassandraSinkConnector
 tasks.max=1
 
 # Topics to subscribe to, comma-delimited.
 topics=my_topic
 
-# The location of the cloud secure bundle used to connect to Datastax Apache Cassandra as a service.
+# The location of the cloud secure bundle used to connect to Datastax Astra.
 # If you are connecting to the cloud, these parameters need to be provided.
 # The loadBalancing.localDc, contactPoints or any config under ssl prefix cannot be
 # set together with cloud.secureConnectBundle.
 # In such a case a ConfigException will be thrown
 #cloud.secureConnectBundle = "/path/to/secure-connect-db.zip"
 
-# Comma-separated list of DSE cluster contact points. Used by the DataStax Driver to discover
-# DSE cluster topology. Defaults to empty, meaning localhost.
+# Comma-separated list of cluster contact points. Used by the DataStax Driver to discover
+# cluster topology. Defaults to empty, meaning localhost.
 # This setting cannot be provided if `cloud.secureConnectBundle` is provided, since this
 # information is part of the bundle's data.
 #contactPoints=
 
-# DSE data center name to which the DataStax Driver connects. Required if contactPoints
+# Data center name to which the DataStax Driver connects. Required if contactPoints
 # is specified.
 # This setting cannot be provided if `cloud.secureConnectBundle` is provided, since this
 # information is part of the bundle's data.
@@ -32,10 +32,10 @@ topics=my_topic
 #  datastax-java-driver.basic.contact-points = 127.0.0.1:9042, 127.0.0.2:9043
 #port=9042
 
-# Maximum number of requests to send to DSE at a single time. Defaults to 500.
+# Maximum number of requests to send to the database at a single time. Defaults to 500.
 #maxConcurrentRequests=500
 
-# Maximum number of records that could be send in one batch request to DSE
+# Maximum number of records that could be send in one batch request to the database
 #maxNumberOfRecordsInBatch=32
 
 # Number of connections that driver maintains within a connection pool to each node in local dc
@@ -52,7 +52,7 @@ topics=my_topic
 # Default is false meaning that no errors are ignored.
 #ignoreErrors=false
 
-# Compression algorithm to use when issuing requests to DSE. Valid values are
+# Compression algorithm to use when issuing requests to the database. Valid values are
 # None, Snappy, LZ4. Defaults to None.
 #compression=None
 
@@ -62,10 +62,10 @@ topics=my_topic
 # Defaults to None.
 #auth.provider=None
 
-# Username for DSE provider authentication
+# Username for username/password authentication
 #auth.username=
 
-# Password for DSE provider authentication
+# Password for username/password authentication
 #auth.password=
 
 # Kerberos keytab file
@@ -89,7 +89,7 @@ topics=my_topic
 # Comma-separated list of cipher suites to enable.
 #ssl.cipherSuites=
 
-# Whether or not to validate DSE node hostnames when using SSL.
+# Whether or not to validate node hostnames when using SSL.
 # Defaults to true.
 #ssl.hostnameValidation=true
 
@@ -115,9 +115,9 @@ topics=my_topic
 
 #### Settings for table my_ks.my_table in topic my_topic ####
 
-# Kafka record field to DSE table column mapping spec, in the form 'col1=value.f1, col2=key.f1'.
+# Kafka record field to database table column mapping spec, in the form 'col1=value.f1, col2=key.f1'.
 # You can use special __ttl and __timestamp fields in the mapping to denote the fact that the field from kafka record should
-# be inserted as the ttl or writetime of this DSE record.
+# be inserted as the ttl or writetime of this database row.
 # You can extract value from kafka record header using "header." suffix with the name of the header.
 # You can use now() function in the mapping to generate TIMEUUID and insert it as a value to the given column.
 topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1, col4=now()
@@ -130,7 +130,7 @@ topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
 # mapping can look like this:
 # topic.my_topic.my_ks.my_table.mapping=some_name=value.bigint, some_name_2=value.int
 #
-# Please note that bound variables that can be used in the query may not be present in the DSE table.
+# Please note that bound variables that can be used in the query may not be present in the database table.
 # Due to that fact, when providing the query, validation of mapping columns is not performed.
 # Also, the primary keys are not validated.
 #
@@ -152,24 +152,25 @@ topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
 # When you specify ttl value to be used while inserting (by mapping __ttl or .ttl static config)
 # you may want to specify timeUnit of the provided ttl. Default is SECONDS.
 # So if your field used as a ttl is in different format (for example HOURS) set it to HOURS.
-# The connector will automatically transform it to proper DSE ttl format (to SECONDS)
+# The connector will automatically transform it to proper database ttl format (to SECONDS)
 # The transformation also applies for static ttl field config.
 topic.my_topic.my_ks.my_table.ttlTimeUnit=SECONDS
 
 # When you specify timestamp value to be used while inserting (by mapping __timestamp)
 # you may want to specify timeUnit of the provided timestamp. Default is MICROSECONDS.
 # So if your field used as a timestamp is in different format (for example HOURS) set it to HOURS.
-# The connector will automatically transform it to proper DSE ttl format (to MICROSECONDS)
+# The connector will automatically transform it to proper database ttl format (to MICROSECONDS)
 topic.my_topic.my_ks.my_table.timestampTimeUnit=MICROSECONDS
 
 # Query consistency level; defaults to LOCAL_ONE.
 #topic.my_topic.my_ks.my_table.consistencyLevel=LOCAL_ONE
 
-# Time-to-live. Set to the number of seconds before the data is automatically deleted in DSE.
+# Time-to-live. Set to the number of seconds before the data is automatically deleted in the
+# database.
 # Defaults to -1 (disabled).
 #topic.my_topic.my_ks.my_table.ttl=-1
 
-# Whether to treat nulls in Kafka as UNSET in DSE. DataStax recommends using the default to
+# Whether to treat nulls in Kafka as UNSET in teh database. DataStax recommends using the default to
 # avoid creating unnecessary tombstones. Defaults to true.
 #topic.my_topic.my_ks.my_table.nullToUnset=true
 

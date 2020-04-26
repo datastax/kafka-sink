@@ -22,11 +22,11 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRIC
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_CIPHER_SUITES;
 
-import com.datastax.oss.kafka.sink.util.StringUtil;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.kafka.sink.util.SinkUtil;
+import com.datastax.oss.kafka.sink.util.StringUtil;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collections;
@@ -46,8 +46,8 @@ import org.slf4j.LoggerFactory;
 
 /** Connector configuration and validation. */
 @SuppressWarnings("WeakerAccess")
-public class DseSinkConfig {
-  private static final Logger log = LoggerFactory.getLogger(DseSinkConfig.class);
+public class CassandraSinkConfig {
+  private static final Logger log = LoggerFactory.getLogger(CassandraSinkConfig.class);
   private static final Pattern TOPIC_KS_TABLE_SETTING_PATTERN =
       Pattern.compile(
           "topic\\.([a-zA-Z0-9._-]+)\\.([^.]+|\"[\"]+\")\\.([^.]+|\"[\"]+\")\\.(mapping|consistencyLevel|ttl|nullToUnset|deletesEnabled|ttlTimeUnit|timestampTimeUnit|query)$");
@@ -114,14 +114,14 @@ public class DseSinkConfig {
               ConfigDef.Type.LIST,
               Collections.EMPTY_LIST,
               ConfigDef.Importance.HIGH,
-              "Initial DSE node contact points")
+              "Initial contact points")
           .define(
               PORT_OPT,
               ConfigDef.Type.INT,
               9042,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "Port to connect to on DSE nodes")
+              "Port to connect to nodes")
           .define(
               DC_OPT,
               ConfigDef.Type.STRING,
@@ -134,7 +134,7 @@ public class DseSinkConfig {
               500,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "The maximum number of requests to send to DSE at once")
+              "The maximum number of requests to send at once")
           .define(
               JMX_OPT,
               ConfigDef.Type.BOOLEAN,
@@ -168,7 +168,7 @@ public class DseSinkConfig {
               32,
               ConfigDef.Range.atLeast(1),
               ConfigDef.Importance.HIGH,
-              "Maximum number of records that could be send in one batch request to DSE")
+              "Maximum number of records that could be send in one batch request")
           .define(
               CONNECTION_POOL_LOCAL_SIZE,
               ConfigDef.Type.INT,
@@ -202,8 +202,8 @@ public class DseSinkConfig {
 
   private final AuthenticatorConfig authConfig;
 
-  public DseSinkConfig(Map<String, String> settings) {
-    log.debug("create DseSinkConfig for settings:{} ", settings);
+  public CassandraSinkConfig(Map<String, String> settings) {
+    log.debug("create CassandraSinkConfig for settings:{} ", settings);
     instanceName = settings.get(SinkUtil.NAME_OPT);
     // Walk through the settings and separate out "globals" from "topics", "ssl", and "auth".
     Map<String, String> globalSettings = new HashMap<>();

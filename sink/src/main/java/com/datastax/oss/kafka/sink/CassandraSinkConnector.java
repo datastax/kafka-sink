@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.kafka.sink;
 
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -28,7 +28,7 @@ import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 
 /** Sink connector to insert Kafka records into DSE. */
-public class DseSinkConnector extends SinkConnector {
+public class CassandraSinkConnector extends SinkConnector {
   private String version;
   private Map<String, String> properties;
 
@@ -44,7 +44,8 @@ public class DseSinkConnector extends SinkConnector {
 
       // Get the version from version.txt.
       version = "UNKNOWN";
-      try (InputStream versionStream = DseSinkConnector.class.getResourceAsStream("/version.txt")) {
+      try (InputStream versionStream =
+          CassandraSinkConnector.class.getResourceAsStream("/version.txt")) {
         if (versionStream != null) {
           BufferedReader reader =
               new BufferedReader(new InputStreamReader(versionStream, StandardCharsets.UTF_8));
@@ -89,6 +90,6 @@ public class DseSinkConnector extends SinkConnector {
 
   @Override
   public ConfigDef config() {
-    return DseSinkConfig.GLOBAL_CONFIG_DEF;
+    return CassandraSinkConfig.GLOBAL_CONFIG_DEF;
   }
 }

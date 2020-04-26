@@ -22,8 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
 import static ru.lanwen.wiremock.ext.WiremockResolver.*;
 
-import com.datastax.oss.kafka.sink.ccm.ITConnectorBase;
-import com.datastax.oss.kafka.sink.config.TableConfig;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
@@ -35,8 +33,10 @@ import com.datastax.oss.dsbulk.tests.cloud.SNIProxyServerExtension;
 import com.datastax.oss.dsbulk.tests.logging.LogCapture;
 import com.datastax.oss.dsbulk.tests.logging.LogInterceptingExtension;
 import com.datastax.oss.dsbulk.tests.logging.LogInterceptor;
+import com.datastax.oss.kafka.sink.ccm.ITConnectorBase;
 import com.datastax.oss.kafka.sink.config.AuthenticatorConfig;
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
+import com.datastax.oss.kafka.sink.config.TableConfig;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -188,7 +188,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
   private Map<String, String> parametersWithSecureBundle(String secureBundlePath) {
 
     return ImmutableMap.<String, String>builder()
-        .put(DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT, secureBundlePath)
+        .put(CassandraSinkConfig.SECURE_CONNECT_BUNDLE_OPT, secureBundlePath)
         .put(AuthenticatorConfig.USERNAME_OPT, "cassandra")
         .put(AuthenticatorConfig.PASSWORD_OPT, "cassandra")
         .build();

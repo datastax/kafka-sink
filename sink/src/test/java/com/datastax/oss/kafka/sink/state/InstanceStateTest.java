@@ -22,19 +22,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
-import com.datastax.oss.kafka.sink.config.TableConfig;
-import com.datastax.oss.kafka.sink.config.TableConfigBuilder;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
+import com.datastax.oss.kafka.sink.config.TableConfig;
+import com.datastax.oss.kafka.sink.config.TableConfigBuilder;
 import java.util.HashMap;
 import java.util.Map;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.Test;
 
 class InstanceStateTest {
-  private DseSinkConfig config = mock(DseSinkConfig.class);
+  private CassandraSinkConfig config = mock(CassandraSinkConfig.class);
   private CqlSession session = mock(CqlSession.class);
 
   private Map<String, TopicState> topicStates = new HashMap<>();
@@ -83,7 +83,7 @@ class InstanceStateTest {
     Map<String, TopicState> topicStates = ImmutableMap.of("t1", topicState);
     InstanceState instanceState =
         new InstanceState(
-            new DseSinkConfig(ImmutableMap.of("name", "instance-a")),
+            new CassandraSinkConfig(ImmutableMap.of("name", "instance-a")),
             mock(CqlSession.class),
             topicStates,
             metricRegistry);
@@ -97,7 +97,7 @@ class InstanceStateTest {
     // when create new instanceState
     InstanceState instanceState2 =
         new InstanceState(
-            new DseSinkConfig(ImmutableMap.of("name", "instance-b")),
+            new CassandraSinkConfig(ImmutableMap.of("name", "instance-b")),
             mock(CqlSession.class),
             topicStates,
             metricRegistry);

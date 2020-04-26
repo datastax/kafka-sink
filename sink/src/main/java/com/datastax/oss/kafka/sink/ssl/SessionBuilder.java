@@ -15,11 +15,11 @@
  */
 package com.datastax.oss.kafka.sink.ssl;
 
-import com.datastax.oss.kafka.sink.config.SslConfig;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.context.DriverContext;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
+import com.datastax.oss.kafka.sink.config.SslConfig;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /** Session builder specialization that hooks in OpenSSL when that ssl provider is chosen. */

@@ -17,7 +17,6 @@ package com.datastax.oss.kafka.sink.ccm.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.oss.kafka.sink.ccm.EndToEndCCMITBase;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.testinfra.ccm.CcmBridge;
@@ -25,6 +24,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMConfig;
 import com.datastax.oss.dsbulk.tests.driver.annotations.SessionConfig;
+import com.datastax.oss.kafka.sink.ccm.EndToEndCCMITBase;
 import com.datastax.oss.kafka.sink.config.SslConfig;
 import java.util.List;
 import java.util.Map;
@@ -45,9 +45,13 @@ class SslHostnameValidationCCMIT extends EndToEndCCMITBase {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
             .put(SslConfig.PROVIDER_OPT, "JDK")
-            .put(SslConfig.KEYSTORE_PATH_OPT, CcmBridge.DEFAULT_CLIENT_KEYSTORE_FILE.getAbsolutePath())
+            .put(
+                SslConfig.KEYSTORE_PATH_OPT,
+                CcmBridge.DEFAULT_CLIENT_KEYSTORE_FILE.getAbsolutePath())
             .put(SslConfig.KEYSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_KEYSTORE_PASSWORD)
-            .put(SslConfig.TRUSTSTORE_PATH_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
+            .put(
+                SslConfig.TRUSTSTORE_PATH_OPT,
+                CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
             .put(SslConfig.TRUSTSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
             .build();
 
@@ -74,7 +78,9 @@ class SslHostnameValidationCCMIT extends EndToEndCCMITBase {
             .put(
                 SslConfig.OPENSSL_PRIVATE_KEY_OPT,
                 CcmBridge.DEFAULT_CLIENT_PRIVATE_KEY_FILE.getAbsolutePath())
-            .put(SslConfig.TRUSTSTORE_PATH_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
+            .put(
+                SslConfig.TRUSTSTORE_PATH_OPT,
+                CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
             .put(SslConfig.TRUSTSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
             .build();
 

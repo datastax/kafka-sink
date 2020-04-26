@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.kafka.sink;
 
-import static com.datastax.oss.kafka.sink.util.FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING;
-import static com.datastax.oss.kafka.sink.util.SinkUtil.TIMESTAMP_VARNAME;
 import static com.datastax.oss.driver.api.core.DefaultProtocolVersion.V4;
 import static com.datastax.oss.driver.shaded.guava.common.collect.Lists.newArrayList;
+import static com.datastax.oss.kafka.sink.util.FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING;
+import static com.datastax.oss.kafka.sink.util.SinkUtil.TIMESTAMP_VARNAME;
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.ZERO;
 import static java.math.RoundingMode.HALF_EVEN;
@@ -30,7 +30,6 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -38,10 +37,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.kafka.sink.config.TableConfig;
-import com.datastax.oss.kafka.sink.record.Record;
-import com.datastax.oss.kafka.sink.record.RecordMetadata;
-import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.BoundStatementBuilder;
@@ -67,6 +62,10 @@ import com.datastax.oss.dsbulk.codecs.util.CqlTemporalFormat;
 import com.datastax.oss.dsbulk.codecs.util.OverflowStrategy;
 import com.datastax.oss.dsbulk.codecs.util.TemporalFormat;
 import com.datastax.oss.dsbulk.codecs.util.ZonedTemporalFormat;
+import com.datastax.oss.kafka.sink.config.TableConfig;
+import com.datastax.oss.kafka.sink.record.Record;
+import com.datastax.oss.kafka.sink.record.RecordMetadata;
+import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.protocol.internal.response.result.ColumnSpec;
 import com.datastax.oss.protocol.internal.response.result.RawType;
 import com.fasterxml.jackson.databind.node.IntNode;

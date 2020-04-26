@@ -17,6 +17,7 @@ package com.datastax.oss.kafka.sink.metadata;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
 
+import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.kafka.sink.record.JsonData;
 import com.datastax.oss.kafka.sink.record.KeyOrValue;
 import com.datastax.oss.kafka.sink.record.RawData;
@@ -24,7 +25,6 @@ import com.datastax.oss.kafka.sink.record.RecordMetadata;
 import com.datastax.oss.kafka.sink.record.StructData;
 import com.datastax.oss.kafka.sink.record.StructDataMetadata;
 import com.datastax.oss.kafka.sink.util.CheckedFunction;
-import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;

@@ -15,22 +15,18 @@
  */
 package com.datastax.oss.kafka.sink.state;
 
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.DC_OPT;
+import static com.datastax.oss.driver.api.core.type.DataTypes.COUNTER;
+import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.DC_OPT;
 import static com.datastax.oss.kafka.sink.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.kafka.sink.config.TableConfig.TTL_OPT;
 import static com.datastax.oss.kafka.sink.config.TableConfig.TTL_TIME_UNIT_OPT;
-import static com.datastax.oss.driver.api.core.type.DataTypes.COUNTER;
-import static com.datastax.oss.driver.api.core.type.DataTypes.TEXT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
-import com.datastax.oss.kafka.sink.config.TableConfig;
-import com.datastax.oss.kafka.sink.config.TableConfigBuilder;
-import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.context.DriverContext;
@@ -40,6 +36,10 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
+import com.datastax.oss.kafka.sink.config.TableConfig;
+import com.datastax.oss.kafka.sink.config.TableConfigBuilder;
+import com.datastax.oss.kafka.sink.util.SinkUtil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -337,7 +337,7 @@ class LifeCycleManagerTest {
     Map<String, String> config = ImmutableMap.of("contactPoints", "127.0.0.1");
 
     // when, then
-    assertThatThrownBy(() -> new DseSinkConfig(config))
+    assertThatThrownBy(() -> new CassandraSinkConfig(config))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(DC_OPT);
   }

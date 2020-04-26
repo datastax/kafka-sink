@@ -25,8 +25,7 @@ import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 /**
- * The fully parsed {@link SinkRecord} in a form where we can apply mappings of fields to DSE
- * columns.
+ * The fully parsed {@link SinkRecord} in a form where we can apply mappings of fields to columns.
  */
 public class KeyValueRecord implements Record {
   @Nullable private final KeyOrValue key;

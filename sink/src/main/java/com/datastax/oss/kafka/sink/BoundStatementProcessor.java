@@ -16,8 +16,6 @@
 package com.datastax.oss.kafka.sink;
 
 import com.codahale.metrics.Histogram;
-import com.datastax.oss.kafka.sink.record.RecordAndStatement;
-import com.datastax.oss.kafka.sink.state.InstanceState;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BatchStatement;
@@ -29,6 +27,8 @@ import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.dsbulk.commons.utils.StatementUtils;
+import com.datastax.oss.kafka.sink.record.RecordAndStatement;
+import com.datastax.oss.kafka.sink.state.InstanceState;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

@@ -59,7 +59,7 @@ public class TopicConfig extends AbstractConfig {
     // are effectively handled by our AbstractConfig super-class.
     settings.forEach(
         (name, value) -> {
-          Matcher codecSettingPattern = DseSinkConfig.TOPIC_CODEC_PATTERN.matcher(name);
+          Matcher codecSettingPattern = CassandraSinkConfig.TOPIC_CODEC_PATTERN.matcher(name);
           Matcher tableKsSettingMatcher = TABLE_KS_PATTERN.matcher(name);
 
           // using codecSettingPattern to prevent including of

@@ -15,13 +15,13 @@
  */
 package com.datastax.oss.kafka.sink.config;
 
-import com.datastax.oss.kafka.sink.util.SinkUtil;
-import com.datastax.oss.kafka.sink.util.TimeUnitConverter;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
+import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.kafka.sink.util.StringUtil;
+import com.datastax.oss.kafka.sink.util.TimeUnitConverter;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Arrays;

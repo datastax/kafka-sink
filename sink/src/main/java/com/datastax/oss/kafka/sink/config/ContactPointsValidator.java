@@ -40,7 +40,8 @@ public class ContactPointsValidator {
     if (!invalid.isEmpty()) {
       throw new ConfigException(
           String.format(
-              "Incorrect %s: %s", DseSinkConfig.CONTACT_POINTS_OPT, String.join(",", invalid)));
+              "Incorrect %s: %s",
+              CassandraSinkConfig.CONTACT_POINTS_OPT, String.join(",", invalid)));
     }
   }
 

@@ -15,12 +15,12 @@
  */
 package com.datastax.oss.kafka.sink.ssl;
 
-import com.datastax.oss.kafka.sink.config.SslConfig;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.session.ProgrammaticArguments;
 import com.datastax.oss.driver.internal.core.context.DefaultDriverContext;
 import com.datastax.oss.driver.internal.core.ssl.JdkSslHandlerFactory;
 import com.datastax.oss.driver.internal.core.ssl.SslHandlerFactory;
+import com.datastax.oss.kafka.sink.config.SslConfig;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Optional;
 

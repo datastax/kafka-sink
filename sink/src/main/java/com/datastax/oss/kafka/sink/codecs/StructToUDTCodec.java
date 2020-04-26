@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.kafka.sink.codecs;
 
-import com.datastax.oss.kafka.sink.record.StructDataMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;
@@ -23,6 +22,7 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.dsbulk.codecs.ConvertingCodec;
 import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.datastax.oss.kafka.sink.record.StructDataMetadata;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;

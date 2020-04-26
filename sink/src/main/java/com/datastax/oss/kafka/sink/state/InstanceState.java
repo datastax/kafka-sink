@@ -19,20 +19,20 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
-import com.datastax.oss.kafka.sink.DseSinkTask;
-import com.datastax.oss.kafka.sink.RecordMapper;
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
-import com.datastax.oss.kafka.sink.config.TableConfig;
-import com.datastax.oss.kafka.sink.config.TopicConfig;
-import com.datastax.oss.kafka.sink.metrics.GlobalSinkMetrics;
-import com.datastax.oss.kafka.sink.metrics.MetricNamesCreator;
-import com.datastax.oss.kafka.sink.metrics.MetricsJmxReporter;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
+import com.datastax.oss.kafka.sink.DseSinkTask;
+import com.datastax.oss.kafka.sink.RecordMapper;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
+import com.datastax.oss.kafka.sink.config.TableConfig;
+import com.datastax.oss.kafka.sink.config.TopicConfig;
+import com.datastax.oss.kafka.sink.metrics.GlobalSinkMetrics;
+import com.datastax.oss.kafka.sink.metrics.MetricNamesCreator;
+import com.datastax.oss.kafka.sink.metrics.MetricsJmxReporter;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Map;
 import java.util.Set;
@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
 public class InstanceState {
   private static final Logger log = LoggerFactory.getLogger(InstanceState.class);
   private final CqlSession session;
-  private final DseSinkConfig config;
+  private final CassandraSinkConfig config;
   private final Map<String, TopicState> topicStates;
 
   /** Semaphore to limit the number of concurrent DSE requests. */
@@ -59,7 +59,7 @@ public class InstanceState {
   private final GlobalSinkMetrics globalSinkMetrics;
 
   public InstanceState(
-      @NonNull DseSinkConfig config,
+      @NonNull CassandraSinkConfig config,
       @NonNull CqlSession session,
       @NonNull Map<String, TopicState> topicStates,
       @NonNull MetricRegistry metricRegistry) {
@@ -120,7 +120,7 @@ public class InstanceState {
   }
 
   @NonNull
-  public DseSinkConfig getConfig() {
+  public CassandraSinkConfig getConfig() {
     return config;
   }
 

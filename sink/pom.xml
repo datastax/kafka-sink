@@ -25,7 +25,7 @@
   </parent>
   <artifactId>kafka-connect-cassandra-sink</artifactId>
   <name>DataStax Apache Cassandra (R) Kafka Sink Connector - Sink</name>
-  <description>A Kafka Connect sink to load records from Kafka topics to DSE.</description>
+  <description>A Kafka Connect Sink to load records from Kafka topics to Apache Cassandra (R) or DataStax Enterprise (DSE).</description>
   <dependencies>
     <dependency>
       <groupId>org.apache.kafka</groupId>

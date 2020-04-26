@@ -15,10 +15,10 @@
  */
 package com.datastax.oss.kafka.sink;
 
-import com.datastax.oss.kafka.sink.record.RecordMetadata;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.kafka.sink.record.RecordMetadata;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class TestRecordMetadata implements RecordMetadata {

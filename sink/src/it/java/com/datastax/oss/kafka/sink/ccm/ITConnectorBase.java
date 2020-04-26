@@ -17,12 +17,12 @@ package com.datastax.oss.kafka.sink.ccm;
 
 import static org.mockito.Mockito.mock;
 
-import com.datastax.oss.kafka.sink.DseSinkConnector;
-import com.datastax.oss.kafka.sink.DseSinkTask;
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.metadata.EndPoint;
+import com.datastax.oss.kafka.sink.CassandraSinkConnector;
+import com.datastax.oss.kafka.sink.DseSinkTask;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -42,7 +42,7 @@ public class ITConnectorBase {
   @Nullable private final Integer binaryPort;
   private final String localDc;
   String keyspaceName;
-  protected DseSinkConnector conn = new DseSinkConnector();
+  protected CassandraSinkConnector conn = new CassandraSinkConnector();
   protected DseSinkTask task = new DseSinkTask();
 
   public ITConnectorBase(

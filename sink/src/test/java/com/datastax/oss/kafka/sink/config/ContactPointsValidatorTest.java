@@ -35,10 +35,10 @@ class ContactPointsValidatorTest {
     // given
     Map<String, String> config =
         ImmutableMap.of("contactPoints", contactPointsList, "loadBalancing.localDc", "dc1");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
-    ContactPointsValidator.validateContactPoints(dseSinkConfig.getContactPoints());
+    ContactPointsValidator.validateContactPoints(cassandraSinkConfig.getContactPoints());
 
     // then no throw
   }
@@ -49,11 +49,13 @@ class ContactPointsValidatorTest {
     // given
     Map<String, String> config =
         ImmutableMap.of("contactPoints", contactPointsList, "loadBalancing.localDc", "dc1");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when, then
     assertThatThrownBy(
-            () -> ContactPointsValidator.validateContactPoints(dseSinkConfig.getContactPoints()))
+            () ->
+                ContactPointsValidator.validateContactPoints(
+                    cassandraSinkConfig.getContactPoints()))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("contactPoints");
   }

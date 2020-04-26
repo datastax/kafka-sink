@@ -32,7 +32,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
 import com.datastax.oss.driver.api.core.context.DriverContext;
@@ -42,6 +41,7 @@ import com.datastax.oss.driver.internal.core.util.DependencyCheck;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
 import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
 import com.datastax.oss.kafka.sink.config.SslConfig;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -80,11 +80,11 @@ class LifeCycleManagerIT {
             String.valueOf(ccm.getBinaryPort()),
             SslConfig.HOSTNAME_VALIDATION_OPT,
             "false");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -112,11 +112,11 @@ class LifeCycleManagerIT {
             String.valueOf(ccm.getBinaryPort()),
             SslConfig.HOSTNAME_VALIDATION_OPT,
             "false");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -142,11 +142,11 @@ class LifeCycleManagerIT {
             String.valueOf(ccm.getBinaryPort()),
             SslConfig.HOSTNAME_VALIDATION_OPT,
             "true");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -171,11 +171,11 @@ class LifeCycleManagerIT {
             String.valueOf(ccm.getBinaryPort()),
             SslConfig.HOSTNAME_VALIDATION_OPT,
             "true");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -195,20 +195,22 @@ class LifeCycleManagerIT {
     config.put("loadBalancing.localDc", ccm.getDC(1));
     config.put("port", String.valueOf(ccm.getBinaryPort()));
     config.put("jmx", "true");
-    config.put(DseSinkConfig.withDriverPrefix(CONFIG_RELOAD_INTERVAL), "1 minutes");
-    config.put(DseSinkConfig.withDriverPrefix(REQUEST_CONSISTENCY), "ALL");
-    config.put(DseSinkConfig.withDriverPrefix(REQUEST_DEFAULT_IDEMPOTENCE), "true");
-    config.put(DseSinkConfig.withDriverPrefix(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
-    config.put(DseSinkConfig.withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
+    config.put(CassandraSinkConfig.withDriverPrefix(CONFIG_RELOAD_INTERVAL), "1 minutes");
+    config.put(CassandraSinkConfig.withDriverPrefix(REQUEST_CONSISTENCY), "ALL");
+    config.put(CassandraSinkConfig.withDriverPrefix(REQUEST_DEFAULT_IDEMPOTENCE), "true");
     config.put(
-        DseSinkConfig.withDriverPrefix(CONTACT_POINTS),
+        CassandraSinkConfig.withDriverPrefix(RECONNECTION_POLICY_CLASS),
+        "ConstantReconnectionPolicy");
+    config.put(CassandraSinkConfig.withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
+    config.put(
+        CassandraSinkConfig.withDriverPrefix(CONTACT_POINTS),
         "this should be ignored because contactPoints provided as well");
 
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -229,14 +231,15 @@ class LifeCycleManagerIT {
 
       // validate defaults
       assertThat(profile.getInt(CONNECTION_POOL_LOCAL_SIZE))
-          .isEqualTo(Integer.valueOf(DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT));
+          .isEqualTo(Integer.valueOf(CassandraSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT));
 
       assertThat(profile.getDuration(REQUEST_TIMEOUT)).isEqualTo(Duration.ofSeconds(30));
 
       assertThat(profile.getDuration(METRICS_NODE_CQL_MESSAGES_HIGHEST))
           .isEqualTo(Duration.ofSeconds(35));
 
-      assertThat(profile.getString(PROTOCOL_COMPRESSION)).isEqualTo(DseSinkConfig.COMPRESSION_DEFAULT);
+      assertThat(profile.getString(PROTOCOL_COMPRESSION))
+          .isEqualTo(CassandraSinkConfig.COMPRESSION_DEFAULT);
 
       assertFalse(profile.isDefined(CLOUD_SECURE_CONNECT_BUNDLE));
 
@@ -263,10 +266,10 @@ class LifeCycleManagerIT {
             String.valueOf(ccm.getBinaryPort()),
             SslConfig.HOSTNAME_VALIDATION_OPT,
             "false");
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(config);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
-    try (CqlSession session = LifeCycleManager.buildCqlSession(dseSinkConfig, VERSION)) {
+    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
       DriverContext context = session.getContext();
       // then
       assertThat((UUID) ReflectionUtils.getInternalState(context, "startupClientId")).isNotNull();

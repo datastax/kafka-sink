@@ -35,7 +35,7 @@ ctool run kct "mkdir /tmp/dse-connector"
 ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool scp -R kct 0 ${CLOUD_SECURE_BUNDLE_LOCATION} /home/automaton
-ctool scp -R kct 0 cloud/dse-sink-avro-cloud.json /home/automaton
+ctool scp -R kct 0 cloud/cassandra-sink-avro-cloud.json /home/automaton
 ctool run --sudo kct "mv /home/automaton/${CLOUD_SECURE_BUNDLE_FILE_NAME} /home/automaton/secure-bundle.zip"
 ctool run --sudo kct "unzip /home/automaton/secure-bundle.zip -d /home/automaton/secure-bundle"
 ctool run --sudo kct "chmod 777 /home/automaton/secure-bundle/cert"

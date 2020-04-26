@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.kafka.sink.config;
 
+import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD;
 import static com.datastax.oss.kafka.sink.config.SslConfig.CIPHER_SUITES_OPT;
 import static com.datastax.oss.kafka.sink.config.SslConfig.HOSTNAME_VALIDATION_OPT;
 import static com.datastax.oss.kafka.sink.config.SslConfig.KEYSTORE_PASSWORD_OPT;
@@ -24,7 +25,6 @@ import static com.datastax.oss.kafka.sink.config.SslConfig.OPENSSL_PRIVATE_KEY_O
 import static com.datastax.oss.kafka.sink.config.SslConfig.PROVIDER_OPT;
 import static com.datastax.oss.kafka.sink.config.SslConfig.TRUSTSTORE_PASSWORD_OPT;
 import static com.datastax.oss.kafka.sink.config.SslConfig.TRUSTSTORE_PATH_OPT;
-import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

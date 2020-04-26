@@ -15,13 +15,13 @@
  */
 package com.datastax.oss.kafka.sink.config;
 
-import com.datastax.oss.kafka.sink.record.RawData;
-import com.datastax.oss.kafka.sink.schema.MappingBaseVisitor;
-import com.datastax.oss.kafka.sink.schema.MappingLexer;
-import com.datastax.oss.kafka.sink.schema.MappingParser;
-import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.kafka.generated.schema.MappingBaseVisitor;
+import com.datastax.oss.kafka.generated.schema.MappingLexer;
+import com.datastax.oss.kafka.generated.schema.MappingParser;
+import com.datastax.oss.kafka.sink.record.RawData;
 import com.datastax.oss.kafka.sink.util.FunctionMapper;
+import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.kafka.sink.util.StringUtil;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

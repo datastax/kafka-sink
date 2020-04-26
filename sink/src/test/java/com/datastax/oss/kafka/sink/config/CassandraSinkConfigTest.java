@@ -15,44 +15,44 @@
  */
 package com.datastax.oss.kafka.sink.config;
 
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.COMPRESSION_DEFAULT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.COMPRESSION_DRIVER_SETTING;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.COMPRESSION_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.CONCURRENT_REQUESTS_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.CONTACT_POINTS_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.DC_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.LOCAL_DC_DRIVER_SETTING;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.METRICS_INTERVAL_DEFAULT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.PORT_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DEFAULT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_DRIVER_SETTING;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.SSL_OPT_PREFIX;
-import static com.datastax.oss.kafka.sink.config.DseSinkConfig.withDriverPrefix;
-import static com.datastax.oss.kafka.sink.config.SslConfig.PROVIDER_OPT;
-import static com.datastax.oss.kafka.sink.config.TableConfig.MAPPING_OPT;
-import static com.datastax.oss.kafka.sink.config.TableConfig.getTableSettingPath;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.COMPRESSION_DEFAULT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.COMPRESSION_DRIVER_SETTING;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.COMPRESSION_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONCURRENT_REQUESTS_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONNECTION_POOL_LOCAL_SIZE;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DEFAULT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONTACT_POINTS_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.DC_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.LOCAL_DC_DRIVER_SETTING;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.METRICS_HIGHEST_LATENCY_DRIVER_SETTINGS;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.METRICS_HIGHEST_LATENCY_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.METRICS_INTERVAL_DEFAULT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.PORT_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.QUERY_EXECUTION_TIMEOUT_DEFAULT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.QUERY_EXECUTION_TIMEOUT_DRIVER_SETTING;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.QUERY_EXECUTION_TIMEOUT_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.SECURE_CONNECT_BUNDLE_DRIVER_SETTING;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.SECURE_CONNECT_BUNDLE_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.SSL_OPT_PREFIX;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.withDriverPrefix;
+import static com.datastax.oss.kafka.sink.config.SslConfig.PROVIDER_OPT;
+import static com.datastax.oss.kafka.sink.config.TableConfig.MAPPING_OPT;
+import static com.datastax.oss.kafka.sink.config.TableConfig.getTableSettingPath;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.datastax.oss.kafka.sink.util.SinkUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
+import com.datastax.oss.kafka.sink.util.SinkUtil;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +64,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class DseSinkConfigTest {
+class CassandraSinkConfigTest {
 
   private static final String CONTACT_POINTS_DRIVER_SETTINGS = withDriverPrefix(CONTACT_POINTS);
 
@@ -72,17 +72,17 @@ class DseSinkConfigTest {
   void should_error_invalid_port() {
     Map<String, String> props =
         Maps.newHashMap(ImmutableMap.<String, String>builder().put(PORT_OPT, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value foo for configuration port");
 
     props.put(PORT_OPT, "0");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
 
     props.put(PORT_OPT, "-1");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
   }
@@ -92,17 +92,17 @@ class DseSinkConfigTest {
     Map<String, String> props =
         Maps.newHashMap(
             ImmutableMap.<String, String>builder().put(QUERY_EXECUTION_TIMEOUT_OPT, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value foo for configuration queryExecutionTimeout");
 
     props.put(QUERY_EXECUTION_TIMEOUT_OPT, "0");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
 
     props.put(QUERY_EXECUTION_TIMEOUT_OPT, "-1");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
   }
@@ -112,17 +112,17 @@ class DseSinkConfigTest {
     Map<String, String> props =
         Maps.newHashMap(
             ImmutableMap.<String, String>builder().put(METRICS_HIGHEST_LATENCY_OPT, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value foo for configuration metricsHighestLatency");
 
     props.put(METRICS_HIGHEST_LATENCY_OPT, "0");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
 
     props.put(METRICS_HIGHEST_LATENCY_OPT, "-1");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
   }
@@ -132,17 +132,17 @@ class DseSinkConfigTest {
     Map<String, String> props =
         Maps.newHashMap(
             ImmutableMap.<String, String>builder().put(CONNECTION_POOL_LOCAL_SIZE, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value foo for configuration connectionPoolLocalSize");
 
     props.put(CONNECTION_POOL_LOCAL_SIZE, "0");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
 
     props.put(CONNECTION_POOL_LOCAL_SIZE, "-1");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
   }
@@ -152,17 +152,17 @@ class DseSinkConfigTest {
     Map<String, String> props =
         Maps.newHashMap(
             ImmutableMap.<String, String>builder().put(CONCURRENT_REQUESTS_OPT, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Invalid value foo for configuration maxConcurrentRequests");
 
     props.put(CONCURRENT_REQUESTS_OPT, "0");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
 
     props.put(CONCURRENT_REQUESTS_OPT, "-1");
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Value must be at least 1");
   }
@@ -171,7 +171,7 @@ class DseSinkConfigTest {
   void should_error_invalid_compression_type() {
     Map<String, String> props =
         Maps.newHashMap(ImmutableMap.<String, String>builder().put(COMPRESSION_OPT, "foo").build());
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
@@ -183,7 +183,7 @@ class DseSinkConfigTest {
   void should_error_missing_dc_with_contactPoints() {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(CONTACT_POINTS_OPT, "127.0.0.1").build();
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format("When contact points is provided, %s must also be specified", DC_OPT));
@@ -196,7 +196,7 @@ class DseSinkConfigTest {
             .put(CONTACT_POINTS_OPT, "127.0.0.1")
             .put(DC_OPT, "")
             .build();
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format("When contact points is provided, %s must also be specified", DC_OPT));
@@ -210,7 +210,7 @@ class DseSinkConfigTest {
             .put(DC_OPT, "local")
             .build();
 
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
     assertThat(d.getLocalDc().get()).isEqualTo("local");
   }
@@ -223,7 +223,7 @@ class DseSinkConfigTest {
             .put(LOCAL_DC_DRIVER_SETTING, "local")
             .build();
 
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     assertThat(d.getContactPoints()).containsExactly("127.0.0.1", "127.0.1.1");
     assertThat(d.getLocalDc().get()).isEqualTo("local");
   }
@@ -233,7 +233,7 @@ class DseSinkConfigTest {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(PORT_OPT, "5725").build();
 
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     assertThat(d.getPort()).isEqualTo(5725);
   }
 
@@ -242,7 +242,7 @@ class DseSinkConfigTest {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(CONCURRENT_REQUESTS_OPT, "129").build();
 
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     assertThat(d.getMaxConcurrentRequests()).isEqualTo(129);
   }
 
@@ -251,7 +251,7 @@ class DseSinkConfigTest {
     Map<String, String> props =
         ImmutableMap.<String, String>builder().put(SinkUtil.NAME_OPT, "myinst").build();
 
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     assertThat(d.getInstanceName()).isEqualTo("myinst");
   }
 
@@ -262,7 +262,7 @@ class DseSinkConfigTest {
             .put(SECURE_CONNECT_BUNDLE_OPT, "/location/to/bundle")
             .build();
 
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     assertThat(d.getJavaDriverSettings().get(SECURE_CONNECT_BUNDLE_DRIVER_SETTING))
         .isEqualTo("/location/to/bundle");
   }
@@ -275,7 +275,7 @@ class DseSinkConfigTest {
             .put(CONTACT_POINTS_OPT, "127.0.0.1")
             .build();
 
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
@@ -291,7 +291,7 @@ class DseSinkConfigTest {
             .put(DC_OPT, "dc1")
             .build();
 
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
@@ -307,7 +307,7 @@ class DseSinkConfigTest {
             .put(LOCAL_DC_DRIVER_SETTING, "dc1")
             .build();
 
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
@@ -323,7 +323,7 @@ class DseSinkConfigTest {
             .put(PROVIDER_OPT, "JDK")
             .build();
 
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
             String.format(
@@ -341,7 +341,7 @@ class DseSinkConfigTest {
                     getTableSettingPath("yourtopic", "MyKs2", "MyTable2", MAPPING_OPT),
                     "d1=value.f1")
                 .build());
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     Map<String, TopicConfig> topicConfigs = d.getTopicConfigs();
     assertThat(topicConfigs.size()).isEqualTo(2);
     assertTopic(
@@ -372,7 +372,7 @@ class DseSinkConfigTest {
                     "c1=value.f1")
                 .build());
     // when
-    DseSinkConfig d = new DseSinkConfig(props);
+    CassandraSinkConfig d = new CassandraSinkConfig(props);
     Map<String, TopicConfig> topicConfigs = d.getTopicConfigs();
 
     // then
@@ -395,7 +395,7 @@ class DseSinkConfigTest {
         Maps.newHashMap(
             ImmutableMap.<String, String>builder().put(settingName, "c1=value.f1").build());
     // when then
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The setting: "
@@ -430,7 +430,7 @@ class DseSinkConfigTest {
                 .put(getTableSettingPath("mytopic", "MyKs", "MyTable", MAPPING_OPT), "c1=value.f1")
                 .build());
 
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining("Missing topic settings (topic.mytopic2.*) for topic mytopic2");
   }
@@ -447,7 +447,7 @@ class DseSinkConfigTest {
                     "c1=value.f1")
                 .build());
 
-    DseSinkConfig config = new DseSinkConfig(props);
+    CassandraSinkConfig config = new CassandraSinkConfig(props);
     assertThat(config.getTopicConfigs().size()).isEqualTo(2);
   }
 
@@ -467,7 +467,7 @@ class DseSinkConfigTest {
                     "c1=value.f1")
                 .build());
 
-    DseSinkConfig config = new DseSinkConfig(props);
+    CassandraSinkConfig config = new CassandraSinkConfig(props);
     assertThat(config.getTopicConfigs().size()).isEqualTo(2);
   }
 
@@ -485,7 +485,7 @@ class DseSinkConfigTest {
                 .put("topic.t1.codec.timeZone", "Europe/Warsaw")
                 .build());
 
-    DseSinkConfig config = new DseSinkConfig(props);
+    CassandraSinkConfig config = new CassandraSinkConfig(props);
     assertThat(config.getTopicConfigs().size()).isEqualTo(2);
   }
 
@@ -497,7 +497,7 @@ class DseSinkConfigTest {
         Maps.newHashMap(
             ImmutableMap.<String, String>builder().put(settingName, "c1=value.f1").build());
     // when then
-    assertThatThrownBy(() -> new DseSinkConfig(props))
+    assertThatThrownBy(() -> new CassandraSinkConfig(props))
         .isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage(
             "The setting: "
@@ -518,7 +518,7 @@ class DseSinkConfigTest {
                 .put(mappingSettingName, "c1=value.f1")
                 .build());
     // when then
-    assertThatCode(() -> new DseSinkConfig(props)).doesNotThrowAnyException();
+    assertThatCode(() -> new CassandraSinkConfig(props)).doesNotThrowAnyException();
   }
 
   private static Stream<? extends Arguments> topicKeyspaceTableSettings() {
@@ -548,7 +548,7 @@ class DseSinkConfigTest {
                 .put(deletesEnabledSettingName, "false")
                 .build());
     // when then
-    assertThatCode(() -> new DseSinkConfig(props)).doesNotThrowAnyException();
+    assertThatCode(() -> new CassandraSinkConfig(props)).doesNotThrowAnyException();
   }
 
   @ParameterizedTest
@@ -564,7 +564,7 @@ class DseSinkConfigTest {
                 .put(mappingSettingName, "c1=value.c1")
                 .build());
     // when then
-    assertThatCode(() -> new DseSinkConfig(props)).doesNotThrowAnyException();
+    assertThatCode(() -> new CassandraSinkConfig(props)).doesNotThrowAnyException();
   }
 
   private static Stream<? extends Arguments> topicKeyspaceTableCodecSettings() {
@@ -583,21 +583,21 @@ class DseSinkConfigTest {
     Map<String, String> props =
         Maps.newHashMap(ImmutableMap.<String, String>builder().put("jmx", "true").build());
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(props);
 
     // then
     assertThat(
-            dseSinkConfig
+            cassandraSinkConfig
                 .getJavaDriverSettings()
                 .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0"))
         .isEqualTo("cql-requests");
     assertThat(
-            dseSinkConfig
+            cassandraSinkConfig
                 .getJavaDriverSettings()
                 .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".1"))
         .isEqualTo("cql-client-timeouts");
     assertThat(
-            dseSinkConfig
+            cassandraSinkConfig
                 .getJavaDriverSettings()
                 .get(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL)))
         .isEqualTo(METRICS_INTERVAL_DEFAULT);
@@ -614,16 +614,16 @@ class DseSinkConfigTest {
                 .put(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL), "5 seconds")
                 .build());
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(props);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(props);
 
     // then
     assertThat(
-            dseSinkConfig
+            cassandraSinkConfig
                 .getJavaDriverSettings()
                 .get(withDriverPrefix(METRICS_SESSION_ENABLED) + ".0"))
         .isEqualTo("bytes-sent");
     assertThat(
-            dseSinkConfig
+            cassandraSinkConfig
                 .getJavaDriverSettings()
                 .get(withDriverPrefix(METRICS_SESSION_CQL_REQUESTS_INTERVAL)))
         .isEqualTo("5 seconds");
@@ -634,10 +634,11 @@ class DseSinkConfigTest {
   void should_handle_deprecated_settings(
       Map<String, String> inputSettings, String driverSettingName, String expected) {
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(inputSettings);
 
     // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
+    assertThat(cassandraSinkConfig.getJavaDriverSettings().get(driverSettingName))
+        .isEqualTo(expected);
   }
 
   @ParameterizedTest
@@ -645,20 +646,21 @@ class DseSinkConfigTest {
   void should_use_java_driver_setting(
       Map<String, String> inputSettings, String driverSettingName, String expected) {
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(inputSettings);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(inputSettings);
 
     // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName)).isEqualTo(expected);
+    assertThat(cassandraSinkConfig.getJavaDriverSettings().get(driverSettingName))
+        .isEqualTo(expected);
   }
 
   @ParameterizedTest
   @MethodSource("defaultSettingProvider")
   void should_set_default_driver_setting(String driverSettingName, String expectedDefault) {
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(Collections.emptyMap());
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(Collections.emptyMap());
 
     // then
-    assertThat(dseSinkConfig.getJavaDriverSettings().get(driverSettingName))
+    assertThat(cassandraSinkConfig.getJavaDriverSettings().get(driverSettingName))
         .isEqualTo(expectedDefault);
   }
 
@@ -673,17 +675,17 @@ class DseSinkConfigTest {
     connectorSettings.put(DC_OPT, "dc");
 
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(connectorSettings);
 
     // then
     for (String listSettingName : JAVA_DRIVER_SETTINGS_LIST_TYPE) {
       assertThat(
-              dseSinkConfig
+              cassandraSinkConfig
                   .getJavaDriverSettings()
                   .get(String.format("%s.%s", listSettingName, "0")))
           .isEqualTo("a");
       assertThat(
-              dseSinkConfig
+              cassandraSinkConfig
                   .getJavaDriverSettings()
                   .get(String.format("%s.%s", listSettingName, "1")))
           .isEqualTo("b");
@@ -708,12 +710,12 @@ class DseSinkConfigTest {
     connectorSettings.put(LOCAL_DC_DRIVER_SETTING, "localDc");
 
     // when
-    DseSinkConfig dseSinkConfig = new DseSinkConfig(connectorSettings);
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(connectorSettings);
 
     // then
-    assertThat(dseSinkConfig.getContactPoints()).isEqualTo(expected);
+    assertThat(cassandraSinkConfig.getContactPoints()).isEqualTo(expected);
     for (Map.Entry<String, String> entry : expectedDriverSettings.entrySet()) {
-      assertThat(dseSinkConfig.getJavaDriverSettings()).contains(entry);
+      assertThat(cassandraSinkConfig.getJavaDriverSettings()).contains(entry);
     }
   }
 

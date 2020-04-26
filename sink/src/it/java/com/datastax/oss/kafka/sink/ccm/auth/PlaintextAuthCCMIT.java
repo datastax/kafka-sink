@@ -18,8 +18,6 @@ package com.datastax.oss.kafka.sink.ccm.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.datastax.oss.kafka.sink.ccm.EndToEndCCMITBase;
-import com.datastax.oss.kafka.sink.config.AuthenticatorConfig.Provider;
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -27,7 +25,9 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMConfig;
 import com.datastax.oss.dsbulk.tests.driver.annotations.SessionConfig;
+import com.datastax.oss.kafka.sink.ccm.EndToEndCCMITBase;
 import com.datastax.oss.kafka.sink.config.AuthenticatorConfig;
+import com.datastax.oss.kafka.sink.config.AuthenticatorConfig.Provider;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -88,7 +88,10 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
 
     return Stream.of(
         Arguments.of(
-            ImmutableMap.builder().putAll(incorrectCredentials).put(AuthenticatorConfig.PROVIDER_OPT, "DSE").build()),
+            ImmutableMap.builder()
+                .putAll(incorrectCredentials)
+                .put(AuthenticatorConfig.PROVIDER_OPT, "DSE")
+                .build()),
         Arguments.of(
             ImmutableMap.builder()
                 .putAll(incorrectCredentials)
@@ -107,7 +110,10 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
 
     return Stream.of(
         Arguments.of(
-            ImmutableMap.builder().putAll(incorrectCredentials).put(AuthenticatorConfig.PROVIDER_OPT, "DSE").build()),
+            ImmutableMap.builder()
+                .putAll(incorrectCredentials)
+                .put(AuthenticatorConfig.PROVIDER_OPT, "DSE")
+                .build()),
         Arguments.of(
             ImmutableMap.builder()
                 .putAll(incorrectCredentials)

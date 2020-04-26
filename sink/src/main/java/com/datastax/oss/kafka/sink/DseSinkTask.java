@@ -15,6 +15,10 @@
  */
 package com.datastax.oss.kafka.sink;
 
+import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
 import com.datastax.oss.kafka.sink.config.TableConfig;
 import com.datastax.oss.kafka.sink.config.TopicConfig;
 import com.datastax.oss.kafka.sink.metadata.InnerDataAndMetadata;
@@ -25,10 +29,6 @@ import com.datastax.oss.kafka.sink.record.KeyValueRecordMetadata;
 import com.datastax.oss.kafka.sink.record.RecordAndStatement;
 import com.datastax.oss.kafka.sink.state.InstanceState;
 import com.datastax.oss.kafka.sink.state.LifeCycleManager;
-import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
-import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
-import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -70,7 +70,7 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public String version() {
-    return new DseSinkConnector().version();
+    return new CassandraSinkConnector().version();
   }
 
   @Override

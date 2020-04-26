@@ -17,8 +17,6 @@ package com.datastax.oss.kafka.sink.state;
 
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SASL_PROPERTIES;
 import static com.datastax.dse.driver.api.core.config.DseDriverOption.AUTH_PROVIDER_SERVICE;
-import static com.datastax.oss.kafka.sink.config.TableConfig.MAPPING_OPT;
-import static com.datastax.oss.kafka.sink.util.UUIDUtil.generateClientId;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_CLASS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.AUTH_PROVIDER_USER_NAME;
@@ -29,21 +27,12 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_KE
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_KEYSTORE_PATH;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PASSWORD;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.SSL_TRUSTSTORE_PATH;
+import static com.datastax.oss.kafka.sink.config.TableConfig.MAPPING_OPT;
+import static com.datastax.oss.kafka.sink.util.UUIDUtil.generateClientId;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
 import com.datastax.dse.driver.internal.core.auth.DseGssApiAuthProvider;
-import com.datastax.oss.kafka.sink.DseSinkTask;
-import com.datastax.oss.kafka.sink.codecs.CodecSettings;
-import com.datastax.oss.kafka.sink.config.AuthenticatorConfig;
-import com.datastax.oss.kafka.sink.config.ContactPointsValidator;
-import com.datastax.oss.kafka.sink.config.DseSinkConfig;
-import com.datastax.oss.kafka.sink.config.SslConfig;
-import com.datastax.oss.kafka.sink.config.TableConfig;
-import com.datastax.oss.kafka.sink.config.TopicConfig;
-import com.datastax.oss.kafka.sink.ssl.SessionBuilder;
-import com.datastax.oss.kafka.sink.util.SinkUtil;
-import com.datastax.oss.kafka.sink.util.StringUtil;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
@@ -60,6 +49,17 @@ import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammatic
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.datastax.oss.kafka.sink.DseSinkTask;
+import com.datastax.oss.kafka.sink.codecs.CodecSettings;
+import com.datastax.oss.kafka.sink.config.AuthenticatorConfig;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
+import com.datastax.oss.kafka.sink.config.ContactPointsValidator;
+import com.datastax.oss.kafka.sink.config.SslConfig;
+import com.datastax.oss.kafka.sink.config.TableConfig;
+import com.datastax.oss.kafka.sink.config.TopicConfig;
+import com.datastax.oss.kafka.sink.ssl.SessionBuilder;
+import com.datastax.oss.kafka.sink.util.SinkUtil;
+import com.datastax.oss.kafka.sink.util.StringUtil;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -110,7 +110,7 @@ public class LifeCycleManager {
         INSTANCE_STATES.computeIfAbsent(
             props.get(SinkUtil.NAME_OPT),
             x -> {
-              DseSinkConfig config = new DseSinkConfig(props);
+              CassandraSinkConfig config = new CassandraSinkConfig(props);
               CqlSession session = buildCqlSession(config, task.version());
               return buildInstanceState(session, config);
             });
@@ -404,7 +404,7 @@ public class LifeCycleManager {
    * @return a new InstanceState
    */
   @NonNull
-  private static InstanceState buildInstanceState(CqlSession session, DseSinkConfig config) {
+  private static InstanceState buildInstanceState(CqlSession session, CassandraSinkConfig config) {
 
     // Compute the primary keys of all tables being mapped to (across topics).
     Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
@@ -488,7 +488,7 @@ public class LifeCycleManager {
    */
   @VisibleForTesting
   @NonNull
-  public static CqlSession buildCqlSession(DseSinkConfig config, String version) {
+  public static CqlSession buildCqlSession(CassandraSinkConfig config, String version) {
     log.info("DseSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     CqlSessionBuilder builder =
@@ -564,7 +564,7 @@ public class LifeCycleManager {
    * @param configLoaderBuilder the config loader builder
    */
   private static void processAuthenticatorConfig(
-      DseSinkConfig config, ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder) {
+      CassandraSinkConfig config, ProgrammaticDriverConfigLoaderBuilder configLoaderBuilder) {
     AuthenticatorConfig authConfig = config.getAuthenticatorConfig();
     if (authConfig.getProvider() == AuthenticatorConfig.Provider.DSE) {
       configLoaderBuilder

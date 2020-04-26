@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.datastax.oss.kafka.sink.record.RecordAndStatement;
-import com.datastax.oss.kafka.sink.state.InstanceState;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
+import com.datastax.oss.kafka.sink.record.RecordAndStatement;
+import com.datastax.oss.kafka.sink.state.InstanceState;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;

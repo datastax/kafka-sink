@@ -26,7 +26,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
  */
 public class Main {
   public static void main(String[] args) {
-    DseSinkConnector conn = new DseSinkConnector();
+    CassandraSinkConnector conn = new CassandraSinkConnector();
 
     String mappingString = "f1=value.f1, f2=value.f2";
     Map<String, String> props =

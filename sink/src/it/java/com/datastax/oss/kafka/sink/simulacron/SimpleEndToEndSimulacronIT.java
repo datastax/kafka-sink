@@ -28,10 +28,6 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 import com.codahale.metrics.Histogram;
-import com.datastax.oss.kafka.sink.DseSinkConnector;
-import com.datastax.oss.kafka.sink.DseSinkTask;
-import com.datastax.oss.kafka.sink.state.InstanceState;
-import com.datastax.oss.kafka.sink.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.logging.LogCapture;
@@ -46,6 +42,10 @@ import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Column;
 import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Table;
 import com.datastax.oss.dsbulk.tests.simulacron.annotations.SimulacronConfig;
 import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
+import com.datastax.oss.kafka.sink.CassandraSinkConnector;
+import com.datastax.oss.kafka.sink.DseSinkTask;
+import com.datastax.oss.kafka.sink.state.InstanceState;
+import com.datastax.oss.kafka.sink.state.LifeCycleManager;
 import com.datastax.oss.protocol.internal.request.Batch;
 import com.datastax.oss.protocol.internal.request.Execute;
 import com.datastax.oss.simulacron.common.cluster.QueryLog;
@@ -115,7 +115,7 @@ class SimpleEndToEndSimulacronIT {
   private static final String INSTANCE_NAME = "myinstance";
   private final BoundCluster simulacron;
   private final SimulacronUtils.Keyspace schema;
-  private final DseSinkConnector conn;
+  private final CassandraSinkConnector conn;
   private final DseSinkTask task;
   private final LogInterceptor logs;
   private final Map<String, String> connectorProperties;
@@ -156,7 +156,7 @@ class SimpleEndToEndSimulacronIT {
                 "table1_custom_query",
                 new Column("col1", DataTypes.INT),
                 new Column("col2", DataTypes.TEXT)));
-    conn = new DseSinkConnector();
+    conn = new CassandraSinkConnector();
 
     connectorProperties =
         ImmutableMap.<String, String>builder()
