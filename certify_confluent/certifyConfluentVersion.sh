@@ -17,9 +17,9 @@ TOPIC_NAME="avro-stream"
 
 
 # If running with DataStax Cloud:
-# Set CLOUD_USERNAME to username of your apollo constellation db
-# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db
-# Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db
+# Set CLOUD_USERNAME to username of your astra constellation db
+# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your astra constellation db
+# Set CLOUD_KEYSPACE to a keyspace of your astra constellation db
 CLOUD_USERNAME=user
 CLOUD_PASSWORD=password
 CLOUD_KEYSPACE=ks1
