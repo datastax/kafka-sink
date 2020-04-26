@@ -39,7 +39,7 @@ public class Main {
       conn.start(props);
       String value = "{\"f1\": 42, \"f2\": 96}";
       SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
-      DseSinkTask task = new DseSinkTask();
+      CassandraSinkTask task = new CassandraSinkTask();
       task.start(props);
       task.put(Collections.singletonList(record));
     } finally {

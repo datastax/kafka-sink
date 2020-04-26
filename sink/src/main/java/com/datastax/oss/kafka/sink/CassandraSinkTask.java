@@ -57,10 +57,13 @@ import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** DseSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to DSE. */
-public class DseSinkTask extends SinkTask {
+/**
+ * CassandraSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to
+ * DSE.
+ */
+public class CassandraSinkTask extends SinkTask {
   private static final Runnable NO_OP = () -> {};
-  private static final Logger log = LoggerFactory.getLogger(DseSinkTask.class);
+  private static final Logger log = LoggerFactory.getLogger(CassandraSinkTask.class);
   private final ExecutorService boundStatementProcessorService =
       Executors.newFixedThreadPool(
           1, new ThreadFactoryBuilder().setNameFormat("bound-statement-processor-%d").build());
@@ -75,7 +78,7 @@ public class DseSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    log.debug("DseSinkTask starting with props: {}", props);
+    log.debug("CassandraSinkTask starting with props: {}", props);
     taskStateManager = new TaskStateManager();
     failureOffsets = new ConcurrentHashMap<>();
     instanceState = LifeCycleManager.startTask(this, props);

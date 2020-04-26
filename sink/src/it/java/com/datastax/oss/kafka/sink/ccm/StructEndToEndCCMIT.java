@@ -229,7 +229,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -337,7 +337,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -385,7 +385,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -438,7 +438,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -471,7 +471,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(new SinkRecord("mytopic", 0, null, null, null, value, 1234L));
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -494,7 +494,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -524,7 +524,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -567,7 +567,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record1, record2, record3);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, doublecol, intcol FROM types").all();
     assertThat(results.size()).isEqualTo(3);
     for (Row row : results) {

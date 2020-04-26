@@ -178,7 +178,7 @@ public class CloudSniEndToEndIT extends ITConnectorBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);

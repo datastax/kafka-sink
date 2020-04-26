@@ -1067,7 +1067,7 @@ class RecordMapperTest {
 
   private static Stream<? extends Arguments> correctMappingProvider() {
     // kafka records
-    // DSE column definitions
+    // database column definitions
     // mapping
     return Stream.of(
         Arguments.of(

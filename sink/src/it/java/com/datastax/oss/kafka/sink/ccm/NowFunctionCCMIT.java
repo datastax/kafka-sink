@@ -93,7 +93,7 @@ class NowFunctionCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, loaded_at, loaded_at2 FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -124,7 +124,7 @@ class NowFunctionCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value_with_timeuuid").all();
     assertThat(results.size()).isEqualTo(0);
   }

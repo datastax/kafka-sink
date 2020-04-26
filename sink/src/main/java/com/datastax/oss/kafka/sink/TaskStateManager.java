@@ -88,8 +88,8 @@ class TaskStateManager {
   }
 
   /**
-   * The DseSinkTask can be in one of three states, and shutdown behavior varies depending on the
-   * current state.
+   * The CassandraSinkTask can be in one of three states, and shutdown behavior varies depending on
+   * the current state.
    */
   enum TaskState {
     // Task is waiting for records from the infrastructure

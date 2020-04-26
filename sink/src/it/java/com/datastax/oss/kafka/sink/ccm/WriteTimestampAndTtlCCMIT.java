@@ -59,7 +59,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
@@ -95,7 +95,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
@@ -125,7 +125,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, doublecol, ttl(doublecol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
@@ -314,7 +314,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
@@ -370,7 +370,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, doublecol, writetime(doublecol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);

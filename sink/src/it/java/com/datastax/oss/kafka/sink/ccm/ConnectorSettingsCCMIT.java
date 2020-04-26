@@ -83,7 +83,7 @@ class ConnectorSettingsCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "[42, 37]", 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);

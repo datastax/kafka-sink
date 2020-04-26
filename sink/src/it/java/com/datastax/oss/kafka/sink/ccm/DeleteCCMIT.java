@@ -54,7 +54,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -76,7 +76,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -104,7 +104,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted into DSE with null non-pk values.
+    // Verify that the record was inserted into the database with null non-pk values.
     List<Row> results = session.execute("SELECT * FROM small_simple").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -140,7 +140,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -165,7 +165,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -196,7 +196,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -221,7 +221,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -248,7 +248,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
@@ -269,7 +269,7 @@ class DeleteCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }

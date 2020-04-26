@@ -49,7 +49,7 @@ import com.datastax.oss.driver.internal.core.config.typesafe.DefaultProgrammatic
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
-import com.datastax.oss.kafka.sink.DseSinkTask;
+import com.datastax.oss.kafka.sink.CassandraSinkTask;
 import com.datastax.oss.kafka.sink.codecs.CodecSettings;
 import com.datastax.oss.kafka.sink.config.AuthenticatorConfig;
 import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
@@ -81,8 +81,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Class that is responsible for setting up / cleaning up state when a {@link DseSinkTask} starts up
- * or shuts down.
+ * Class that is responsible for setting up / cleaning up state when a {@link CassandraSinkTask}
+ * starts up or shuts down.
  */
 public class LifeCycleManager {
 
@@ -97,15 +97,15 @@ public class LifeCycleManager {
   private LifeCycleManager() {}
 
   /**
-   * Perform setup needed before a DseSinkTask is ready to handle records. Primarily, get or create
-   * an {@link InstanceState} and register the task with the owning InstanceState.
+   * Perform setup needed before a CassandraSinkTask is ready to handle records. Primarily, get or
+   * create an {@link InstanceState} and register the task with the owning InstanceState.
    *
    * @param task the task
    * @param props connector instance properties, from the connector config file (for
    *     connect-standalone) or a config stored in Kafka itself (connect-distributed).
    * @return the {@link InstanceState} that owns this task.
    */
-  public static InstanceState startTask(DseSinkTask task, Map<String, String> props) {
+  public static InstanceState startTask(CassandraSinkTask task, Map<String, String> props) {
     InstanceState instanceState =
         INSTANCE_STATES.computeIfAbsent(
             props.get(SinkUtil.NAME_OPT),
@@ -124,7 +124,7 @@ public class LifeCycleManager {
    * @param instanceState the owning {@link InstanceState}
    * @param task the task
    */
-  public static void stopTask(InstanceState instanceState, DseSinkTask task) {
+  public static void stopTask(InstanceState instanceState, CassandraSinkTask task) {
     log.info("Unregistering task");
     if (instanceState != null && instanceState.unregisterTaskAndCheckIfLast(task)) {
       INSTANCE_STATES.remove(instanceState.getConfig().getInstanceName());
@@ -489,7 +489,7 @@ public class LifeCycleManager {
   @VisibleForTesting
   @NonNull
   public static CqlSession buildCqlSession(CassandraSinkConfig config, String version) {
-    log.info("DseSinkTask starting with config:\n{}\n", config.toString());
+    log.info("CassandraSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     CqlSessionBuilder builder =
         new SessionBuilder(sslConfig)

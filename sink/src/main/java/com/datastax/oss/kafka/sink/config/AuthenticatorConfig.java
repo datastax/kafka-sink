@@ -123,7 +123,7 @@ public class AuthenticatorConfig extends AbstractConfig {
     String provider = authSettings.get(PROVIDER_OPT);
     if ((authSettings.containsKey(USERNAME_OPT) || authSettings.containsKey(PASSWORD_OPT))
         && ("None".equals(provider) || provider == null)) {
-      // Username/password was provided. Coerce the provider type to DSE.
+      // Username/password was provided. Coerce the provider type to PLAIN.
       mutated.put(PROVIDER_OPT, "PLAIN");
     }
 

@@ -37,7 +37,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@SuppressWarnings("ConstantConditions")
 @CCMConfig(
   config = "authenticator:PasswordAuthenticator",
   jvmArgs = "-Dcassandra.superuser_setup_delay_ms=0"
@@ -57,13 +56,13 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(5725368L);
 
-    // auth.provider was coerced to DSE
+    // auth.provider was coerced to the database
     assertThat(task.getInstanceState().getConfig().getAuthenticatorConfig().getProvider())
         .isEqualTo(Provider.PLAIN);
   }
@@ -90,14 +89,14 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
         Arguments.of(
             ImmutableMap.builder()
                 .putAll(incorrectCredentials)
-                .put(AuthenticatorConfig.PROVIDER_OPT, "DSE")
+                .put(AuthenticatorConfig.PROVIDER_OPT, "PLAIN")
                 .build()),
         Arguments.of(
             ImmutableMap.builder()
                 .putAll(incorrectCredentials)
                 .put(AuthenticatorConfig.PROVIDER_OPT, "None")
-                .build()), // should infer auth.provider to DSE
-        Arguments.of(incorrectCredentials) // should infer auth.provider to DSE
+                .build()), // should infer auth.provider to PLAIN
+        Arguments.of(incorrectCredentials) // should infer auth.provider to PLAIN
         );
   }
 
@@ -112,14 +111,14 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase {
         Arguments.of(
             ImmutableMap.builder()
                 .putAll(incorrectCredentials)
-                .put(AuthenticatorConfig.PROVIDER_OPT, "DSE")
+                .put(AuthenticatorConfig.PROVIDER_OPT, "PLAIN")
                 .build()),
         Arguments.of(
             ImmutableMap.builder()
                 .putAll(incorrectCredentials)
                 .put(AuthenticatorConfig.PROVIDER_OPT, "None")
-                .build()), // should infer auth.provider to DSE
-        Arguments.of(incorrectCredentials) // should infer auth.provider to DSE
+                .build()), // should infer auth.provider to PLAIN
+        Arguments.of(incorrectCredentials) // should infer auth.provider to PLAIN
         );
   }
 }

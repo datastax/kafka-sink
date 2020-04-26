@@ -307,13 +307,13 @@ public class TableConfig extends AbstractConfig {
             -1,
             ConfigDef.Range.atLeast(-1),
             ConfigDef.Importance.HIGH,
-            "TTL of rows inserted in DSE nodes")
+            "TTL of rows inserted in the database")
         .define(
             getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT),
             ConfigDef.Type.BOOLEAN,
             true,
             ConfigDef.Importance.HIGH,
-            "Whether nulls in Kafka should be treated as UNSET in DSE")
+            "Whether nulls in Kafka should be treated as UNSET in the database")
         .define(
             getTableSettingPath(topicName, keyspace, table, TTL_TIME_UNIT_OPT),
             ConfigDef.Type.STRING,

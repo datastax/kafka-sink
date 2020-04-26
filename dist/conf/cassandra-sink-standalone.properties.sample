@@ -24,7 +24,7 @@ topics=my_topic
 # information is part of the bundle's data.
 #loadBalancing.localDc=
 
-# Native transport port to connect to on DSE nodes; defaults to 9042.
+# Native transport port to connect to on database nodes; defaults to 9042.
 # If you need to configure different ports per host, do not use the contactPoints and port settings.
 # Instead, you can leverage the ability to configure the underlying Java driver with the following setting:
 # datastax-java-driver.basic.contact-points. This property takes a list of host:port pairs,
@@ -58,20 +58,20 @@ topics=my_topic
 
 ### Authentication Setings ###
 
-# Authentication provider to use, if any. Valid choices: None, DSE, GSSAPI.
+# Authentication provider to use, if any. Valid choices: None, PLAIN, GSSAPI.
 # Defaults to None.
 #auth.provider=None
 
-# Username for username/password authentication
+# Username for PLAIN authentication
 #auth.username=
 
-# Password for username/password authentication
+# Password for PLAIN authentication
 #auth.password=
 
-# Kerberos keytab file
+# Kerberos keytab file (GSSAPI provider)
 #auth.gssapi.keyTab=
 
-# Kerberos principal
+# Kerberos principal (GSSAPI provider)
 #auth.gssapi.principal=
 
 # SASL service name to use for GSSAPI provider authentication.

@@ -25,7 +25,7 @@ import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
-import com.datastax.oss.kafka.sink.DseSinkTask;
+import com.datastax.oss.kafka.sink.CassandraSinkTask;
 import com.datastax.oss.kafka.sink.RecordMapper;
 import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
 import com.datastax.oss.kafka.sink.config.TableConfig;
@@ -50,10 +50,10 @@ public class InstanceState {
   private final CassandraSinkConfig config;
   private final Map<String, TopicState> topicStates;
 
-  /** Semaphore to limit the number of concurrent DSE requests. */
+  /** Semaphore to limit the number of concurrent requests. */
   private final Semaphore requestBarrier;
 
-  private final Set<DseSinkTask> tasks;
+  private final Set<CassandraSinkTask> tasks;
   private final Executor mappingExecutor;
   private final JmxReporter reporter;
   private final GlobalSinkMetrics globalSinkMetrics;
@@ -92,7 +92,7 @@ public class InstanceState {
     }
   }
 
-  void registerTask(DseSinkTask task) {
+  void registerTask(CassandraSinkTask task) {
     tasks.add(task);
   }
 
@@ -105,7 +105,7 @@ public class InstanceState {
    * @param task the task
    * @return true if this is the last task to be unregistered in the InstanceState, false otherwise.
    */
-  synchronized boolean unregisterTaskAndCheckIfLast(DseSinkTask task) {
+  synchronized boolean unregisterTaskAndCheckIfLast(CassandraSinkTask task) {
     tasks.remove(task);
     if (tasks.isEmpty()) {
       log.debug("last task unregister close");

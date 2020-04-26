@@ -70,7 +70,7 @@ public class SslConfig extends AbstractConfig {
               ConfigDef.Type.BOOLEAN,
               true,
               ConfigDef.Importance.HIGH,
-              "Whether or not to validate DSE node hostnames when using SSL")
+              "Whether or not to validate node hostnames when using SSL")
           .define(
               KEYSTORE_PASSWORD_OPT,
               ConfigDef.Type.PASSWORD,

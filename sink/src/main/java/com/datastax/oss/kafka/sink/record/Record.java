@@ -19,7 +19,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
 
 /**
  * A parsed {@link SinkRecord} that is ready to have field mapping applied to it for inserting into
- * DSE.
+ * the database.
  */
 public interface Record extends KeyOrValue {
   Long getTimestamp();

@@ -70,7 +70,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -86,7 +86,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
         new SinkRecord("this.is.complex_topic-name", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -106,7 +106,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -125,7 +125,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, 5725368L, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -139,7 +139,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "my text", 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -155,7 +155,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, bytes, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, blobcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -172,7 +172,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, "[42, 37]", 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -188,7 +188,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
         new SinkRecord("mytopic", 0, null, 98761234L, null, Arrays.asList(42, 37), 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -206,7 +206,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 1234567L, null, null, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE; textcol should be unchanged.
+    // Verify that the record was inserted properly in the database; textcol should be unchanged.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -228,7 +228,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 1234567L, null, null, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE; textcol should be unchanged.
+    // Verify that the record was inserted properly in the database; textcol should be unchanged.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -288,7 +288,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -320,7 +320,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // then
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, listudtcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -366,7 +366,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
     runTaskWithRecords(record);
 
     // then
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT pk, value FROM \"CASE_SENSITIVE_UDT\"").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);

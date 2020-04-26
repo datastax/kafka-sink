@@ -104,7 +104,7 @@ class BoundStatementProcessorTest {
     ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3, 4});
 
     // when
-    // emulate DseSinkTask.put() behavior
+    // emulate CassandraSinkTask.put() behavior
     Thread producer =
         new Thread(
             () -> {
@@ -150,7 +150,7 @@ class BoundStatementProcessorTest {
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
 
     // when
-    // emulate DseSinkTask.put() behavior
+    // emulate CassandraSinkTask.put() behavior
     Thread producer =
         new Thread(
             () -> {
@@ -215,7 +215,7 @@ class BoundStatementProcessorTest {
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
 
     // when
-    // emulate DseSinkTask.put() behavior
+    // emulate CassandraSinkTask.put() behavior
     Thread producer =
         new Thread(
             () -> {
@@ -280,7 +280,7 @@ class BoundStatementProcessorTest {
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
 
     // when
-    // emulate DseSinkTask.put() behavior
+    // emulate CassandraSinkTask.put() behavior
     Thread producer =
         new Thread(
             () -> {
@@ -349,11 +349,11 @@ class BoundStatementProcessorTest {
         Arguments.of(0, 1, new int[] {}));
   }
 
-  private DseSinkTask mockDseSinkTask() {
+  private CassandraSinkTask mockDseSinkTask() {
     InstanceState instanceState = mock(InstanceState.class);
     when(instanceState.getCodecRegistry()).thenReturn(mock(CodecRegistry.class));
     when(instanceState.getProtocolVersion()).thenReturn(ProtocolVersion.DEFAULT);
-    DseSinkTask sinkTask = mock(DseSinkTask.class);
+    CassandraSinkTask sinkTask = mock(CassandraSinkTask.class);
     when(sinkTask.getInstanceState()).thenReturn(instanceState);
     return sinkTask;
   }

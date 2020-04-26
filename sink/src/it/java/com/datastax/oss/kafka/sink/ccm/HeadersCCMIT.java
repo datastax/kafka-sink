@@ -128,7 +128,7 @@ class HeadersCCMIT extends EndToEndCCMITBase {
 
     runTaskWithRecords(record);
 
-    // Verify that the record was deleted from DSE.
+    // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }

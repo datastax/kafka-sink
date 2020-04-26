@@ -115,7 +115,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
             TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, intcol, writetime(intcol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
@@ -183,7 +183,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -242,7 +242,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in FDSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, intcol, ttl(intcol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -276,7 +276,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in FDSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, intcol, writetime(intcol) FROM types").all();
     assertThat(results.size()).isEqualTo(1);
@@ -315,7 +315,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
             "mytopic", 0, null, null, null, value, 1234L, 153000987L, TimestampType.CREATE_TIME);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session
             .execute("SELECT bigintcol, intcol, writetime(intcol), ttl(intcol) FROM types")
@@ -357,7 +357,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
     Row row = extractAndAssertThatOneRowInResult(results);
@@ -412,7 +412,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, 98761234L, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results =
         session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
     Row row = extractAndAssertThatOneRowInResult(results);
@@ -489,7 +489,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     Row row = extractAndAssertThatOneRowInResult(results);
     Map<String, Integer> mapcol = row.getMap("mapcol", String.class, Integer.class);
@@ -527,7 +527,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     Row row = extractAndAssertThatOneRowInResult(results);
     Map<String, Integer> mapcol = row.getMap("mapcol", String.class, Integer.class);

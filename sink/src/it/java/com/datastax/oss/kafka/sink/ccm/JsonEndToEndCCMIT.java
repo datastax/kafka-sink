@@ -78,7 +78,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
             1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -108,7 +108,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
             1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -162,7 +162,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -184,7 +184,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -258,7 +258,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, jsonKey, null, structValue, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -283,7 +283,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, json, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE; textcol should be unchanged.
+    // Verify that the record was inserted properly in the database; textcol should be unchanged.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -345,7 +345,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT datecol, timecol, secondscol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
@@ -381,7 +381,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     SinkRecord record = new SinkRecord("mytopic", 0, null, null, null, value, 1234L);
     runTaskWithRecords(record);
 
-    // Verify that the record was inserted properly in DSE.
+    // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT datecol, timecol, timestampcol FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);

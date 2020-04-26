@@ -39,14 +39,14 @@ import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DseSinkTaskTest {
-  private DseSinkTask sinkTask;
+class CassandraSinkTaskTest {
+  private CassandraSinkTask sinkTask;
   private InstanceState instanceState;
   private SinkRecord record;
 
   @BeforeEach
   void setUp() {
-    sinkTask = new DseSinkTask();
+    sinkTask = new CassandraSinkTask();
     instanceState = mock(InstanceState.class);
     ReflectionUtils.setInternalState(sinkTask, "instanceState", instanceState);
     record = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);

@@ -27,7 +27,7 @@ import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.sink.SinkConnector;
 
-/** Sink connector to insert Kafka records into DSE. */
+/** Sink connector to insert Kafka records into Apache Cassandra or DSE. */
 public class CassandraSinkConnector extends SinkConnector {
   private String version;
   private Map<String, String> properties;
@@ -65,13 +65,13 @@ public class CassandraSinkConnector extends SinkConnector {
 
   @Override
   public Class<? extends Task> taskClass() {
-    return DseSinkTask.class;
+    return CassandraSinkTask.class;
   }
 
   /**
    * Invoked by the Connect infrastructure to retrieve the settings to pass to new {@link
-   * DseSinkTask}'s. Since all configuration is actually managed by the DseSinkTask, all sink
-   * properties are passed to tasks.
+   * CassandraSinkTask}'s. Since all configuration is actually managed by the CassandraSinkTask, all
+   * sink properties are passed to tasks.
    *
    * @param maxTasks max number of tasks the infrastructure will create
    * @return list of collections of settings, one for each task

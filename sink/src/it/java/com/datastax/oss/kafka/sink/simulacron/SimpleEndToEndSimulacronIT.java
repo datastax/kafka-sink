@@ -43,7 +43,7 @@ import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Table;
 import com.datastax.oss.dsbulk.tests.simulacron.annotations.SimulacronConfig;
 import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import com.datastax.oss.kafka.sink.CassandraSinkConnector;
-import com.datastax.oss.kafka.sink.DseSinkTask;
+import com.datastax.oss.kafka.sink.CassandraSinkTask;
 import com.datastax.oss.kafka.sink.state.InstanceState;
 import com.datastax.oss.kafka.sink.state.LifeCycleManager;
 import com.datastax.oss.protocol.internal.request.Batch;
@@ -116,7 +116,7 @@ class SimpleEndToEndSimulacronIT {
   private final BoundCluster simulacron;
   private final SimulacronUtils.Keyspace schema;
   private final CassandraSinkConnector conn;
-  private final DseSinkTask task;
+  private final CassandraSinkTask task;
   private final LogInterceptor logs;
   private final Map<String, String> connectorProperties;
   private final String hostname;
@@ -137,7 +137,7 @@ class SimpleEndToEndSimulacronIT {
     port = Integer.toString(node.getPort());
 
     SinkTaskContext taskContext = mock(SinkTaskContext.class);
-    task = new DseSinkTask();
+    task = new CassandraSinkTask();
     task.initialize(taskContext);
 
     schema =
@@ -810,7 +810,7 @@ class SimpleEndToEndSimulacronIT {
 
   @Test
   void fail_batch_request() {
-    // Test single topic, multiple Kafka partitions, single C* partition, fail DSE batch request:
+    // Test single topic, multiple Kafka partitions, single C* partition, fail batch request:
     // single batch statement failure causes failureOffsets for all SinkRecord's in the batch.
     SimulacronUtils.primeTables(simulacron, schema);
     Query good1 = makeQuery(42, "the answer", 153000987000L);

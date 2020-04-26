@@ -52,7 +52,7 @@ import org.apache.kafka.connect.sink.SinkRecord;
  */
 class BoundStatementProcessor implements Callable<Void> {
   private static final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
-  private final DseSinkTask task;
+  private final CassandraSinkTask task;
   private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
   private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
   private final int maxNumberOfRecordsInBatch;
@@ -61,7 +61,7 @@ class BoundStatementProcessor implements Callable<Void> {
   private final CodecRegistry codecRegistry;
 
   BoundStatementProcessor(
-      DseSinkTask task,
+      CassandraSinkTask task,
       BlockingQueue<RecordAndStatement> boundStatementsQueue,
       Collection<CompletionStage<? extends AsyncResultSet>> queryFutures,
       int maxNumberOfRecordsInBatch) {
