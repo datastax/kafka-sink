@@ -1,1 +1,1 @@
-com.datastax.kafkaconnector.codecs.KafkaCodecProvider
+com.datastax.oss.kafka.sink.codecs.KafkaCodecProvider

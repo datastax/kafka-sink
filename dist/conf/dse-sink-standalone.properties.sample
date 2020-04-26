@@ -1,5 +1,5 @@
 name=dse-sink
-connector.class=com.datastax.kafkaconnector.DseSinkConnector
+connector.class=com.datastax.oss.kafka.sink.DseSinkConnector
 tasks.max=1
 
 # Topics to subscribe to, comma-delimited.
