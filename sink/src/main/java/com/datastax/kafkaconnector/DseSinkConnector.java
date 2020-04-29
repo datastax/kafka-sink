@@ -17,6 +17,9 @@ package com.datastax.kafkaconnector;
 
 import com.datastax.oss.kafka.sink.CassandraSinkConnector;
 
-/** This class is kept for the backward compatibility. */
+/**
+ * @deprecated This class is kept for the backward compatibility; use {@link CassandraSinkConnector}
+ *     instead.
+ */
 @Deprecated
 public class DseSinkConnector extends CassandraSinkConnector {}
