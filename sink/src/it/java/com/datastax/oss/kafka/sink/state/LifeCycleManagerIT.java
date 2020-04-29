@@ -28,6 +28,7 @@ import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.RECONN
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_CONSISTENCY;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_DEFAULT_IDEMPOTENCE;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_TIMEOUT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.withDriverPrefix;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -195,15 +196,13 @@ class LifeCycleManagerIT {
     config.put("loadBalancing.localDc", ccm.getDC(1));
     config.put("port", String.valueOf(ccm.getBinaryPort()));
     config.put("jmx", "true");
-    config.put(CassandraSinkConfig.withDriverPrefix(CONFIG_RELOAD_INTERVAL), "1 minutes");
-    config.put(CassandraSinkConfig.withDriverPrefix(REQUEST_CONSISTENCY), "ALL");
-    config.put(CassandraSinkConfig.withDriverPrefix(REQUEST_DEFAULT_IDEMPOTENCE), "true");
+    config.put(withDriverPrefix(CONFIG_RELOAD_INTERVAL), "1 minutes");
+    config.put(withDriverPrefix(REQUEST_CONSISTENCY), "ALL");
+    config.put(withDriverPrefix(REQUEST_DEFAULT_IDEMPOTENCE), "true");
+    config.put(withDriverPrefix(RECONNECTION_POLICY_CLASS), "ConstantReconnectionPolicy");
+    config.put(withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
     config.put(
-        CassandraSinkConfig.withDriverPrefix(RECONNECTION_POLICY_CLASS),
-        "ConstantReconnectionPolicy");
-    config.put(CassandraSinkConfig.withDriverPrefix(PROTOCOL_MAX_FRAME_LENGTH), "128 MB");
-    config.put(
-        CassandraSinkConfig.withDriverPrefix(CONTACT_POINTS),
+        withDriverPrefix(CONTACT_POINTS),
         "this should be ignored because contactPoints provided as well");
 
     CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);

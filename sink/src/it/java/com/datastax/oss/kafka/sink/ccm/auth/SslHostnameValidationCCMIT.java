@@ -15,6 +15,18 @@
  */
 package com.datastax.oss.kafka.sink.ccm.auth;
 
+import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_CERT_CHAIN_FILE;
+import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_KEYSTORE_FILE;
+import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_PRIVATE_KEY_FILE;
+import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE;
+import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD;
+import static com.datastax.oss.kafka.sink.config.SslConfig.KEYSTORE_PASSWORD_OPT;
+import static com.datastax.oss.kafka.sink.config.SslConfig.KEYSTORE_PATH_OPT;
+import static com.datastax.oss.kafka.sink.config.SslConfig.OPENSSL_KEY_CERT_CHAIN_OPT;
+import static com.datastax.oss.kafka.sink.config.SslConfig.OPENSSL_PRIVATE_KEY_OPT;
+import static com.datastax.oss.kafka.sink.config.SslConfig.PROVIDER_OPT;
+import static com.datastax.oss.kafka.sink.config.SslConfig.TRUSTSTORE_PASSWORD_OPT;
+import static com.datastax.oss.kafka.sink.config.SslConfig.TRUSTSTORE_PATH_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -25,14 +37,12 @@ import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMConfig;
 import com.datastax.oss.dsbulk.tests.driver.annotations.SessionConfig;
 import com.datastax.oss.kafka.sink.ccm.EndToEndCCMITBase;
-import com.datastax.oss.kafka.sink.config.SslConfig;
 import java.util.List;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("ConstantConditions")
 @CCMConfig(ssl = true, hostnameVerification = true)
 @Tag("medium")
 class SslHostnameValidationCCMIT extends EndToEndCCMITBase {
@@ -44,15 +54,11 @@ class SslHostnameValidationCCMIT extends EndToEndCCMITBase {
   void raw_bigint_value() {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
-            .put(SslConfig.PROVIDER_OPT, "JDK")
-            .put(
-                SslConfig.KEYSTORE_PATH_OPT,
-                CcmBridge.DEFAULT_CLIENT_KEYSTORE_FILE.getAbsolutePath())
-            .put(SslConfig.KEYSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_KEYSTORE_PASSWORD)
-            .put(
-                SslConfig.TRUSTSTORE_PATH_OPT,
-                CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
-            .put(SslConfig.TRUSTSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
+            .put(PROVIDER_OPT, "JDK")
+            .put(KEYSTORE_PATH_OPT, DEFAULT_CLIENT_KEYSTORE_FILE.getAbsolutePath())
+            .put(KEYSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_KEYSTORE_PASSWORD)
+            .put(TRUSTSTORE_PATH_OPT, DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
+            .put(TRUSTSTORE_PASSWORD_OPT, DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
             .build();
 
     conn.start(makeConnectorProperties(extras));
@@ -71,17 +77,11 @@ class SslHostnameValidationCCMIT extends EndToEndCCMITBase {
   void raw_bigint_value_with_openssl() {
     Map<String, String> extras =
         ImmutableMap.<String, String>builder()
-            .put(SslConfig.PROVIDER_OPT, "OpenSSL")
-            .put(
-                SslConfig.OPENSSL_KEY_CERT_CHAIN_OPT,
-                CcmBridge.DEFAULT_CLIENT_CERT_CHAIN_FILE.getAbsolutePath())
-            .put(
-                SslConfig.OPENSSL_PRIVATE_KEY_OPT,
-                CcmBridge.DEFAULT_CLIENT_PRIVATE_KEY_FILE.getAbsolutePath())
-            .put(
-                SslConfig.TRUSTSTORE_PATH_OPT,
-                CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
-            .put(SslConfig.TRUSTSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
+            .put(PROVIDER_OPT, "OpenSSL")
+            .put(OPENSSL_KEY_CERT_CHAIN_OPT, DEFAULT_CLIENT_CERT_CHAIN_FILE.getAbsolutePath())
+            .put(OPENSSL_PRIVATE_KEY_OPT, DEFAULT_CLIENT_PRIVATE_KEY_FILE.getAbsolutePath())
+            .put(TRUSTSTORE_PATH_OPT, DEFAULT_CLIENT_TRUSTSTORE_FILE.getAbsolutePath())
+            .put(TRUSTSTORE_PASSWORD_OPT, DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
             .build();
 
     conn.start(makeConnectorProperties(extras));

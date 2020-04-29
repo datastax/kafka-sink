@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.kafka.sink.ccm;
 
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.withDriverPrefix;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
@@ -67,7 +68,7 @@ class ConnectorSettingsCCMIT extends EndToEndCCMITBase {
         makeConnectorPropertiesWithoutContactPointsAndPort("bigintcol=key, listcol=value");
     // use single datastax-java-driver prefixed property that carry host:port
     connectorProperties.put(
-        CassandraSinkConfig.withDriverPrefix(DefaultDriverOption.CONTACT_POINTS),
+        withDriverPrefix(DefaultDriverOption.CONTACT_POINTS),
         getContactPoints()
             .stream()
             .map(
