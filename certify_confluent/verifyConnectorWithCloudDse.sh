@@ -31,8 +31,8 @@ mkdir ${LOGS_OUTPUT_DIRECTORY}
 echo "test confluent 5.2 with dse cloud"
 ctool launch kct 1
 ctool run kct all "sudo apt update --assume-yes; sudo apt install maven --assume-yes; sudo apt-get install unzip --assume-yes"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool scp -R kct 0 ${CLOUD_SECURE_BUNDLE_LOCATION} /home/automaton
 ctool scp -R kct 0 cloud/cassandra-sink-avro-cloud.json /home/automaton

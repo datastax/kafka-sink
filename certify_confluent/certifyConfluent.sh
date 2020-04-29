@@ -25,8 +25,8 @@ mkdir ${LOGS_OUTPUT_DIRECTORY}
 echo "smoke test confluent 5.2"
 ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "5.2" "${CASS_SINK_CONNECTOR_VERSION}" "false" &> certify_confluent_5.2.log"
@@ -37,8 +37,8 @@ ctool destroy kct
 echo "smoke test confluent 5.1"
 ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "5.1" "${CASS_SINK_CONNECTOR_VERSION}" "false" &> certify_confluent_5.1.log"
@@ -49,8 +49,8 @@ ctool destroy kct
 echo "smoke test confluent 5.0"
 ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "5.0" "${CASS_SINK_CONNECTOR_VERSION}" "false" &> certify_confluent_5.0.log"
@@ -61,8 +61,8 @@ ctool destroy kct
 echo "smoke test confluent 4.1"
 ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "4.1" "${CASS_SINK_CONNECTOR_VERSION}" "false" &> certify_confluent_4.1.log"
@@ -72,8 +72,8 @@ ctool destroy kct
 echo "smoke test confluent 4.0"
 ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "4.0" "${CASS_SINK_CONNECTOR_VERSION}" "false" &> certify_confluent_4.0.log"
@@ -83,8 +83,8 @@ ctool destroy kct
 echo "smoke test confluent 3.3"
 ctool launch kct 1
 ctool run kct all "sudo apt-get install -y maven"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool run --sudo kct "chmod 777 /home/automaton/certifyConfluentVersion.sh"
 ctool run kct "~/certifyConfluentVersion.sh "3.3" "${CASS_SINK_CONNECTOR_VERSION}" "false" &> certify_confluent_3.3.log"
