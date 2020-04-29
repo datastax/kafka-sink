@@ -18,16 +18,12 @@ package com.datastax.oss.kafka.sink.ccm;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -43,24 +39,9 @@ import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 class JsonEndToEndCCMIT extends EndToEndCCMITBase {
-  private AttachmentPoint attachmentPoint;
 
   public JsonEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    attachmentPoint =
-        new AttachmentPoint() {
-          @NonNull
-          @Override
-          public ProtocolVersion getProtocolVersion() {
-            return session.getContext().getProtocolVersion();
-          }
-
-          @NonNull
-          @Override
-          public CodecRegistry getCodecRegistry() {
-            return session.getContext().getCodecRegistry();
-          }
-        };
   }
 
   @Test
@@ -89,7 +70,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
   }
 
@@ -119,7 +100,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
     assertThat(row.getInt("intcol")).isEqualTo(42);
   }

@@ -26,13 +26,10 @@ import com.datastax.dse.driver.internal.core.data.geometry.DefaultLineString;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPoint;
 import com.datastax.dse.driver.internal.core.data.geometry.DefaultPolygon;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
@@ -40,7 +37,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Duration;
@@ -59,24 +55,9 @@ import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 class StructEndToEndCCMIT extends EndToEndCCMITBase {
-  private AttachmentPoint attachmentPoint;
 
   StructEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    attachmentPoint =
-        new AttachmentPoint() {
-          @NonNull
-          @Override
-          public ProtocolVersion getProtocolVersion() {
-            return session.getContext().getProtocolVersion();
-          }
-
-          @NonNull
-          @Override
-          public CodecRegistry getCodecRegistry() {
-            return session.getContext().getCodecRegistry();
-          }
-        };
   }
 
   @Test
@@ -252,7 +233,8 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     DefaultTupleType tupleType =
         new DefaultTupleType(
-            ImmutableList.of(DataTypes.SMALLINT, DataTypes.INT, DataTypes.INT), attachmentPoint);
+            ImmutableList.of(DataTypes.SMALLINT, DataTypes.INT, DataTypes.INT),
+            session.getContext());
     assertThat(row.getTupleValue("tuplecol")).isEqualTo(tupleType.newValue((short) 37, 96, 90));
 
     UserDefinedType udt =
@@ -260,7 +242,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(47, "90"));
     assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
 
@@ -269,7 +251,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.BOOLEAN)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    booleanUdt.attach(attachmentPoint);
+    booleanUdt.attach(session.getContext());
     assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "false"));
     assertThat(row.getUdtValue("booleanudtfromlistcol"))
         .isEqualTo(booleanUdt.newValue(true, "false"));
@@ -348,7 +330,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
 
     UserDefinedType booleanUdt =
@@ -356,7 +338,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.BOOLEAN)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    booleanUdt.attach(attachmentPoint);
+    booleanUdt.attach(session.getContext());
     assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "the answer"));
   }
 
@@ -505,7 +487,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
   }
 
@@ -535,7 +517,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("udtmem1", DataTypes.INT)
             .withField("udtmem2", DataTypes.TEXT)
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
     assertThat(row.getInt("intcol")).isEqualTo(42);
   }

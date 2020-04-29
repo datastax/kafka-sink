@@ -18,19 +18,15 @@ package com.datastax.oss.kafka.sink.ccm;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.data.UdtValue;
-import com.datastax.oss.driver.api.core.detach.AttachmentPoint;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
@@ -43,24 +39,9 @@ import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
-  private AttachmentPoint attachmentPoint;
 
   RawDataEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session);
-    attachmentPoint =
-        new AttachmentPoint() {
-          @NonNull
-          @Override
-          public ProtocolVersion getProtocolVersion() {
-            return session.getContext().getProtocolVersion();
-          }
-
-          @NonNull
-          @Override
-          public CodecRegistry getCodecRegistry() {
-            return session.getContext().getCodecRegistry();
-          }
-        };
   }
 
   @Test
@@ -332,7 +313,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase {
             .withField("b", DataTypes.TEXT)
             .withField("c", DataTypes.listOf(DataTypes.INT))
             .build();
-    udt.attach(attachmentPoint);
+    udt.attach(session.getContext());
     assertThat(row.getUdtValue("listudtcol"))
         .isEqualTo(udt.newValue(42, "the answer", Arrays.asList(1, 2, 3)));
   }
