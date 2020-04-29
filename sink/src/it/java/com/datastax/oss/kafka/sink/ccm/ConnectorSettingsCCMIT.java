@@ -23,7 +23,6 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
 import com.datastax.oss.kafka.sink.state.InstanceState;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
