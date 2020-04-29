@@ -98,8 +98,8 @@ ctool scp kc-connect-l 1 kafka/kafka-connect-metrics-1.xml .
 ctool scp kc-connect-l 2 kafka/kafka-connect-metrics-2.xml .
 
 # Copy connector JAR
-ctool scp -R kc-connect-l all ${CONNECTOR_JAR_LOCATION} kafka-connect-dse.jar
-plugin_path=/home/automaton/confluent/share,/home/automaton/kafka-connect-dse.jar
+ctool scp -R kc-connect-l all ${CONNECTOR_JAR_LOCATION} kafka-connect-cassandra.jar
+plugin_path=/home/automaton/confluent/share,/home/automaton/kafka-connect-cassandra.jar
 ctool run kc-connect-l all "sed -i \"s#plugin\.path.*#plugin\.path=$plugin_path\n#\" confluent/etc/kafka/connect-distributed.properties"
 
 
