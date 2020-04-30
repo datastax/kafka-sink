@@ -45,7 +45,8 @@ public class CassandraSinkConnector extends SinkConnector {
       // Get the version from version.txt.
       version = "UNKNOWN";
       try (InputStream versionStream =
-          CassandraSinkConnector.class.getResourceAsStream("/version.txt")) {
+          CassandraSinkConnector.class.getResourceAsStream(
+              "/com/datastax/oss/kafka/sink/version.txt")) {
         if (versionStream != null) {
           BufferedReader reader =
               new BufferedReader(new InputStreamReader(versionStream, StandardCharsets.UTF_8));
