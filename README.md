@@ -12,7 +12,7 @@ DataStax Enterprise (DSE).
 2. Open the Connect worker config file `config/connect-standalone.properties`. Update the plugin 
    search path to include the uber-jar:
 
-       plugin.path=<previous value>,<full path to repo>/dist/target/kafka-connect-cassandra-<version>.jar
+       plugin.path=<previous value>,<full path to repo>/dist/target/kafka-connect-cassandra-sink-<version>.jar
 
 3. Edit the `dist/conf/cassandra-sink-standalone.properties.sample` config file in this project to 
    meet your needs, or copy it out and edit elsewhere. The edited file should be named 

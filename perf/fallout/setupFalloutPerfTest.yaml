@@ -221,7 +221,7 @@ workload:
             cd kafka-sink
             mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
             cd ${FALLOUT_SCRATCH_DIR}
-            CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-dse-{{version}}.jar
+            CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-cassandra-sink-{{version}}.jar
             plugin_path=${FALLOUT_SCRATCH_DIR}/confluent/share,${CONNECTOR_JAR_LOCATION}
             sed -i "s#plugin\.path.*#plugin\.path=$plugin_path\n#" confluent/etc/kafka/connect-distributed.properties
     - setup-metrics-worker-0:

@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MetricsJmxReporter {
-  private static final String CONNECTOR_DOMAIN = "com.datastax.kafkaconnector";
+  private static final String CONNECTOR_DOMAIN = "com.datastax.oss.kafka.sink";
   private static final Logger log = LoggerFactory.getLogger(MetricsJmxReporter.class);
 
   public static JmxReporter createJmxReporter(String instanceName, MetricRegistry metricRegistry) {
