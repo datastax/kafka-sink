@@ -15,16 +15,13 @@
  */
 package com.datastax.oss.kafka.sink.ccm;
 
-import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DDAC;
 import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DSE;
-import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.OSS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
-import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMRequirements;
 import com.datastax.oss.dsbulk.tests.utils.Version;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
@@ -32,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CCMExtension.class)
-@CCMRequirements(compatibleTypes = {DSE, DDAC, OSS})
 public abstract class EndToEndCCMITBase extends ITConnectorBase {
   protected final boolean hasDateRange;
   protected final CCMCluster ccm;

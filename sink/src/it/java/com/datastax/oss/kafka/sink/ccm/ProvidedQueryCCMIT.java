@@ -15,7 +15,6 @@
  */
 package com.datastax.oss.kafka.sink.ccm;
 
-import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DDAC;
 import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DSE;
 import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.OSS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +50,6 @@ import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 @CCMRequirements(
-  compatibleTypes = {DSE, DDAC, OSS},
   versionRequirements = {
     @CCMVersionRequirement(type = OSS, min = "3.6"),
     @CCMVersionRequirement(type = DSE, min = "5.1")
