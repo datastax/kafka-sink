@@ -97,7 +97,10 @@ class BoundStatementProcessorTest {
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
         new BoundStatementProcessor(
-            mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), maxNumberOfRecordsInBatch);
+            mockCassandraSinkTask(),
+            recordAndStatements,
+            new ArrayList<>(),
+            maxNumberOfRecordsInBatch);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -144,7 +147,8 @@ class BoundStatementProcessorTest {
     // given
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 3);
+        new BoundStatementProcessor(
+            mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 3);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -209,7 +213,8 @@ class BoundStatementProcessorTest {
     // given
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 3);
+        new BoundStatementProcessor(
+            mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 3);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
@@ -274,7 +279,8 @@ class BoundStatementProcessorTest {
     // given
     BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
     BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 2);
+        new BoundStatementProcessor(
+            mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 2);
     List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
     Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));

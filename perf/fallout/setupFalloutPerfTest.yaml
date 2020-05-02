@@ -186,7 +186,7 @@ workload:
             cd ${FALLOUT_SCRATCH_DIR}
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic json-stream --config retention.ms=-1 delete.topic.enable=true
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true
-            git clone https://github.com/datastax/kafka-examples.git
+            git clone -b kafka-sink-perf https://github.com/datastax/kafka-examples.git
     - setup-confluent-workers:
         module: bash
         properties:

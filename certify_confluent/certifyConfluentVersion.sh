@@ -193,7 +193,7 @@ install_kafka_examples () {
 	echo "----------------------------------------"
 	echo "---  CLONING KAFKA-EXAMPLES GITHUB   ---"
 	echo "----------------------------------------"
-	git clone https://github.com/datastax/kafka-examples.git kafka-examples
+	git clone -b kafka-sink-perf https://github.com/datastax/kafka-examples.git kafka-examples
 }
 
 stop_confluent(){

@@ -73,7 +73,7 @@ ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhos
 
 ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true"
 
-ctool run kc-brokers 0 "git clone https://github.com/datastax/kafka-examples.git"
+ctool run kc-brokers 0 "git clone -b kafka-sink-perf https://github.com/datastax/kafka-examples.git"
 
 
 # -------- Kafka Connect L Setup --------
