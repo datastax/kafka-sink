@@ -23,7 +23,7 @@
     <groupId>com.datastax.oss</groupId>
     <version>1.3.2-SNAPSHOT</version>
   </parent>
-  <artifactId>kafka-connect-cassandra</artifactId>
+  <artifactId>kafka-connect-cassandra-distribution</artifactId>
   <name>DataStax Apache Cassandra (R) Kafka Sink Connector - Distribution</name>
   <description>Binary distribution of the DataStax Apache Kafka Sink Connector.</description>
   <dependencies>
