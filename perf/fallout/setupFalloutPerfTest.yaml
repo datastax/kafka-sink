@@ -23,7 +23,6 @@ ensemble:
     configuration_manager:
       - name: ctool
         properties:
-          java.version: "1.8_151"
           product.type: dse
           product.install.type: tarball
           product.version: 6.7-dev
@@ -465,11 +464,11 @@ workload:
                 DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
 
                 # Submit connector task
-                cp kafka-sink/perf/cassandra-sink.json cassandra-sink-temp.json
-                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" cassandra-sink-temp.json
-                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" cassandra-sink-temp.json
-                curl -X POST -H "Content-Type: application/json" -d @cassandra-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-                rm cassandra-sink-temp.json
+                cp kafka-sink/perf/dse-sink.json dse-sink-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-temp.json
                 # wait for process to finish
                 sleep 2h
               elif [ "{{type_of_test}}" = "endurance" ]
@@ -483,11 +482,11 @@ workload:
                 DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
 
                 # Submit connector task
-                cp kafka-sink/perf/cassandra-sink.json cassandra-sink-temp.json
-                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" cassandra-sink-temp.json
-                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" cassandra-sink-temp.json
-                curl -X POST -H "Content-Type: application/json" -d @cassandra-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-                rm cassandra-sink-temp.json
+                cp kafka-sink/perf/dse-sink.json dse-sink-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-temp.json
                 sleep 15h
               fi
             elif [ "{{connector_type}}" = "avro" ]
@@ -504,11 +503,11 @@ workload:
                 DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
 
                 # Submit connector task
-                cp kafka-sink/perf/cassandra-sink-avro.json cassandra-sink-avro-temp.json
-                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" cassandra-sink-avro-temp.json
-                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" cassandra-sink-avro-temp.json
-                curl -X POST -H "Content-Type: application/json" -d @cassandra-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-                rm cassandra-sink-avro-temp.json
+                cp kafka-sink/perf/dse-sink-avro.json dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-avro-temp.json
 
                 # wait for process to finish
                 sleep 1h
@@ -524,11 +523,11 @@ workload:
                 DSE_SECOND_ADDRESS=$(echo ${FALLOUT_SERVER_PRODUCT_CONTACT_POINTS} | cut -d "," -f 2)
 
                 # Submit connector task
-                cp kafka-sink/perf/cassandra-sink-avro.json cassandra-sink-avro-temp.json
-                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" cassandra-sink-avro-temp.json
-                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" cassandra-sink-avro-temp.json
-                curl -X POST -H "Content-Type: application/json" -d @cassandra-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
-                rm cassandra-sink-avro-temp.json
+                cp kafka-sink/perf/dse-sink-avro.json dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_1}/$DSE_FIRST_ADDRESS/g" dse-sink-avro-temp.json
+                sed -i "s/{dse_contact_point_2}/$DSE_SECOND_ADDRESS/g" dse-sink-avro-temp.json
+                curl -X POST -H "Content-Type: application/json" -d @dse-sink-avro-temp.json "$CONNECT_FIRST_ADDRESS:8083/connectors"
+                rm dse-sink-avro-temp.json
                 sleep 24h
               fi
              fi
