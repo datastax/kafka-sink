@@ -280,7 +280,7 @@ public class CassandraSinkConfig {
     }
   }
 
-  private static Splitter COMA_SPLITTER = Splitter.on(",");
+  private static final Splitter COMA_SPLITTER = Splitter.on(",");
 
   private void addJavaDriverSetting(Map.Entry<String, String> entry) {
 
