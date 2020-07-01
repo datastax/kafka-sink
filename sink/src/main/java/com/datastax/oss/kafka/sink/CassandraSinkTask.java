@@ -19,6 +19,7 @@ import com.datastax.oss.driver.api.core.cql.AsyncResultSet;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.ThreadFactoryBuilder;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig.IgnoreErrorsPolicy;
 import com.datastax.oss.kafka.sink.config.TableConfig;
 import com.datastax.oss.kafka.sink.config.TopicConfig;
 import com.datastax.oss.kafka.sink.metadata.InnerDataAndMetadata;
@@ -29,7 +30,6 @@ import com.datastax.oss.kafka.sink.record.KeyValueRecordMetadata;
 import com.datastax.oss.kafka.sink.record.RecordAndStatement;
 import com.datastax.oss.kafka.sink.state.InstanceState;
 import com.datastax.oss.kafka.sink.state.LifeCycleManager;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -48,7 +48,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.header.Headers;
@@ -240,18 +239,19 @@ public class CassandraSinkTask extends SinkTask {
                               new HeadersDataMetadata(headers)),
                           keyValueRecord)
                       .setConsistencyLevel(tableConfig.getConsistencyLevel())));
-        } catch (IOException ex) {
-          // The IOException can only theoretically happen when processing json data. But bad json
+        } catch (Exception ex) {
+          // An IOException can theoretically happen when processing json data. But bad json
           // won't result in this exception. We're not pulling data from a file or any other kind of
           // IO.
+          // KAF-200: expand failure handling to all runtime and checked exceptions when parsing
+          // and mapping records.
           handleFailure(record, ex, null, failedRecordIncrement);
         }
       }
-    } catch (KafkaException e) {
-      // The Kafka exception could occur if the record references an unknown topic.
+    } catch (Exception e) {
+      // A KafkaException could occur if the record references an unknown topic.
       // Most likely this error can't occur in this application...but we try to protect ourselves
       // anyway just in case.
-
       handleFailure(record, e, null, instanceState::incrementFailedWithUnknownTopicCounter);
     }
   }
@@ -278,7 +278,9 @@ public class CassandraSinkTask extends SinkTask {
     // we perform these checks/updates in a synchronized block. Presumably failures
     // don't occur that often, so we don't have to be very fancy here.
 
-    if (!instanceState.getConfig().isIgnoreErrors()) {
+    IgnoreErrorsPolicy ignoreErrors = instanceState.getConfig().getIgnoreErrors();
+    if (ignoreErrors == IgnoreErrorsPolicy.NONE
+        || (ignoreErrors == IgnoreErrorsPolicy.DRIVER && cql == null)) {
       TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
       long currentOffset = Long.MAX_VALUE;
       if (failureOffsets.containsKey(topicPartition)) {
@@ -291,12 +293,15 @@ public class CassandraSinkTask extends SinkTask {
     }
 
     failCounter.run();
-    String statementError = cql != null ? String.format("\n   statement: %s", cql) : "";
 
-    log.warn(
-        "Error inserting/updating row for Kafka record {}: {}{}",
-        record,
-        e.getMessage(),
-        statementError);
+    if (cql != null) {
+      log.warn(
+          "Error inserting/updating row for Kafka record {}: {}\n   statement: {}}",
+          record,
+          e.getMessage(),
+          cql);
+    } else {
+      log.warn("Error decoding/mapping Kafka record {}: {}", record, e.getMessage());
+    }
   }
 }

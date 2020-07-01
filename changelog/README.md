@@ -1,5 +1,8 @@
 ## Changelog
 
+### 1.4.0 (in progress)
+- [improvement] KAF-200: Extend ignoreErrors to all runtime exceptions
+
 ### 1.3.1
 - [bug] KAF-189: Tinkerpop dependency in driver is required, while it should not be
 

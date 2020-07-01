@@ -8,7 +8,7 @@
         "loadBalancing.localDc": "",
         "port": 9042,
         "cloud.secureConnectBundle": "",
-        "ignoreErrors": false,
+        "ignoreErrors": "None",
         "maxConcurrentRequests": 500,
         "maxNumberOfRecordsInBatch": 32,
         "queryExecutionTimeout": 30,

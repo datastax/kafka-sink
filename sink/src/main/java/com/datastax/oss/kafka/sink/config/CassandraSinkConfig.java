@@ -178,10 +178,14 @@ public class CassandraSinkConfig {
               "Number of connections that driver maintains within a connection pool to each node in local dc")
           .define(
               IGNORE_ERRORS,
-              ConfigDef.Type.BOOLEAN,
-              false,
+              ConfigDef.Type.STRING,
+              "None",
               ConfigDef.Importance.HIGH,
-              "Specifies if the connector should ignore errors that occurred when processing the record.")
+              "Specifies which errors the connector should ignore when processing the record. "
+                  + "Valid values are: "
+                  + "None (never ignore errors), "
+                  + "All (ignore all errors), "
+                  + "Driver (ignore driver errors only, i.e. errors when writing to the database).")
           .define(
               SECURE_CONNECT_BUNDLE_OPT,
               ConfigDef.Type.STRING,
@@ -469,8 +473,38 @@ public class CassandraSinkConfig {
     return globalConfig.getInt(CONCURRENT_REQUESTS_OPT);
   }
 
-  public boolean isIgnoreErrors() {
-    return globalConfig.getBoolean(IGNORE_ERRORS);
+  public enum IgnoreErrorsPolicy {
+    ALL,
+    NONE,
+    DRIVER
+  }
+
+  public IgnoreErrorsPolicy getIgnoreErrors() {
+    String ignoreErrors = globalConfig.getString(IGNORE_ERRORS);
+    if ("none".equalsIgnoreCase(ignoreErrors)) {
+      return IgnoreErrorsPolicy.NONE;
+    } else if ("all".equalsIgnoreCase(ignoreErrors)) {
+      return IgnoreErrorsPolicy.ALL;
+    } else if ("driver".equalsIgnoreCase(ignoreErrors)) {
+      return IgnoreErrorsPolicy.DRIVER;
+    } else if ("false".equalsIgnoreCase(ignoreErrors)) {
+      log.warn(
+          "Setting {}=false is deprecated, please replace with {}=None",
+          IGNORE_ERRORS,
+          IGNORE_ERRORS);
+      return IgnoreErrorsPolicy.NONE;
+    } else if ("true".equalsIgnoreCase(ignoreErrors)) {
+      log.warn(
+          "Setting {}=true is deprecated, please replace with {}=Driver",
+          IGNORE_ERRORS,
+          IGNORE_ERRORS);
+      return IgnoreErrorsPolicy.DRIVER;
+    }
+    throw new IllegalArgumentException(
+        "Invalid value for setting "
+            + IGNORE_ERRORS
+            + ", expecting either All, None or Driver, got: "
+            + ignoreErrors);
   }
 
   public boolean getJmx() {
