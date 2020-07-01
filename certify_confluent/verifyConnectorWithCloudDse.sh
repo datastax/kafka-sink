@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# This script validates the correctness of kafka-connector-dse against Datastax Cloud https://apollo.datastax.com.
+# This script validates the correctness of kafka-connector-dse against Datastax Cloud https://astra.datastax.com.
 # It will start the Openstack instance, set up the Kafka ecosystem and start the connector.
 # The output logs with a status of verification will be copied to $LOGS_OUTPUT_DIRECTORY on your local machine.
 # After run the open-stack instance is destroyed.
@@ -11,9 +11,9 @@
 # Set CTOOL_ENV to name of the virtual-env inside of which you have ctool setup.
 # Set CLOUD_SECURE_BUNDLE_LOCATION to your secure-connect.zip bundle with cloud credentials
 # SET CLOUD_SECURE_BUNDLE_FILE_NAME to name of your secure-connect.zip
-# Set CLOUD_USERNAME to username of your apollo constellation db in the certifyConfluentVersion.sh
-# Set CLOUD_PASSWORD to password of your apollo constellation db in the certifyConfluentVersion.sh
-# Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db in the certifyConfluentVersion.sh
+# Set CLOUD_USERNAME to username of your astra constellation db in the certifyConfluentVersion.sh
+# Set CLOUD_PASSWORD to password of your astra constellation db in the certifyConfluentVersion.sh
+# Set CLOUD_KEYSPACE to a keyspace of your astra constellation db in the certifyConfluentVersion.sh
 
 CONNECTOR_JAR_LOCATION=path-to-connector-jar-on-your-local-system
 KAFKA_SINK_REPO_LOCATION=/your-local-location/kafka-sink
@@ -31,11 +31,11 @@ mkdir ${LOGS_OUTPUT_DIRECTORY}
 echo "test confluent 5.2 with dse cloud"
 ctool launch kct 1
 ctool run kct all "sudo apt update --assume-yes; sudo apt install maven --assume-yes; sudo apt-get install unzip --assume-yes"
-ctool run kct "mkdir /tmp/dse-connector"
-ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/dse-connector
+ctool run kct "mkdir /tmp/cass-sink-connector"
+ctool scp -R kct 0 ${CONNECTOR_JAR_LOCATION} /tmp/cass-sink-connector
 ctool scp -R kct 0 ${KAFKA_SINK_REPO_LOCATION}/certify_confluent/certifyConfluentVersion.sh /home/automaton
 ctool scp -R kct 0 ${CLOUD_SECURE_BUNDLE_LOCATION} /home/automaton
-ctool scp -R kct 0 cloud/dse-sink-avro-cloud.json /home/automaton
+ctool scp -R kct 0 cloud/cassandra-sink-avro-cloud.json /home/automaton
 ctool run --sudo kct "mv /home/automaton/${CLOUD_SECURE_BUNDLE_FILE_NAME} /home/automaton/secure-bundle.zip"
 ctool run --sudo kct "unzip /home/automaton/secure-bundle.zip -d /home/automaton/secure-bundle"
 ctool run --sudo kct "chmod 777 /home/automaton/secure-bundle/cert"

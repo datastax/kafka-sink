@@ -31,11 +31,11 @@
         <query objectName='kafka.connect:type=sink-task-metrics,connector=*,task=*' attribute='partition-count' resultAlias='%connector%-%task%-partition-count'/>
 
         <!-- DataStax Kafka Connector Metrics -->
-        <query objectName='com.datastax.kafkaconnector:0=*,1=driver,name=*.cql-client-timeouts' attribute='Count' resultAlias='%0%-%name%-count'/>
-        <query objectName='com.datastax.kafkaconnector:0=*,1=driver,name=*.cql-requests' attribute='99thPercentile' resultAlias='%0%-%name%-requests-99thPercentile'/>
-        <query objectName='com.datastax.kafkaconnector:0=*,1=*,2=*,name=batchSize' attribute='Mean' resultAlias='%0%-%1%-%2%-%name%-Mean'/>
-        <query objectName='com.datastax.kafkaconnector:0=*,name=failedRecordCount' attribute='Count' resultAlias='%0%-failedRecordCount'/>
-        <query objectName='com.datastax.kafkaconnector:0=*,name=recordCount' attribute='Count' resultAlias='%0%-recordCount'/>
+        <query objectName='com.datastax.oss.kafka.sink:0=*,1=driver,name=*.cql-client-timeouts' attribute='Count' resultAlias='%0%-%name%-count'/>
+        <query objectName='com.datastax.oss.kafka.sink:0=*,1=driver,name=*.cql-requests' attribute='99thPercentile' resultAlias='%0%-%name%-requests-99thPercentile'/>
+        <query objectName='com.datastax.oss.kafka.sink:0=*,1=*,2=*,name=batchSize' attribute='Mean' resultAlias='%0%-%1%-%2%-%name%-Mean'/>
+        <query objectName='com.datastax.oss.kafka.sink:0=*,name=failedRecordCount' attribute='Count' resultAlias='%0%-failedRecordCount'/>
+        <query objectName='com.datastax.oss.kafka.sink:0=*,name=recordCount' attribute='Count' resultAlias='%0%-recordCount'/>
     </queries>
     <outputWriter class="org.jmxtrans.agent.GraphitePlainTextTcpOutputWriter">
         <host>10.200.176.150</host>

@@ -73,7 +73,7 @@ ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhos
 
 ctool run kc-brokers 0 "confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true"
 
-ctool run kc-brokers 0 "git clone https://github.com/datastax/kafka-examples.git"
+ctool run kc-brokers 0 "git clone -b kafka-sink-perf https://github.com/datastax/kafka-examples.git"
 
 
 # -------- Kafka Connect L Setup --------
@@ -98,8 +98,8 @@ ctool scp kc-connect-l 1 kafka/kafka-connect-metrics-1.xml .
 ctool scp kc-connect-l 2 kafka/kafka-connect-metrics-2.xml .
 
 # Copy connector JAR
-ctool scp -R kc-connect-l all ${CONNECTOR_JAR_LOCATION} kafka-connect-dse.jar
-plugin_path=/home/automaton/confluent/share,/home/automaton/kafka-connect-dse.jar
+ctool scp -R kc-connect-l all ${CONNECTOR_JAR_LOCATION} kafka-connect-cassandra-sink.jar
+plugin_path=/home/automaton/confluent/share,/home/automaton/kafka-connect-cassandra-sink.jar
 ctool run kc-connect-l all "sed -i \"s#plugin\.path.*#plugin\.path=$plugin_path\n#\" confluent/etc/kafka/connect-distributed.properties"
 
 

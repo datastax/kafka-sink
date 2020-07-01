@@ -1,27 +1,34 @@
-# Kafka Sink for DataStax Enterprise
+# Apache Kafka Sink for Apache Cassandra and DataStax Enterprise
 
-Kafka sink for transferring events/messages from Kafka topics to DSE
+An Apache Kafka sink for transferring events/messages from Kafka topics to Apache Cassandra (R) or
+DataStax Enterprise (DSE).
 
 ## How to use
 
-First build the uber jar: `mvn clean package -DskipTests`
+1. First build the uber-jar: 
 
-Edit the `conf/dse-sink.properties.sample` config file in this project to meet your needs,
-or copy it out and edit elsewhere.
+       mvn clean package
 
-Update the plugin search path in the Connect worker config `config/connect-standalone.properties`
-to include the uber-jar:
+2. Open the Connect worker config file `config/connect-standalone.properties`. Update the plugin 
+   search path to include the uber-jar:
 
-`plugin.path=<previous value>, <full path to repo>/target/kafka-connect-dse-<version>-SNAPSHOT.jar`
+       plugin.path=<previous value>,<full path to repo>/dist/target/kafka-connect-cassandra-sink-<version>.jar
 
-Run connect-standalone and specify the path to the config file:
+3. Edit the `dist/conf/cassandra-sink-standalone.properties.sample` config file in this project to 
+   meet your needs, or copy it out and edit elsewhere. The edited file should be named 
+   `cassandra-sink-standalone.properties`.
 
-`bin/connect-standalone.sh config/connect-standalone.properties ~/kafka-sink/conf/dse-sink.properties.sample`
+4. Run connect-standalone and specify the path to the that config file:
 
-In Confluent, you would do this:
+       bin/connect-standalone.sh \
+          config/connect-standalone.properties 
+          <full path to file>/cassandra-sink-standalone.properties
 
-`bin/confluent load dse-sink -d ~/kafka-sink/conf/dse-sink.properties`
+5. In Confluent, you would do this:
+
+       bin/confluent load cassandra-sink -d <full path to file>/cassandra-sink-standalone.properties
 
 ## Mapping specification
 
-See [the integration test](src/it/java/com/datastax/kafkaconnector/ccm/SimpleEndToEndCCMIT.java) for details.
+See [the integration test](sink/src/it/java/com/datastax/oss/kafka/sink/simulacron/SimpleEndToEndSimulacronIT.java) for 
+details.

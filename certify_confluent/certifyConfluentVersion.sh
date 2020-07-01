@@ -10,22 +10,22 @@
 # 3. Use TOPIC_NAME env var to set the Kafka Topic that will be created
 # 4. Use TOTAL_RECORDS env var to control the number of records written to Kafka
 CONFLUENT_HOME=/tmp/confluent
-CONNECTOR_HOME=/tmp/dse-connector
+CONNECTOR_HOME=/tmp/cass-sink-connector
 DSE_HOME=/tmp/dse
 TOTAL_RECORDS=1000
 TOPIC_NAME="avro-stream"
 
 
 # If running with DataStax Cloud:
-# Set CLOUD_USERNAME to username of your apollo constellation db
-# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your apollo constellation db
-# Set CLOUD_KEYSPACE to a keyspace of your apollo constellation db
+# Set CLOUD_USERNAME to username of your astra constellation db
+# Set CLOUD_PASSWORD to password CLOUD_PASSWORD of your astra constellation db
+# Set CLOUD_KEYSPACE to a keyspace of your astra constellation db
 CLOUD_USERNAME=user
 CLOUD_PASSWORD=password
 CLOUD_KEYSPACE=ks1
 
 CONFLUENT_VERSION=$1
-DSE_CONNECTOR_VERSION=$2
+CASS_SINK_CONNECTOR_VERSION=$2
 IS_CLOUD=$3
 
 wait_for_port () {
@@ -47,14 +47,14 @@ assert_confluent_home () {
 
 assert_connector_home () {
   if [ -z "$CONNECTOR_HOME" ] ; then
-    echo "You must set the CONNECTOR_HOME env var to the location of the DSE connector installation before performing this operation."
+    echo "You must set the CONNECTOR_HOME env var to the location of the Cassandra Sink connector installation before performing this operation."
     exit 1
   fi
 }
 
 assert_dse_home () {
   if [ -z "$DSE_HOME" ] ; then
-    echo "You must set the DSE_HOME env var to the location of the DSE installation before performing this operation."
+    echo "You must set the DSE_HOME env var to the location of the Cassandra or DSE installation before performing this operation."
     exit 1
   fi
 }
@@ -72,8 +72,8 @@ maybe_set_total_records () {
 }
 
 maybe_set_dse_connector_version () {
-  if [ -z "$DSE_CONNECTOR_VERSION" ] ; then
-    DSE_CONNECTOR_VERSION=1.0.0
+  if [ -z "$CASS_SINK_CONNECTOR_VERSION" ] ; then
+    CASS_SINK_CONNECTOR_VERSION=1.0.0
   fi
 }
 
@@ -193,7 +193,7 @@ install_kafka_examples () {
 	echo "----------------------------------------"
 	echo "---  CLONING KAFKA-EXAMPLES GITHUB   ---"
 	echo "----------------------------------------"
-	git clone https://github.com/datastax/kafka-examples.git kafka-examples
+	git clone -b kafka-sink-perf https://github.com/datastax/kafka-examples.git kafka-examples
 }
 
 stop_confluent(){
@@ -270,7 +270,7 @@ start_distributed_worker () {
 	echo "----------------------------------------"
 	echo "---   STARTING KAFKA CONNECT WORKER  ---"
 	echo "----------------------------------------"
-	plugin_path=${CONFLUENT_HOME}/share/,${CONNECTOR_HOME}/kafka-connect-dse-${DSE_CONNECTOR_VERSION}.jar
+	plugin_path=${CONFLUENT_HOME}/share/,${CONNECTOR_HOME}/kafka-connect-cassandra-sink-${CASS_SINK_CONNECTOR_VERSION}.jar
 	sed -i "s#plugin\.path.*#plugin\.path=$plugin_path#" kafka-examples/producers/src/main/java/avro/connect-distributed-avro.properties
 	$CONFLUENT_HOME/bin/connect-distributed kafka-examples/producers/src/main/java/avro/connect-distributed-avro.properties >> $CONFLUENT_HOME/logs/worker-avro-example.log 2>&1 &
 

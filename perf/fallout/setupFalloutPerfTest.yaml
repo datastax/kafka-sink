@@ -23,7 +23,6 @@ ensemble:
     configuration_manager:
       - name: ctool
         properties:
-          java.version: "1.8_151"
           product.type: dse
           product.install.type: tarball
           product.version: 6.7-dev
@@ -186,7 +185,7 @@ workload:
             cd ${FALLOUT_SCRATCH_DIR}
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic json-stream --config retention.ms=-1 delete.topic.enable=true
             confluent/bin/kafka-topics --create --zookeeper localhost:2181 --replication-factor 2 --partitions 100 --topic avro-stream --config retention.ms=-1 delete.topic.enable=true
-            git clone https://github.com/datastax/kafka-examples.git
+            git clone -b kafka-sink-perf https://github.com/datastax/kafka-examples.git
     - setup-confluent-workers:
         module: bash
         properties:
@@ -221,7 +220,7 @@ workload:
             cd kafka-sink
             mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
             cd ${FALLOUT_SCRATCH_DIR}
-            CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-dse-{{version}}.jar
+            CONNECTOR_JAR_LOCATION=${FALLOUT_SCRATCH_DIR}/kafka-sink/dist/target/kafka-connect-cassandra-sink-{{version}}.jar
             plugin_path=${FALLOUT_SCRATCH_DIR}/confluent/share,${CONNECTOR_JAR_LOCATION}
             sed -i "s#plugin\.path.*#plugin\.path=$plugin_path\n#" confluent/etc/kafka/connect-distributed.properties
     - setup-metrics-worker-0:

@@ -1,40 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     Copyright DataStax, Inc.
 
-      This software is subject to the below license agreement.
-      DataStax may make changes to the agreement from time to time,
-      and will post the amended terms at
-      https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
-
-  <groupId>com.datastax.dse</groupId>
-  <artifactId>kafka-connect-dse-parent</artifactId>
+  <groupId>com.datastax.oss</groupId>
+  <artifactId>kafka-connect-cassandra-sink-parent</artifactId>
   <packaging>pom</packaging>
   <version>1.3.2-SNAPSHOT</version>
-
-  <name>DataStax Apache Kafka Connector</name>
-  <description>
-    A collection of Kafka Connect services for interacting with DSE: currently only a sink to
-    pull messages from Kafka and insert into DSE.
-  </description>
-
+  <name>DataStax Apache Cassandra (R) Kafka Sink Connector</name>
+  <description>A Kafka Sink Connector for pulling data from Apache Kafka and inserting into Apache Cassandra (R) or DataStax Enterprise (DSE)</description>
   <url>https://github.com/riptano/kafka-sink</url>
   <inceptionYear>2018</inceptionYear>
   <organization>
     <name>DataStax</name>
     <url>http://www.datastax.com</url>
   </organization>
-
   <modules>
     <module>sink</module>
     <module>dist</module>
   </modules>
-
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -42,378 +41,214 @@
     <kafka.connect.version>2.4.0</kafka.connect.version>
     <confluent.version>5.2.1</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
-    <oss.driver.version>4.5.0</oss.driver.version>
-    <dsbulk.version>1.5.0</dsbulk.version>
+    <oss.driver.version>4.6.0</oss.driver.version>
+    <dsbulk.version>1.6.0-SNAPSHOT</dsbulk.version>
+    <reactive-streams.version>1.0.3</reactive-streams.version>
     <guava.version>25.1-jre</guava.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
-    <junit.version>5.3.0-M1</junit.version>
-    <junit-platform.version>1.3.0-M1</junit-platform.version>
-    <assertj.version>3.10.0</assertj.version>
+    <junit.version>5.4.1</junit.version>
+    <assertj.version>3.14.0</assertj.version>
     <mockito.version>2.18.3</mockito.version>
     <wiremock.version>2.25.0</wiremock.version>
     <wiremock-junit.version>1.3.1</wiremock-junit.version>
-    <surefire.version>2.22.0</surefire.version>
+    <surefire.version>2.22.2</surefire.version>
     <antlr4.version>4.7.1</antlr4.version>
     <simulacron.version>0.8.11</simulacron.version>
     <max.simulacron.clusters>4</max.simulacron.clusters>
     <max.ccm.clusters>2</max.ccm.clusters>
     <commons-exec.version>1.3</commons-exec.version>
-    <awaitility.version>3.1.0</awaitility.version>
+    <awaitility.version>4.0.1</awaitility.version>
     <netty.version>4.1.39.Final</netty.version>
     <netty.tcnative.version>2.0.25.Final</netty.tcnative.version>
     <metrics.version>4.0.2</metrics.version>
-    <lz4.version>1.3.0</lz4.version>
+    <lz4.version>1.6.0</lz4.version>
     <snappy.version>1.1.7.2</snappy.version>
     <jackson.version>2.10.0</jackson.version>
     <jackson-databind.version>2.10.0</jackson-databind.version>
   </properties>
-
   <dependencyManagement>
-
     <dependencies>
-
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>connect-api</artifactId>
         <version>${kafka.connect.version}</version>
       </dependency>
-
-      <dependency>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-runtime</artifactId>
-        <version>${antlr4.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.github.ben-manes.caffeine</groupId>
-        <artifactId>caffeine</artifactId>
-        <version>${caffeine.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>jul-to-slf4j</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>${logback.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>com.datastax.oss</groupId>
-        <artifactId>java-driver-core</artifactId>
-        <version>${oss.driver.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-core</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-driver</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>tinkergraph-gremlin</artifactId>
-          </exclusion>
-        </exclusions>
-      </dependency>
-
-      <dependency>
-        <groupId>com.datastax.oss</groupId>
-        <artifactId>java-driver-shaded-guava</artifactId>
-        <version>${guava.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jetbrains</groupId>
-        <artifactId>annotations</artifactId>
-        <version>15.0</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-params</artifactId>
-        <version>${junit.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-engine</artifactId>
-        <version>${junit.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <version>${assertj.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>${mockito.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.kafka</groupId>
-        <artifactId>connect-json</artifactId>
-        <version>${kafka.connect.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>io.confluent</groupId>
-        <artifactId>kafka-connect-avro-converter</artifactId>
-        <version>${confluent.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>com.datastax.oss.simulacron</groupId>
-        <artifactId>simulacron-native-server</artifactId>
-        <version>${simulacron.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-exec</artifactId>
-        <version>${commons-exec.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.awaitility</groupId>
-        <artifactId>awaitility</artifactId>
-        <version>${awaitility.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-
-      <dependency>
-        <groupId>com.github.tomakehurst</groupId>
-        <artifactId>wiremock</artifactId>
-        <version>${wiremock.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>ru.lanwen.wiremock</groupId>
-        <artifactId>wiremock-junit5</artifactId>
-        <version>${wiremock-junit.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>com.datastax.oss</groupId>
-        <artifactId>java-driver-test-infra</artifactId>
-        <version>${oss.driver.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>com.datastax.dse</groupId>
-        <artifactId>kafka-connect-dse-sink</artifactId>
+        <artifactId>kafka-connect-cassandra-sink</artifactId>
         <version>${project.version}</version>
       </dependency>
-
       <dependency>
-        <groupId>com.datastax.dse</groupId>
-        <artifactId>dsbulk-commons</artifactId>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>dsbulk-codecs-api</artifactId>
         <version>${dsbulk.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>com.github.luben</groupId>
-            <artifactId>zstd-jni</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.tukaani</groupId>
-            <artifactId>xz</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.xerial.snappy</groupId>
-            <artifactId>snappy-java</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.brotli</groupId>
-            <artifactId>dec</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>gremlin-core</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.apache.tinkerpop</groupId>
-            <artifactId>tinkergraph-gremlin</artifactId>
-          </exclusion>
-          <exclusion>
-            <groupId>org.reactivestreams</groupId>
-            <artifactId>reactive-streams</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
-
       <dependency>
-        <groupId>com.datastax.dse</groupId>
-        <artifactId>dsbulk-commons</artifactId>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>dsbulk-codecs-text</artifactId>
         <version>${dsbulk.version}</version>
-        <type>test-jar</type>
-        <scope>test</scope>
-        <exclusions>
-          <exclusion>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-compress</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>com.github.luben</groupId>
-            <artifactId>zstd-jni</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.tukaani</groupId>
-            <artifactId>xz</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.xerial.snappy</groupId>
-            <artifactId>snappy-java</artifactId>
-          </exclusion>
-
-          <exclusion>
-            <groupId>org.brotli</groupId>
-            <artifactId>dec</artifactId>
-          </exclusion>
-        </exclusions>
       </dependency>
-
       <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-buffer</artifactId>
-        <version>${netty.version}</version>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>dsbulk-codecs-jdk</artifactId>
+        <version>${dsbulk.version}</version>
       </dependency>
-
       <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-codec</artifactId>
-        <version>${netty.version}</version>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>dsbulk-sampler</artifactId>
+        <version>${dsbulk.version}</version>
       </dependency>
-
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-common</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-handler</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-resolver</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-tcnative-boringssl-static</artifactId>
         <version>${netty.tcnative.version}</version>
       </dependency>
-
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>${metrics.version}</version>
       </dependency>
-
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-jmx</artifactId>
         <version>${metrics.version}</version>
       </dependency>
-
       <dependency>
-        <groupId>net.jpountz.lz4</groupId>
-        <artifactId>lz4</artifactId>
+        <groupId>org.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
         <version>${lz4.version}</version>
       </dependency>
-
       <dependency>
         <groupId>org.xerial.snappy</groupId>
         <artifactId>snappy-java</artifactId>
         <version>${snappy.version}</version>
       </dependency>
-
-      <!--
-      This is needed because dse driver 2.0.0-alpha1 uses it, but makes it an optional dep.
-      Consider removing this when upgrading to the next version of the dse driver.
-      -->
-      <dependency>
-        <groupId>com.github.stephenc.jcip</groupId>
-        <artifactId>jcip-annotations</artifactId>
-        <version>1.0-1</version>
-      </dependency>
-
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-core</artifactId>
         <version>${jackson.version}</version>
       </dependency>
-
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-databind</artifactId>
         <version>${jackson-databind.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-runtime</artifactId>
+        <version>${antlr4.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>jul-to-slf4j</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ch.qos.logback</groupId>
+        <artifactId>logback-classic</artifactId>
+        <version>${logback.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-core</artifactId>
+        <version>${oss.driver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-shaded-guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.reactivestreams</groupId>
+        <artifactId>reactive-streams</artifactId>
+        <version>${reactive-streams.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-params</artifactId>
+        <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-engine</artifactId>
+        <version>${junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>connect-json</artifactId>
+        <version>${kafka.connect.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-connect-avro-converter</artifactId>
+        <version>${confluent.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss.simulacron</groupId>
+        <artifactId>simulacron-native-server</artifactId>
+        <version>${simulacron.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-exec</artifactId>
+        <version>${commons-exec.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.awaitility</groupId>
+        <artifactId>awaitility</artifactId>
+        <version>${awaitility.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.tomakehurst</groupId>
+        <artifactId>wiremock</artifactId>
+        <version>${wiremock.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>ru.lanwen.wiremock</groupId>
+        <artifactId>wiremock-junit5</artifactId>
+        <version>${wiremock-junit.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-test-infra</artifactId>
+        <version>${oss.driver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>dsbulk-tests</artifactId>
+        <version>${dsbulk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-annotations</artifactId>
+        <version>3.1.12</version>
+      </dependency>
     </dependencies>
-
   </dependencyManagement>
-
   <build>
-
     <pluginManagement>
-
       <plugins>
-
         <plugin>
           <groupId>org.antlr</groupId>
           <artifactId>antlr4-maven-plugin</artifactId>
@@ -430,7 +265,11 @@
             </execution>
           </executions>
         </plugin>
-
+        <plugin>
+          <groupId>au.com.acegi</groupId>
+          <artifactId>xml-format-maven-plugin</artifactId>
+          <version>3.1.1</version>
+        </plugin>
         <plugin>
           <groupId>com.coveo</groupId>
           <artifactId>fmt-maven-plugin</artifactId>
@@ -443,13 +282,11 @@
             </execution>
           </executions>
         </plugin>
-
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
           <version>3.0.0</version>
         </plugin>
-
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.7.0</version>
@@ -476,23 +313,25 @@
             </dependency>
           </dependencies>
         </plugin>
-
         <plugin>
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <version>3.0</version>
           <configuration>
             <inlineHeader><![CDATA[
+Copyright DataStax, Inc.
 
-  Copyright DataStax, Inc.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-  This software is subject to the below license agreement.
-  DataStax may make changes to the agreement from time to time,
-  and will post the amended terms at
-  https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms.
+http://www.apache.org/licenses/LICENSE-2.0
 
-  ]]>
-            </inlineHeader>
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.]]></inlineHeader>
             <includes>
               <include>src/**/*.java</include>
               <include>src/**/*.xml</include>
@@ -517,7 +356,11 @@
             </execution>
           </executions>
         </plugin>
-
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>1.14</version>
+        </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>animal-sniffer-maven-plugin</artifactId>
@@ -538,13 +381,11 @@
             </execution>
           </executions>
         </plugin>
-
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.1.1</version>
+          <version>3.2.3</version>
         </plugin>
-
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
@@ -577,11 +418,10 @@
           </executions>
           <configuration>
             <excludes>
-              <exclude>com/datastax/kafkaconnector/schema/Mapping*</exclude>
+              <exclude>com.datastax.oss.kafka.sink/schema/Mapping*</exclude>
             </excludes>
           </configuration>
         </plugin>
-
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${surefire.version}</version>
@@ -591,7 +431,6 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${surefire.version}</version>
@@ -601,33 +440,27 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.0.2</version>
         </plugin>
-
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>3.1.0</version>
         </plugin>
-
         <plugin>
           <artifactId>maven-gpg-plugin</artifactId>
           <version>1.5</version>
         </plugin>
-
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
           <version>2.5.2</version>
         </plugin>
-
         <plugin>
           <artifactId>maven-deploy-plugin</artifactId>
           <version>2.8.2</version>
         </plugin>
-
         <plugin>
           <artifactId>maven-release-plugin</artifactId>
           <version>2.5.3</version>
@@ -638,13 +471,31 @@
             <releaseProfiles>release</releaseProfiles>
           </configuration>
         </plugin>
-
       </plugins>
-
     </pluginManagement>
-
     <plugins>
-
+      <plugin>
+        <groupId>au.com.acegi</groupId>
+        <artifactId>xml-format-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>xml-format</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <excludes>
+            <exclude>.idea/**</exclude>
+            <exclude>perf/**</exclude>
+            <exclude>certify_confluent/**</exclude>
+            <exclude>**/target/**</exclude>
+            <exclude>**/dependency-reduced-pom.xml</exclude>
+            <exclude>**/.flattened-pom.xml</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>com.coveo</groupId>
         <artifactId>fmt-maven-plugin</artifactId>
@@ -653,15 +504,7 @@
             <additionalSourceDirectory>src/it/java</additionalSourceDirectory>
           </additionalSourceDirectories>
         </configuration>
-        <!--<executions>-->
-          <!--<execution>-->
-            <!--<goals>-->
-              <!--<goal>format</goal>-->
-            <!--</goals>-->
-          <!--</execution>-->
-        <!--</executions>-->
       </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
@@ -695,26 +538,21 @@
           </execution>
         </executions>
       </plugin>
-
       <plugin>
         <groupId>com.mycila</groupId>
         <artifactId>license-maven-plugin</artifactId>
       </plugin>
-
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>animal-sniffer-maven-plugin</artifactId>
       </plugin>
-
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
-
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
       </plugin>
-
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
         <executions>
@@ -732,13 +570,9 @@
           </execution>
         </executions>
       </plugin>
-
     </plugins>
-
   </build>
-
   <profiles>
-
     <profile>
       <id>medium</id>
       <build>
@@ -764,33 +598,6 @@
         </plugins>
       </build>
     </profile>
-
-    <profile>
-      <id>long</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <!-- add a special execution that only runs long CCM tests -->
-              <execution>
-                <id>long-tests</id>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <groups>long</groups>
-                  <reportNameSuffix>long</reportNameSuffix>
-                  <forkCount>1</forkCount>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-
     <!--
     Profile activated when releasing. See:
     http://central.sonatype.org/pages/apache-maven.html
@@ -815,12 +622,11 @@
       </build>
     </profile>
   </profiles>
-
   <repositories>
     <repository>
       <id>datastax-releases-local</id>
       <name>DataStax Local Releases</name>
-      <url> https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
+      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -840,41 +646,24 @@
       </snapshots>
     </repository>
   </repositories>
-
-  <distributionManagement>
-    <repository>
-      <id>datastax-releases-local</id>
-      <name>DataStax Local Releases</name>
-      <url> https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
-    </repository>
-    <snapshotRepository>
-      <id>datastax-snapshots-local</id>
-      <name>DataStax Local Snapshots</name>
-      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-snapshots-local/</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <licenses>
     <license>
-      <name>DataStax DSE Bulk Utility License</name>
-      <url>https://www.datastax.com/terms/datastax-apache-kafka-connector-license-terms</url>
+      <name>Apache 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
-      <comments />
+      <comments>Apache License Version 2.0</comments>
     </license>
   </licenses>
-
   <scm>
     <connection>scm:git:git@github.com:riptano/kafka-sink.git</connection>
     <developerConnection>scm:git:git@github.com:riptano/kafka-sink.git</developerConnection>
     <url>https://github.com/riptano/kafka-sink</url>
     <tag>HEAD</tag>
   </scm>
-
   <developers>
     <developer>
       <name>Various</name>
       <organization>DataStax</organization>
     </developer>
   </developers>
-
 </project>

@@ -1,7 +1,7 @@
 {
   "name": "kc-perf-connect-l-0",
   "config": {
-    "connector.class": "com.datastax.kafkaconnector.DseSinkConnector",
+    "connector.class": "com.datastax.oss.kafka.sink.CassandraSinkConnector",
     "tasks.max": "100",
     "topics": "json-stream",
     "contactPoints": "{dse_contact_point_1},{dse_contact_point_2}",

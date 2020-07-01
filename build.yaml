@@ -35,12 +35,12 @@ build:
     version: 3.2.5
     goals: verify -Pmedium --fail-never -B
     properties: |
-      com.datastax.dsbulk.commons.tests.ccm.CCM_VERSION=$CCM_VERSION
-      com.datastax.dsbulk.commons.tests.ccm.CCM_IS_DDAC=$CCM_IS_DDAC
-      com.datastax.dsbulk.commons.tests.ccm.CCM_IS_DSE=$CCM_IS_DSE
-      com.datastax.dsbulk.commons.tests.ccm.JAVA_HOME=$CCM_JAVA_HOME
-      com.datastax.dsbulk.commons.tests.ccm.PATH=$CCM_JAVA_HOME/bin
-      com.datastax.dsbulk.commons.tests.cloud.PROXY_PATH=$HOME/proxy
+      dsbulk.ccm.CCM_VERSION=$CCM_VERSION
+      dsbulk.ccm.CCM_IS_DDAC=$CCM_IS_DDAC
+      dsbulk.ccm.CCM_IS_DSE=$CCM_IS_DSE
+      dsbulk.ccm.JAVA_HOME=$CCM_JAVA_HOME
+      dsbulk.ccm.PATH=$CCM_JAVA_HOME/bin
+      dsbulk.cloud.PROXY_PATH=$HOME/proxy
       failIfNoTests=false
       maven.test.failure.ignore=true
       maven.javadoc.skip=true
@@ -51,4 +51,4 @@ build:
     - "**/target/failsafe-reports/TEST-*.xml"
   - jacoco:
     exec_pattern: "**/target/**.exec"
-    exclusion_pattern: "com/datastax/kafkaconnector/schema/Mapping*"
+    exclusion_pattern: "com/datastax/oss/kafka/generated/schema/Mapping*"
