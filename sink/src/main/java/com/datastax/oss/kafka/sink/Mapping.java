@@ -38,23 +38,22 @@ import java.util.Map;
  */
 public class Mapping {
 
-  private final Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields;
+  private final Map<CqlIdentifier, CqlIdentifier> columnsToKafkaFields;
   private final Multimap<CqlIdentifier, CqlIdentifier> kafkaFieldsToDseColumns;
   private final ConvertingCodecFactory codecFactory;
-  private final Cache<CqlIdentifier, TypeCodec<?>> dseColumnsToCodecs;
+  private final Cache<CqlIdentifier, TypeCodec<?>> columnsToCodecs;
   private final List<CqlIdentifier> functions;
 
   public Mapping(
-      Map<CqlIdentifier, CqlIdentifier> dseColumnsToKafkaFields,
-      ConvertingCodecFactory codecFactory) {
-    this.dseColumnsToKafkaFields = dseColumnsToKafkaFields;
+      Map<CqlIdentifier, CqlIdentifier> columnsToKafkaFields, ConvertingCodecFactory codecFactory) {
+    this.columnsToKafkaFields = columnsToKafkaFields;
     this.codecFactory = codecFactory;
-    dseColumnsToCodecs = Caffeine.newBuilder().build();
+    columnsToCodecs = Caffeine.newBuilder().build();
     ImmutableMultimap.Builder<CqlIdentifier, CqlIdentifier> builder = ImmutableMultimap.builder();
-    dseColumnsToKafkaFields.forEach((c, f) -> builder.put(f, c));
+    columnsToKafkaFields.forEach((c, f) -> builder.put(f, c));
     kafkaFieldsToDseColumns = builder.build();
     functions =
-        dseColumnsToKafkaFields
+        columnsToKafkaFields
             .values()
             .stream()
             .filter(FunctionMapper.SUPPORTED_FUNCTIONS_IN_MAPPING::contains)
@@ -63,12 +62,12 @@ public class Mapping {
 
   @Nullable
   CqlIdentifier columnToField(@NonNull CqlIdentifier column) {
-    return dseColumnsToKafkaFields.get(column);
+    return columnsToKafkaFields.get(column);
   }
 
   @NonNull
   Collection<CqlIdentifier> getMappedColumns() {
-    return dseColumnsToKafkaFields.keySet();
+    return columnsToKafkaFields.keySet();
   }
 
   @Nullable
@@ -84,7 +83,7 @@ public class Mapping {
     @SuppressWarnings("unchecked")
     TypeCodec<T> codec =
         (TypeCodec<T>)
-            dseColumnsToCodecs.get(
+            columnsToCodecs.get(
                 column, n -> codecFactory.createConvertingCodec(cqlType, javaType, true));
     assert codec != null;
     return codec;
