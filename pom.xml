@@ -81,11 +81,6 @@
       </dependency>
       <dependency>
         <groupId>com.datastax.oss</groupId>
-        <artifactId>dsbulk-commons</artifactId>
-        <version>${dsbulk.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.datastax.oss</groupId>
         <artifactId>dsbulk-codecs-api</artifactId>
         <version>${dsbulk.version}</version>
       </dependency>
