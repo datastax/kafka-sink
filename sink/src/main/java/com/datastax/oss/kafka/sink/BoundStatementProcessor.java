@@ -26,7 +26,7 @@ import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
-import com.datastax.oss.dsbulk.commons.utils.StatementUtils;
+import com.datastax.oss.dsbulk.sampler.DataSizes;
 import com.datastax.oss.kafka.sink.record.RecordAndStatement;
 import com.datastax.oss.kafka.sink.state.InstanceState;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -148,14 +148,14 @@ class BoundStatementProcessor implements Callable<Void> {
     statements.forEach(
         s ->
             batchSizeInBytesHistogram.update(
-                StatementUtils.getDataSize(s.getStatement(), protocolVersion, codecRegistry)));
+                DataSizes.getDataSize(s.getStatement(), protocolVersion, codecRegistry)));
     batchSizeHistogram.update(statements.size());
   }
 
   private void updateBatchSizeMetrics(
       Statement<?> statement, Histogram batchSizeHistogram, Histogram batchSizeInBytesHistogram) {
     batchSizeInBytesHistogram.update(
-        StatementUtils.getDataSize(statement, protocolVersion, codecRegistry));
+        DataSizes.getDataSize(statement, protocolVersion, codecRegistry));
     batchSizeHistogram.update(1);
   }
 
