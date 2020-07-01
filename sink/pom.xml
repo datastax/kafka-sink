@@ -73,15 +73,7 @@
         </exclusion>
         <exclusion>
           <groupId>org.apache.tinkerpop</groupId>
-          <artifactId>gremlin-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.tinkerpop</groupId>
-          <artifactId>gremlin-driver</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.tinkerpop</groupId>
-          <artifactId>tinkergraph-gremlin</artifactId>
+          <artifactId>*</artifactId>
         </exclusion>
         <exclusion>
           <groupId>org.reactivestreams</groupId>
