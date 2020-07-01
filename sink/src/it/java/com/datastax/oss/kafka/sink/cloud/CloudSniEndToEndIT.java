@@ -20,7 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.slf4j.event.Level.INFO;
-import static ru.lanwen.wiremock.ext.WiremockResolver.*;
+import static ru.lanwen.wiremock.ext.WiremockResolver.Wiremock;
 
 import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -62,8 +62,8 @@ import ru.lanwen.wiremock.ext.WiremockResolver;
 public class CloudSniEndToEndIT extends ITConnectorBase {
 
   private final SNIProxyServer proxy;
-  private CqlSession session;
-  private LogInterceptor logs;
+  private final CqlSession session;
+  private final LogInterceptor logs;
 
   public CloudSniEndToEndIT(
       SNIProxyServer proxy,
