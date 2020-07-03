@@ -19,10 +19,11 @@ import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.DSE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
-import com.datastax.oss.dsbulk.tests.utils.Version;
+import com.datastax.oss.dsbulk.tests.driver.VersionUtils;
 import java.time.Duration;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +44,7 @@ public abstract class EndToEndCCMITBase extends ITConnectorBase {
     // in our testing.
     hasDateRange =
         ccm.getClusterType() == DSE
-            && Version.isWithinRange(Version.parse("5.1.0"), null, ccm.getVersion());
+            && VersionUtils.isWithinRange(Version.parse("5.1.0"), null, ccm.getVersion());
   }
 
   @BeforeAll
