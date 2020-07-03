@@ -116,10 +116,7 @@ def notifySlack(status = 'started') {
       event = "was triggered by timer"
     }
   } else {
-    if (status == 'failed') {
-      status = status.toUpperCase()
-    }
-    event = "${status} after ${currentBuild.durationString - ' and counting'}"
+    event = "${status == 'failed' ? status.toUpperCase() : status} after ${currentBuild.durationString - ' and counting'}"
   }
 
   String buildUrl = env.BLUE_OCEAN_URL == null ?
