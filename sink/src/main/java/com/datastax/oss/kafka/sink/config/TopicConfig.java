@@ -16,13 +16,17 @@
 package com.datastax.oss.kafka.sink.config;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import com.datastax.oss.dsbulk.codecs.ConversionContext;
+import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.datastax.oss.dsbulk.codecs.text.TextConversionContext;
+import com.datastax.oss.dsbulk.codecs.util.CodecUtils;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -135,20 +139,18 @@ public class TopicConfig extends AbstractConfig {
   }
 
   @NonNull
-  public Config getCodecConfigOverrides() {
-    String[] settingNames = {
-      LOCALE_OPT, TIMEZONE_OPT, TIMESTAMP_PAT_OPT, DATE_PAT_OPT, TIME_PAT_OPT, TIME_UNIT_OPT
-    };
-    String config =
-        Arrays.stream(settingNames)
-            .map(
-                s ->
-                    String.format(
-                        "%s=\"%s\"",
-                        s.substring("codec.".length()),
-                        getString(getTopicSettingPath(topicName, s))))
-            .collect(Collectors.joining("\n"));
-    return ConfigFactory.parseString(config);
+  public ConvertingCodecFactory createCodecFactory() {
+    ConversionContext context =
+        new TextConversionContext()
+            .setLocale(
+                CodecUtils.parseLocale(getString(getTopicSettingPath(topicName, LOCALE_OPT))))
+            .setTimestampFormat(getString(getTopicSettingPath(topicName, TIMESTAMP_PAT_OPT)))
+            .setDateFormat(getString(getTopicSettingPath(topicName, DATE_PAT_OPT)))
+            .setTimeFormat(getString(getTopicSettingPath(topicName, TIME_PAT_OPT)))
+            .setTimeZone(ZoneId.of(getString(getTopicSettingPath(topicName, TIMEZONE_OPT))))
+            .setTimeUnit(
+                TimeUnit.valueOf(getString(getTopicSettingPath(topicName, TIME_UNIT_OPT))));
+    return new ConvertingCodecFactory(context);
   }
 
   /**

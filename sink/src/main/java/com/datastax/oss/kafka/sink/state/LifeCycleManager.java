@@ -50,7 +50,6 @@ import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
 import com.datastax.oss.kafka.sink.CassandraSinkTask;
-import com.datastax.oss.kafka.sink.codecs.CodecSettings;
 import com.datastax.oss.kafka.sink.config.AuthenticatorConfig;
 import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
 import com.datastax.oss.kafka.sink.config.ContactPointsValidator;
@@ -409,8 +408,6 @@ public class LifeCycleManager {
     // Compute the primary keys of all tables being mapped to (across topics).
     Map<String, List<CqlIdentifier>> primaryKeys = new HashMap<>();
 
-    Config kafkaConfig = ConfigFactory.load().getConfig("kafka");
-
     // Walk through topic-configs to create TopicState's. This involves computing the
     // codec-registry and the following for each mapped table:
     // cql for insert-update statements
@@ -425,13 +422,7 @@ public class LifeCycleManager {
             .stream()
             .map(
                 topicConfig -> {
-                  CodecSettings codecSettings =
-                      new CodecSettings(
-                          topicConfig
-                              .getCodecConfigOverrides()
-                              .withFallback(kafkaConfig.getConfig("codec")));
-                  codecSettings.init();
-                  ConvertingCodecFactory codecFactory = codecSettings.createCodecFactory();
+                  ConvertingCodecFactory codecFactory = topicConfig.createCodecFactory();
                   TopicState topicState = new TopicState(codecFactory);
                   topicStates.put(topicConfig.getTopicName(), topicState);
 

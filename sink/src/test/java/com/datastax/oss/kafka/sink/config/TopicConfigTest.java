@@ -30,7 +30,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.logging.LogCapture;
 import com.datastax.oss.dsbulk.tests.logging.LogInterceptingExtension;
 import com.datastax.oss.dsbulk.tests.logging.LogInterceptor;
-import com.typesafe.config.Config;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.kafka.common.config.ConfigException;
@@ -41,30 +40,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 @ExtendWith(LogInterceptingExtension.class)
 class TopicConfigTest {
-  @Test
-  void should_produce_config_overrides() {
-    Map<String, String> props =
-        ImmutableMap.<String, String>builder()
-            .put(TopicConfig.getTopicSettingPath("mytopic", TIME_PAT_OPT), "time-pat")
-            .put(TopicConfig.getTopicSettingPath("mytopic", LOCALE_OPT), "locale")
-            .put(TopicConfig.getTopicSettingPath("mytopic", TIMEZONE_OPT), "timezone")
-            .put(TopicConfig.getTopicSettingPath("mytopic", TIMESTAMP_PAT_OPT), "timestamp-pat")
-            .put(TopicConfig.getTopicSettingPath("mytopic", DATE_PAT_OPT), "date-pat")
-            .put(TopicConfig.getTopicSettingPath("mytopic", TIME_UNIT_OPT), "time-unit")
-            .put(
-                TableConfig.getTableSettingPath("mytopic", "ks", "table1", TableConfig.MAPPING_OPT),
-                "c1=value.f1")
-            .build();
-
-    TopicConfig config = new TopicConfig("mytopic", props, false);
-    Config configOverrides = config.getCodecConfigOverrides();
-    assertThat(configOverrides.getString("locale")).isEqualTo("locale");
-    assertThat(configOverrides.getString("timeZone")).isEqualTo("timezone");
-    assertThat(configOverrides.getString("timestamp")).isEqualTo("timestamp-pat");
-    assertThat(configOverrides.getString("date")).isEqualTo("date-pat");
-    assertThat(configOverrides.getString("time")).isEqualTo("time-pat");
-    assertThat(configOverrides.getString("unit")).isEqualTo("time-unit");
-  }
 
   @Test
   void should_error_if_no_tables_provided() {

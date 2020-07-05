@@ -23,8 +23,7 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
+import com.datastax.oss.dsbulk.codecs.text.TextConversionContext;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -41,7 +40,7 @@ class StructToUDTCodecTest {
 
   private final StructToUDTCodec udtCodec1 =
       (StructToUDTCodec)
-          newCodecRegistry()
+          new ConvertingCodecFactory(new TextConversionContext())
               .<Struct, UdtValue>createConvertingCodec(udt1, GenericType.of(Struct.class), true);
 
   private final Schema schema =
@@ -74,12 +73,5 @@ class StructToUDTCodecTest {
             .put("a1", 32)
             .put("a2", 40);
     assertThat(udtCodec1).cannotConvertFromExternal(other).cannotConvertFromExternal(other2);
-  }
-
-  private ConvertingCodecFactory newCodecRegistry() {
-    Config config = ConfigFactory.load().getConfig("kafka.codec");
-    CodecSettings settings = new CodecSettings(config);
-    settings.init();
-    return settings.createCodecFactory();
   }
 }
