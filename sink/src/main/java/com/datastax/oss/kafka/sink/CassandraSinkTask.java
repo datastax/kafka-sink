@@ -279,8 +279,9 @@ public class CassandraSinkTask extends SinkTask {
     // don't occur that often, so we don't have to be very fancy here.
 
     IgnoreErrorsPolicy ignoreErrors = instanceState.getConfig().getIgnoreErrors();
+    boolean driverFailure = cql != null;
     if (ignoreErrors == IgnoreErrorsPolicy.NONE
-        || (ignoreErrors == IgnoreErrorsPolicy.DRIVER && cql == null)) {
+        || (ignoreErrors == IgnoreErrorsPolicy.DRIVER && !driverFailure)) {
       TopicPartition topicPartition = new TopicPartition(record.topic(), record.kafkaPartition());
       long currentOffset = Long.MAX_VALUE;
       if (failureOffsets.containsKey(topicPartition)) {
@@ -294,7 +295,7 @@ public class CassandraSinkTask extends SinkTask {
 
     failCounter.run();
 
-    if (cql != null) {
+    if (driverFailure) {
       log.warn(
           "Error inserting/updating row for Kafka record {}: {}\n   statement: {}}",
           record,
