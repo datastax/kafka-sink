@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.kafka.sink.metrics;
 
+import avro.shaded.com.google.common.annotations.VisibleForTesting;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 
@@ -24,6 +25,11 @@ public class GlobalSinkMetrics {
 
   public GlobalSinkMetrics(MetricRegistry metricRegistry) {
     failedRecordsWithUnknownTopicCounter = metricRegistry.meter(FAILED_RECORDS_WITH_UNKNOWN_TOPIC);
+  }
+
+  @VisibleForTesting
+  public Meter getFailedRecordsWithUnknownTopicCounter() {
+    return failedRecordsWithUnknownTopicCounter;
   }
 
   public void incrementFailedWithUnknownTopicCounter() {

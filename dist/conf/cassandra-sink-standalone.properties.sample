@@ -49,8 +49,12 @@ topics=my_topic
 
 
 # Specifies if the connector should ignore errors that occurred when processing the record.
-# Default is false meaning that no errors are ignored.
-#ignoreErrors=false
+# Possible values are:
+# - None: never ignore errors
+# - All: ignore all errors
+# - Driver: ignore only driver errors (errors when writing to the database)
+# Default is None.
+#ignoreErrors=None
 
 # Compression algorithm to use when issuing requests to the database. Valid values are
 # None, Snappy, LZ4. Defaults to None.

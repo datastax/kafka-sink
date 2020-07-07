@@ -192,6 +192,11 @@ public class InstanceState {
     globalSinkMetrics.incrementFailedWithUnknownTopicCounter();
   }
 
+  @VisibleForTesting
+  public Meter getFailedWithUnknownTopicCounter() {
+    return globalSinkMetrics.getFailedRecordsWithUnknownTopicCounter();
+  }
+
   @NonNull
   private TopicState getTopicState(String topicName) {
     TopicState topicState = topicStates.get(topicName);

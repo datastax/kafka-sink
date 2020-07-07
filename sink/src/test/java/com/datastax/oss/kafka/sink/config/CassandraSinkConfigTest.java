@@ -18,6 +18,7 @@ package com.datastax.oss.kafka.sink.config;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
 import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
+import static com.datastax.oss.dsbulk.tests.assertions.TestAssertions.assertThat;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.COMPRESSION_DEFAULT;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.COMPRESSION_DRIVER_SETTING;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.COMPRESSION_OPT;
@@ -27,6 +28,7 @@ import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONNECTION_
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONNECTION_POOL_LOCAL_SIZE_DRIVER_SETTING;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.CONTACT_POINTS_OPT;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.DC_OPT;
+import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.IGNORE_ERRORS;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.JAVA_DRIVER_SETTINGS_LIST_TYPE;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.LOCAL_DC_DRIVER_SETTING;
 import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.METRICS_HIGHEST_LATENCY_DEFAULT;
@@ -44,7 +46,6 @@ import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.withDriverP
 import static com.datastax.oss.kafka.sink.config.SslConfig.PROVIDER_OPT;
 import static com.datastax.oss.kafka.sink.config.TableConfig.MAPPING_OPT;
 import static com.datastax.oss.kafka.sink.config.TableConfig.getTableSettingPath;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -52,6 +53,9 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
+import com.datastax.oss.dsbulk.tests.logging.LogInterceptingExtension;
+import com.datastax.oss.dsbulk.tests.logging.LogInterceptor;
+import com.datastax.oss.kafka.sink.config.CassandraSinkConfig.IgnoreErrorsPolicy;
 import com.datastax.oss.kafka.sink.util.SinkUtil;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,10 +64,12 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+@ExtendWith(LogInterceptingExtension.class)
 class CassandraSinkConfigTest {
 
   private static final String CONTACT_POINTS_DRIVER_SETTINGS = withDriverPrefix(CONTACT_POINTS);
@@ -817,6 +823,49 @@ class CassandraSinkConfigTest {
             ImmutableMap.of(SECURE_CONNECT_BUNDLE_DRIVER_SETTING, "path"),
             SECURE_CONNECT_BUNDLE_DRIVER_SETTING,
             "path"));
+  }
+
+  @ParameterizedTest
+  @MethodSource
+  void should_handle_ignore_errors(
+      String ignoreErrors,
+      IgnoreErrorsPolicy expected,
+      String expectedDeprecationLogWarning,
+      LogInterceptor logs) {
+    // given
+    Map<String, String> connectorSettings = new HashMap<>();
+    connectorSettings.put(IGNORE_ERRORS, ignoreErrors);
+
+    // when
+    CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(connectorSettings);
+
+    // then
+    assertThat(cassandraSinkConfig.getIgnoreErrors()).isEqualTo(expected);
+    if (expectedDeprecationLogWarning != null) {
+      assertThat(logs).hasMessageContaining(expectedDeprecationLogWarning);
+    }
+  }
+
+  private static Stream<Arguments> should_handle_ignore_errors() {
+    return Stream.of(
+        Arguments.of("ALL", IgnoreErrorsPolicy.ALL, null),
+        Arguments.of("all", IgnoreErrorsPolicy.ALL, null),
+        Arguments.of("All", IgnoreErrorsPolicy.ALL, null),
+        Arguments.of("NONE", IgnoreErrorsPolicy.NONE, null),
+        Arguments.of("none", IgnoreErrorsPolicy.NONE, null),
+        Arguments.of("None", IgnoreErrorsPolicy.NONE, null),
+        Arguments.of("DRIVER", IgnoreErrorsPolicy.DRIVER, null),
+        Arguments.of("driver", IgnoreErrorsPolicy.DRIVER, null),
+        Arguments.of("Driver", IgnoreErrorsPolicy.DRIVER, null),
+        // deprecated settings
+        Arguments.of(
+            "true",
+            IgnoreErrorsPolicy.DRIVER,
+            "Setting ignoreErrors=true is deprecated, please replace with ignoreErrors=Driver"),
+        Arguments.of(
+            "false",
+            IgnoreErrorsPolicy.NONE,
+            "Setting ignoreErrors=false is deprecated, please replace with ignoreErrors=None"));
   }
 
   private void assertTopic(
