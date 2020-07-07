@@ -70,7 +70,6 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
-import org.assertj.core.api.Assertions;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -398,7 +397,22 @@ class SimpleEndToEndSimulacronIT {
 
     // Make a bad record in a different partition.
     SinkRecord record5 = makeRecord(1, "bad key", "fail3", 153000987L, 1238);
-    runTaskWithRecords(record1, record2, record3, record4, record5);
+
+    // bad record in the wrong topic. THis is probably not realistic but allows us to test the outer
+    // try-catch block in mapAndQueueRecord().
+    SinkRecord record6 =
+        new SinkRecord(
+            "wrongtopic",
+            1,
+            null,
+            "irrelevant",
+            null,
+            "iorrelevant",
+            1,
+            153000987L,
+            TimestampType.CREATE_TIME);
+
+    runTaskWithRecords(record1, record2, record3, record4, record5, record6);
 
     // Verify that we get an error offset for the first record that failed in partition 0 (1235)
     // even though its failure was discovered after 1237. Also, 1238 belongs to a different
@@ -407,12 +421,14 @@ class SimpleEndToEndSimulacronIT {
     task.preCommit(currentOffsets);
     assertThat(currentOffsets)
         .containsOnly(
-            Assertions.entry(new TopicPartition("mytopic", 0), new OffsetAndMetadata(1235L)),
-            Assertions.entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(1238L)));
+            entry(new TopicPartition("mytopic", 0), new OffsetAndMetadata(1235L)),
+            entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(1238L)),
+            entry(new TopicPartition("wrongtopic", 1), new OffsetAndMetadata(1L)));
 
     assertThat(logs.getAllMessagesAsString())
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1237")
         .contains("Error decoding/mapping Kafka record SinkRecord{kafkaOffset=1238")
+        .contains("Connector has no configuration for record topic 'wrongtopic'")
         .contains("Could not parse 'bad key'")
         .contains(
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
@@ -421,6 +437,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
         .isEqualTo(3);
     assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(4);
+    assertThat(instanceState.getFailedWithUnknownTopicCounter().getCount()).isEqualTo(1);
   }
 
   @Test
@@ -541,11 +558,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
@@ -574,11 +587,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
@@ -617,11 +626,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(4);
@@ -671,11 +676,7 @@ class SimpleEndToEndSimulacronIT {
     runTaskWithRecords(record1, record2);
 
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
@@ -711,11 +712,7 @@ class SimpleEndToEndSimulacronIT {
 
     // Verify that the insert for good1 was issued.
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     byte[] secondParam = new byte[10];
@@ -792,16 +789,11 @@ class SimpleEndToEndSimulacronIT {
     // info. We distinguish one batch from the other based on the number of statements in the
     // batch.
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("BATCH"))
             .collect(Collectors.toList());
     Map<ConsistencyLevel, Integer> queryInfo =
-        queryList
-            .stream()
+        queryList.stream()
             .map(queryLog -> (Batch) queryLog.getFrame().message)
             .collect(
                 Collectors.toMap(
@@ -882,19 +874,11 @@ class SimpleEndToEndSimulacronIT {
 
     // Verify that one Batch request was issued, and no EXECUTE requests:
     long batchRequestCount =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("BATCH"))
             .count();
     long executeRequestCount =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .count();
     assertThat(batchRequestCount).isEqualTo(1L);
@@ -905,8 +889,8 @@ class SimpleEndToEndSimulacronIT {
     task.preCommit(currentOffsets);
     assertThat(currentOffsets)
         .containsOnly(
-            Assertions.entry(new TopicPartition("mytopic", 0), new OffsetAndMetadata(1234L)),
-            Assertions.entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(8888L)));
+            entry(new TopicPartition("mytopic", 0), new OffsetAndMetadata(1234L)),
+            entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(8888L)));
 
     assertThat(logs.getAllMessagesAsString())
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1234")
@@ -934,11 +918,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron
-            .node(0)
-            .getLogs()
-            .getQueryLogs()
-            .stream()
+        simulacron.node(0).getLogs().getQueryLogs().stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
