@@ -124,11 +124,11 @@ public class LifeCycleManager {
    * @param task the task
    */
   public static void stopTask(InstanceState instanceState, CassandraSinkTask task) {
-    log.info("Unregistering task");
+    log.debug("Unregistering task");
     if (instanceState != null && instanceState.unregisterTaskAndCheckIfLast(task)) {
       INSTANCE_STATES.remove(instanceState.getConfig().getInstanceName());
     }
-    log.info("Task is no longer registered with Connector instance.");
+    log.debug("Task is no longer registered with Connector instance.");
   }
 
   /**
