@@ -110,8 +110,7 @@ class AuthenticatorConfigTest {
     assertThatThrownBy(() -> new AuthenticatorConfig(props))
         .isInstanceOf(ConfigException.class)
         .hasMessageContaining(
-            String.format(
-                "Invalid value /noexist for configuration %s: does not exist", KEYTAB_OPT));
+            String.format("noexist for configuration %s: does not exist", KEYTAB_OPT));
   }
 
   @Test
