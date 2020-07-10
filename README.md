@@ -3,11 +3,10 @@
 An Apache Kafka sink for transferring events/messages from Kafka topics to Apache Cassandra (R) or
 DataStax Enterprise (DSE).
 
-## Installing DataStax Apache Kafka Connector 
+## Installation
 
-To install this connector please follow:
+To download and install this connector please follow the procedure detailed [here](https://docs.datastax.com/en/kafka/doc/kafka/install/kafkaInstall.html).
 
-https://docs.datastax.com/en/kafka/doc/kafka/install/kafkaInstall.html
 
 ## How to use 
 
