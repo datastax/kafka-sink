@@ -3,7 +3,18 @@
 An Apache Kafka sink for transferring events/messages from Kafka topics to Apache Cassandra (R) or
 DataStax Enterprise (DSE).
 
-## How to use
+## Installation
+
+To download and install this connector please follow the procedure detailed [here](https://docs.datastax.com/en/kafka/doc/kafka/install/kafkaInstall.html).
+
+## Documentation
+
+All documentation is available online [here](https://docs.datastax.com/en/kafka/doc/index.html).
+
+## Building from the sources
+
+If you want to develop and test the connector you need to build the jar from sources.
+To do so please follow those steps:
 
 1. First build the uber-jar: 
 
@@ -30,5 +41,5 @@ DataStax Enterprise (DSE).
 
 ## Mapping specification
 
-See [the integration test](sink/src/it/java/com/datastax/oss/kafka/sink/simulacron/SimpleEndToEndSimulacronIT.java) for 
-details.
+To see practical examples and usages of mapping, see:
+https://docs.datastax.com/en/kafka/doc/search.html?searchQuery=mapping 
