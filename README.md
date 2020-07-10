@@ -41,5 +41,5 @@ To do so please follow those steps:
 
 ## Mapping specification
 
-To see a practical examples and usages of mapping, see:
+To see practical examples and usages of mapping, see:
 https://docs.datastax.com/en/kafka/doc/search.html?searchQuery=mapping 
