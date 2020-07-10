@@ -8,7 +8,7 @@ DataStax Enterprise (DSE).
 To download and install this connector please follow the procedure detailed [here](https://docs.datastax.com/en/kafka/doc/kafka/install/kafkaInstall.html).
 
 
-## How to use 
+## Building from the sources
 
 If you want to develop and test the connector you need to build the jar from sources.
 To do so please follow those steps:
