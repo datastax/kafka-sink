@@ -7,6 +7,9 @@ DataStax Enterprise (DSE).
 
 To download and install this connector please follow the procedure detailed [here](https://docs.datastax.com/en/kafka/doc/kafka/install/kafkaInstall.html).
 
+## Documentation
+
+All documentation is available online [here](https://docs.datastax.com/en/kafka/doc/index.html).
 
 ## Building from the sources
 
@@ -40,7 +43,3 @@ To do so please follow those steps:
 
 To see a practical examples and usages of mapping, see:
 https://docs.datastax.com/en/kafka/doc/search.html?searchQuery=mapping 
-
-## Documentation
-
-All documentation is available online [here](https://docs.datastax.com/en/kafka/doc/index.html).
