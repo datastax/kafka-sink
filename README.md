@@ -43,5 +43,4 @@ https://docs.datastax.com/en/kafka/doc/search.html?searchQuery=mapping
 
 ## Documentation
 
-All documentation is available online here:
-https://docs.datastax.com/en/kafka/doc/index.html  
+All documentation is available online [here](https://docs.datastax.com/en/kafka/doc/index.html).
