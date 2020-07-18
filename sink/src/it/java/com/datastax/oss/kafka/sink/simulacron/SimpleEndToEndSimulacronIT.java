@@ -558,7 +558,11 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
@@ -587,7 +591,11 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
@@ -626,7 +634,11 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(4);
@@ -676,7 +688,11 @@ class SimpleEndToEndSimulacronIT {
     runTaskWithRecords(record1, record2);
 
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);
@@ -712,7 +728,11 @@ class SimpleEndToEndSimulacronIT {
 
     // Verify that the insert for good1 was issued.
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     byte[] secondParam = new byte[10];
@@ -789,11 +809,16 @@ class SimpleEndToEndSimulacronIT {
     // info. We distinguish one batch from the other based on the number of statements in the
     // batch.
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("BATCH"))
             .collect(Collectors.toList());
     Map<ConsistencyLevel, Integer> queryInfo =
-        queryList.stream()
+        queryList
+            .stream()
             .map(queryLog -> (Batch) queryLog.getFrame().message)
             .collect(
                 Collectors.toMap(
@@ -874,11 +899,19 @@ class SimpleEndToEndSimulacronIT {
 
     // Verify that one Batch request was issued, and no EXECUTE requests:
     long batchRequestCount =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("BATCH"))
             .count();
     long executeRequestCount =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .count();
     assertThat(batchRequestCount).isEqualTo(1L);
@@ -918,7 +951,11 @@ class SimpleEndToEndSimulacronIT {
     assertThat(currentOffsets).isEmpty();
 
     List<QueryLog> queryList =
-        simulacron.node(0).getLogs().getQueryLogs().stream()
+        simulacron
+            .node(0)
+            .getLogs()
+            .getQueryLogs()
+            .stream()
             .filter(q -> q.getType().equals("EXECUTE"))
             .collect(Collectors.toList());
     assertThat(queryList.size()).isEqualTo(2);

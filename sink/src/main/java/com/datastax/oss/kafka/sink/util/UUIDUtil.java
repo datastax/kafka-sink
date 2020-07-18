@@ -16,7 +16,7 @@
 package com.datastax.oss.kafka.sink.util;
 
 import com.datastax.oss.driver.api.core.uuid.Uuids;
-import com.datastax.oss.dsbulk.commons.utils.PlatformUtils;
+import com.datastax.oss.dsbulk.commons.PlatformUtils;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 

@@ -15,12 +15,11 @@
  */
 package com.datastax.oss.kafka.sink.metrics;
 
-import static com.datastax.oss.dsbulk.commons.utils.StringUtils.quoteJMXIfNecessary;
-
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jmx.JmxReporter;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
+import com.datastax.oss.dsbulk.commons.StringUtils;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Iterator;
 import javax.management.MalformedObjectNameException;
@@ -52,7 +51,7 @@ public class MetricsJmxReporter {
       StringBuilder sb =
           new StringBuilder(jmxDomain)
               .append(":connector=")
-              .append(quoteJMXIfNecessary(instanceName))
+              .append(StringUtils.quoteJMXIfNecessary(instanceName))
               .append(',');
       Iterator<String> tokens = Splitter.on("/").split(metricName).iterator();
       if (metricName.contains("batchSize")
@@ -62,21 +61,21 @@ public class MetricsJmxReporter {
         // special-case batchSize, batchSizeInBytes, failedRecordCount, recordCount metrics
         // and expose them per topic, ks and table
         sb.append("topic=")
-            .append(quoteJMXIfNecessary(tokens.next()))
+            .append(StringUtils.quoteJMXIfNecessary(tokens.next()))
             .append(",keyspace=")
-            .append(quoteJMXIfNecessary(tokens.next()))
+            .append(StringUtils.quoteJMXIfNecessary(tokens.next()))
             .append(",table=")
-            .append(quoteJMXIfNecessary(tokens.next()))
+            .append(StringUtils.quoteJMXIfNecessary(tokens.next()))
             .append(",name=")
-            .append(quoteJMXIfNecessary(tokens.next()));
+            .append(StringUtils.quoteJMXIfNecessary(tokens.next()));
       } else if (metricName.contains("driver")) {
         // special-case driver metrics and expose them per session
         sb.append("driver=").append(tokens.next());
         Iterator<String> sessionAndMetric = Splitter.on('.').split(tokens.next()).iterator();
         sb.append(",session=")
-            .append(quoteJMXIfNecessary(sessionAndMetric.next()))
+            .append(StringUtils.quoteJMXIfNecessary(sessionAndMetric.next()))
             .append(",name=")
-            .append(quoteJMXIfNecessary(sessionAndMetric.next()));
+            .append(StringUtils.quoteJMXIfNecessary(sessionAndMetric.next()));
       } else {
         // other metrics get a generic path
         int i = 1;
@@ -87,7 +86,7 @@ public class MetricsJmxReporter {
           } else {
             sb.append("name");
           }
-          sb.append('=').append(quoteJMXIfNecessary(token));
+          sb.append('=').append(StringUtils.quoteJMXIfNecessary(token));
           if (tokens.hasNext()) {
             sb.append(',');
           }

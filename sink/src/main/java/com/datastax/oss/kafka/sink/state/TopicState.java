@@ -21,7 +21,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
-import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.kafka.sink.Mapping;
 import com.datastax.oss.kafka.sink.RecordMapper;
 import com.datastax.oss.kafka.sink.config.TableConfig;

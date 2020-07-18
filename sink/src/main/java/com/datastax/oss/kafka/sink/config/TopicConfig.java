@@ -16,10 +16,10 @@
 package com.datastax.oss.kafka.sink.config;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
-import com.datastax.oss.dsbulk.codecs.ConversionContext;
-import com.datastax.oss.dsbulk.codecs.ConvertingCodecFactory;
+import com.datastax.oss.dsbulk.codecs.api.ConversionContext;
+import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
+import com.datastax.oss.dsbulk.codecs.api.util.CodecUtils;
 import com.datastax.oss.dsbulk.codecs.text.TextConversionContext;
-import com.datastax.oss.dsbulk.codecs.util.CodecUtils;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.time.ZoneId;
 import java.util.Arrays;
