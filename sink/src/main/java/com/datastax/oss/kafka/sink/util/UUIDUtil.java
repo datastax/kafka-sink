@@ -15,8 +15,14 @@
  */
 package com.datastax.oss.kafka.sink.util;
 
+import static java.time.Instant.EPOCH;
+import static java.time.ZoneOffset.UTC;
+import static java.time.temporal.ChronoUnit.MICROS;
+
 import com.datastax.oss.driver.api.core.uuid.Uuids;
-import com.datastax.oss.dsbulk.commons.PlatformUtils;
+import com.datastax.oss.driver.internal.core.os.Native;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
@@ -32,6 +38,16 @@ public class UUIDUtil {
   }
 
   private static String newExecutionId(String name) {
-    return name + "_" + DEFAULT_TIMESTAMP_PATTERN.format(PlatformUtils.now());
+    return name + "_" + DEFAULT_TIMESTAMP_PATTERN.format(now());
+  }
+
+  private static ZonedDateTime now() {
+    // Try a native call to gettimeofday first since it has microsecond resolution,
+    // and fall back to System.currentTimeMillis() if that fails
+    if (Native.isCurrentTimeMicrosAvailable()) {
+      return EPOCH.plus(Native.currentTimeMicros(), MICROS).atZone(UTC);
+    } else {
+      return Instant.now().atZone(UTC);
+    }
   }
 }
