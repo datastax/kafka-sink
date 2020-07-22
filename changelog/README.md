@@ -1,6 +1,6 @@
 ## Changelog
 
-### 1.4.0 (in progress)
+### 1.4.0
 - [improvement] KAF-200: Extend ignoreErrors to all runtime exceptions
 
 ### 1.3.1
