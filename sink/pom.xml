@@ -21,7 +21,7 @@
   <parent>
     <artifactId>kafka-connect-cassandra-sink-parent</artifactId>
     <groupId>com.datastax.oss</groupId>
-    <version>1.3.2-SNAPSHOT</version>
+    <version>1.4.0</version>
   </parent>
   <artifactId>kafka-connect-cassandra-sink</artifactId>
   <name>DataStax Apache Cassandra (R) Kafka Sink Connector - Sink</name>
