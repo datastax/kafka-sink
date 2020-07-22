@@ -1,7 +1,7 @@
-# Apache Kafka Sink for Apache Cassandra and DataStax Enterprise
+# DataStax Apache Kafka Connector
 
-An Apache Kafka sink for transferring events/messages from Kafka topics to Apache Cassandra (R) or
-DataStax Enterprise (DSE).
+An Apache Kafka® sink for transferring events/messages from Kafka topics to Apache Cassandra®,
+DataStax Astra or DataStax Enterprise (DSE).
 
 ## Installation
 
