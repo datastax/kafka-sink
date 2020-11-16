@@ -19,11 +19,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.datastax.oss</groupId>
-  <artifactId>kafka-connect-cassandra-sink-parent</artifactId>
+  <artifactId>cassandra-sink-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.4.1-SNAPSHOT</version>
-  <name>DataStax Apache Cassandra (R) Kafka Sink Connector</name>
-  <description>A Kafka Sink Connector for pulling data from Apache Kafka and inserting into Apache Cassandra (R) or DataStax Enterprise (DSE)</description>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>DataStax Apache Cassandra (R) Sink Connectors</name>
+  <description>A Sink Connector for pulling data from messaging engines and inserting into Apache Cassandra (R) or DataStax Enterprise (DSE)</description>
   <url>https://github.com/riptano/kafka-sink</url>
   <inceptionYear>2018</inceptionYear>
   <organization>
@@ -31,8 +31,10 @@
     <url>http://www.datastax.com</url>
   </organization>
   <modules>
-    <module>sink</module>
-    <module>dist</module>
+    <module>excerpt-kafka</module>
+    <module>common</module>
+    <module>kafka</module>
+    <module>pulsar</module>
   </modules>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -66,6 +68,7 @@
     <snappy.version>1.1.7.2</snappy.version>
     <jackson.version>2.10.0</jackson.version>
     <jackson-databind.version>2.10.0</jackson-databind.version>
+    <pulsar.version>2.6.2</pulsar.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -73,6 +76,16 @@
         <groupId>org.apache.kafka</groupId>
         <artifactId>connect-api</artifactId>
         <version>${kafka.connect.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka.connect.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-io-common</artifactId>
+        <version>${pulsar.version}</version>
       </dependency>
       <dependency>
         <groupId>com.datastax.oss</groupId>
@@ -599,9 +612,9 @@ limitations under the License.]]></inlineHeader>
       </build>
     </profile>
     <!--
-    Profile activated when releasing. See:
-    http://central.sonatype.org/pages/apache-maven.html
-    -->
+        Profile activated when releasing. See:
+        http://central.sonatype.org/pages/apache-maven.html
+        -->
     <profile>
       <id>release</id>
       <build>

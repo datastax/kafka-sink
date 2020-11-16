@@ -19,21 +19,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>kafka-connect-cassandra-sink-parent</artifactId>
+    <artifactId>cassandra-sink-kafka-parent</artifactId>
     <groupId>com.datastax.oss</groupId>
-    <version>1.4.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
   </parent>
-  <artifactId>kafka-connect-cassandra-sink-distribution</artifactId>
+  <artifactId>cassandra-sink-kafka-distribution</artifactId>
   <name>DataStax Apache Cassandra (R) Kafka Sink Connector - Distribution</name>
   <description>Binary distribution of the DataStax Apache Kafka Sink Connector.</description>
   <dependencies>
     <dependency>
       <groupId>com.datastax.oss</groupId>
-      <artifactId>kafka-connect-cassandra-sink</artifactId>
+      <artifactId>cassandra-sink-kafka</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
   <build>
-    <finalName>kafka-connect-cassandra-sink-${project.version}</finalName>
+    <finalName>cassandra-sink-kafka-${project.version}</finalName>
     <plugins>
       <plugin>
         <groupId>org.jacoco</groupId>
