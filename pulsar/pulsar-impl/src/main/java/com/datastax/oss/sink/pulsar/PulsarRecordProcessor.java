@@ -25,6 +25,12 @@ public class PulsarRecordProcessor extends RecordProcessor {
 
   private static final Logger log = LoggerFactory.getLogger(PulsarRecordProcessor.class);
 
+  private PulsarSinkConnector connector;
+
+  PulsarRecordProcessor(PulsarSinkConnector connector) {
+    this.connector = connector;
+  }
+
   @Override
   protected void beforeStart(Map<String, String> config) {}
 
@@ -36,7 +42,12 @@ public class PulsarRecordProcessor extends RecordProcessor {
     log.info("failure on {}", record);
     log.info("failed cql {}", cql);
     log.error(e.getMessage(), e);
-    // TODO track records and do ack/fail
+    connector.onFailure(record, e);
+  }
+
+  @Override
+  protected void handleSuccess(SinkRecord record) {
+    connector.onSuccess(record);
   }
 
   @Override

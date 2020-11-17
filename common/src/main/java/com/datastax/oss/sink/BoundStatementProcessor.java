@@ -136,6 +136,8 @@ class BoundStatementProcessor implements Callable<Void> {
                     });
               } else {
                 successfulRecordCount.addAndGet(statements.size());
+                statements.forEach(
+                    recordAndStatement -> task.handleSuccess(recordAndStatement.getRecord()));
               }
               recordIncrement.accept(statements.size());
             }));

@@ -16,6 +16,7 @@
 package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.sink.util.StringUtil;
+import com.datastax.oss.sink.util.Tuple2;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -34,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Connector(
   name = "ds-cassandra",
@@ -63,10 +66,11 @@ public class PulsarSinkConnector implements Sink<byte[]> {
     log.info("readschema {}", readSchema);
     log.info("conveter {}", converter);
     try {
-      recordProcessor = new PulsarRecordProcessor();
+      recordProcessor = new PulsarRecordProcessor(this);
       recordProcessor.start(StringUtil.flatString(config));
     } catch (Exception ex) {
-      ex.printStackTrace();
+      log.error("initialization error", ex);
+      throw ex;
     }
   }
 
@@ -74,14 +78,14 @@ public class PulsarSinkConnector implements Sink<byte[]> {
   public void write(Record<byte[]> record) throws Exception {
     log.info("got message to process {}", record);
     String topic = record.getTopicName().map(s -> s.substring(s.lastIndexOf("/") + 1)).orElse(null);
+    if (topic == null) return;
     SchemaAndValue schemaAndValue =
         readSchema
             ? converter.toConnectData(topic, record.getValue())
             : new SchemaAndValue(Schema.STRING_SCHEMA, new String(record.getValue()));
     log.info("schema and value {}", schemaAndValue);
     ConnectHeaders headers = new ConnectHeaders();
-    for (Map.Entry<String, String> prop : record.getProperties().entrySet())
-      headers.addString(prop.getKey(), prop.getValue());
+    record.getProperties().forEach(headers::addString);
     SinkRecord sinkRecord =
         new SinkRecord(
             topic,
@@ -92,13 +96,26 @@ public class PulsarSinkConnector implements Sink<byte[]> {
             schemaAndValue.value(),
             record.getRecordSequence().orElse(0L),
             record.getEventTime().orElse(Instant.now().toEpochMilli()),
-            TimestampType.NO_TIMESTAMP_TYPE,
+            TimestampType.LOG_APPEND_TIME,
             headers);
     log.info("sinkrecord: {}", sinkRecord);
+    recordsInProcess.put(Tuple2.of(sinkRecord.kafkaOffset(), sinkRecord.timestamp()), record);
     recordProcessor.put(Collections.singleton(sinkRecord));
-    // TODO ack/fail more sophisticated way
-    record.ack();
   }
+
+  void onFailure(SinkRecord record, Throwable t) {
+    Optional.ofNullable(
+            recordsInProcess.remove(Tuple2.of(record.kafkaOffset(), record.timestamp())))
+        .ifPresent(Record::fail);
+  }
+
+  void onSuccess(SinkRecord record) {
+    Optional.ofNullable(
+            recordsInProcess.remove(Tuple2.of(record.kafkaOffset(), record.timestamp())))
+        .ifPresent(Record::ack);
+  }
+
+  private Map<Tuple2<Long, Long>, Record<byte[]>> recordsInProcess = new ConcurrentHashMap<>();
 
   @Override
   public void close() throws Exception {

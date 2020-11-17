@@ -115,4 +115,7 @@ public class CassandraSinkTask extends RecordProcessor {
       log.warn("Error decoding/mapping Kafka record {}: {}", record, e.getMessage());
     }
   }
+
+  @Override
+  protected void handleSuccess(SinkRecord record) {}
 }

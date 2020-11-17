@@ -248,4 +248,6 @@ public abstract class RecordProcessor extends SinkTask {
    */
   protected abstract void handleFailure(
       SinkRecord record, Throwable e, String cql, Runnable failCounter);
+
+  protected abstract void handleSuccess(SinkRecord record);
 }
