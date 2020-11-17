@@ -178,7 +178,7 @@ public abstract class RecordProcessor extends SinkTask {
   }
 
   @VisibleForTesting
-  InstanceState getInstanceState() {
+  public InstanceState getInstanceState() {
     return instanceState;
   }
 
