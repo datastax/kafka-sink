@@ -17,5 +17,4 @@ package com.datastax.oss.sink.pulsar;
 
 import java.io.Serializable;
 
-/** @author Pavel Kozhevnikov */
 public class PulsarSinkConfig implements Serializable {}

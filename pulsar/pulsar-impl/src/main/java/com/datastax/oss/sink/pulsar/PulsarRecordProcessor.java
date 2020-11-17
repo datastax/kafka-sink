@@ -18,9 +18,12 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.sink.RecordProcessor;
 import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/** @author Pavel Kozhevnikov */
 public class PulsarRecordProcessor extends RecordProcessor {
+
+  private static final Logger log = LoggerFactory.getLogger(PulsarRecordProcessor.class);
 
   @Override
   protected void beforeStart(Map<String, String> config) {}
@@ -30,6 +33,9 @@ public class PulsarRecordProcessor extends RecordProcessor {
 
   @Override
   protected void handleFailure(SinkRecord record, Throwable e, String cql, Runnable failCounter) {
+    log.info("failure on {}", record);
+    log.info("failed cql {}", cql);
+    log.error(e.getMessage(), e);
     // TODO track records and do ack/fail
   }
 

@@ -15,20 +15,15 @@
  */
 package com.datastax.oss.sink.pulsar;
 
-import com.datastax.oss.sink.config.CassandraSinkConfig;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import com.datastax.oss.sink.util.StringUtil;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.storage.Converter;
+import org.apache.kafka.connect.storage.StringConverter;
 import org.apache.pulsar.functions.api.Record;
-import org.apache.pulsar.io.core.KeyValue;
 import org.apache.pulsar.io.core.Sink;
 import org.apache.pulsar.io.core.SinkContext;
 import org.apache.pulsar.io.core.annotations.Connector;
@@ -36,36 +31,54 @@ import org.apache.pulsar.io.core.annotations.IOType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Map;
+
 @Connector(
   name = "ds-cassandra",
   type = IOType.SINK,
   help = "PulsarSinkConnector is used for moving messages from Pulsar to Cassandra",
-  configClass = CassandraSinkConfig.class
+  configClass = PulsarSinkConfig.class
 )
 public class PulsarSinkConnector implements Sink<byte[]> {
 
   private static final Logger log = LoggerFactory.getLogger(PulsarSinkConnector.class);
 
   private PulsarRecordProcessor recordProcessor;
+  private Boolean readSchema;
   private Converter converter;
 
   @Override
   public void open(Map<String, Object> config, SinkContext sinkContext) throws Exception {
-    // TODO instantiate converter according to config value.converter
-    recordProcessor = new PulsarRecordProcessor();
-    recordProcessor.start(
-        config
-            .entrySet()
-            .stream()
-            .filter(et -> Objects.nonNull(et.getValue()))
-            .map(et -> new KeyValue<>(et.getKey(), String.valueOf(et.getValue())))
-            .collect(HashMap::new, (m, kv) -> m.put(kv.getKey(), kv.getValue()), HashMap::putAll));
+    readSchema = (Boolean) config.getOrDefault("value.converter.schemas.enable", false);
+    log.info("start {}", getClass().getName());
+    if (readSchema) {
+      String converterClass =
+          config.getOrDefault("value.converter", StringConverter.class.getName()).toString();
+      converter =
+          (Converter)
+              Class.forName(converterClass, false, getClass().getClassLoader()).newInstance();
+    }
+    log.info("readschema {}", readSchema);
+    log.info("conveter {}", converter);
+    try {
+      recordProcessor = new PulsarRecordProcessor();
+      recordProcessor.start(StringUtil.flatString(config));
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
   }
 
   @Override
   public void write(Record<byte[]> record) throws Exception {
-    String topic = record.getTopicName().orElse(null);
-    SchemaAndValue schemaAndValue = converter.toConnectData(topic, record.getValue());
+    log.info("got message to process {}", record);
+    String topic = record.getTopicName().map(s -> s.substring(s.lastIndexOf("/") + 1)).orElse(null);
+    SchemaAndValue schemaAndValue =
+        readSchema
+            ? converter.toConnectData(topic, record.getValue())
+            : new SchemaAndValue(Schema.STRING_SCHEMA, new String(record.getValue()));
+    log.info("schema and value {}", schemaAndValue);
     ConnectHeaders headers = new ConnectHeaders();
     for (Map.Entry<String, String> prop : record.getProperties().entrySet())
       headers.addString(prop.getKey(), prop.getValue());
@@ -81,11 +94,16 @@ public class PulsarSinkConnector implements Sink<byte[]> {
             record.getEventTime().orElse(Instant.now().toEpochMilli()),
             TimestampType.NO_TIMESTAMP_TYPE,
             headers);
+    log.info("sinkrecord: {}", sinkRecord);
     recordProcessor.put(Collections.singleton(sinkRecord));
+    // TODO ack/fail more sophisticated way
+    record.ack();
   }
 
   @Override
   public void close() throws Exception {
+    log.info("closing sink");
     recordProcessor.stop();
+    log.info("closed");
   }
 }
