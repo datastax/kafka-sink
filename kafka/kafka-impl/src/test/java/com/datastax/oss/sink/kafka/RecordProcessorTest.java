@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink;
+package com.datastax.oss.sink.kafka;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,6 +22,8 @@ import static org.mockito.Mockito.*;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
+import com.datastax.oss.sink.RecordMapper;
+import com.datastax.oss.sink.RecordProcessor;
 import com.datastax.oss.sink.config.TableConfig;
 import com.datastax.oss.sink.config.TopicConfig;
 import com.datastax.oss.sink.record.RecordAndStatement;
@@ -45,6 +47,7 @@ class RecordProcessorTest {
   @BeforeEach
   void setUp() {
     sinkTask = mock(RecordProcessor.class);
+    when(sinkTask.apiAdapter()).thenReturn(new KafkaAPIAdapter());
     instanceState = mock(InstanceState.class);
     ReflectionUtils.setInternalState(sinkTask, "instanceState", instanceState);
     record = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);

@@ -13,16 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.record;
+package com.datastax.oss.sink.pulsar.record;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.sink.pulsar.Header;
+import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
+import com.datastax.oss.sink.record.KeyOrValue;
+import com.datastax.oss.sink.record.KeyValueRecord;
+import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
-import org.apache.kafka.connect.header.ConnectHeaders;
-import org.apache.kafka.connect.header.Headers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,11 +32,14 @@ class KeyValueRecordTest {
 
   private KeyOrValue key;
   private KeyOrValue value;
-  private Headers headers = new ConnectHeaders().addString("h1", "hv1").addString("h2", "hv2");
+  private Set<Header> headers = Sets.newHashSet(new Header("h1", "hv1"), new Header("h2", "hv2"));
+
   private Map<String, String> keyFields =
       ImmutableMap.<String, String>builder().put("kf1", "kv1").put("kf2", "kv2").build();
   private Map<String, String> valueFields =
       ImmutableMap.<String, String>builder().put("vf1", "vv1").put("vf2", "vv2").build();
+
+  private PulsarAPIAdapter adapter = new PulsarAPIAdapter();
 
   @BeforeEach
   void setUp() {
@@ -67,38 +72,38 @@ class KeyValueRecordTest {
 
   @Test
   void should_qualify_field_names() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, null);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(key, value, null, null, adapter);
     assertThat(record.fields()).containsOnly("key.kf1", "key.kf2", "value.vf1", "value.vf2");
   }
 
   @Test
   void should_qualify_field_names_and_headers() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(key, value, null, headers, adapter);
     assertThat(record.fields())
         .containsOnly("key.kf1", "key.kf2", "value.vf1", "value.vf2", "header.h1", "header.h2");
   }
 
   @Test
   void should_qualify_field_names_keys_only() {
-    KeyValueRecord record = new KeyValueRecord(key, null, null, null);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(key, null, null, null, adapter);
     assertThat(record.fields()).containsOnly("key.kf1", "key.kf2");
   }
 
   @Test
   void should_qualify_field_names_values_only() {
-    KeyValueRecord record = new KeyValueRecord(null, value, null, null);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(null, value, null, null, adapter);
     assertThat(record.fields()).containsOnly("value.vf1", "value.vf2");
   }
 
   @Test
   void should_qualify_field_names_headers_only() {
-    KeyValueRecord record = new KeyValueRecord(null, null, null, headers);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(null, null, null, headers, adapter);
     assertThat(record.fields()).containsOnly("header.h1", "header.h2");
   }
 
   @Test
   void should_get_field_values() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(key, value, null, headers, adapter);
     assertThat(record.getFieldValue("key.kf1")).isEqualTo("kv1");
     assertThat(record.getFieldValue("value.vf2")).isEqualTo("vv2");
     assertThat(record.getFieldValue("value.not_exist")).isNull();
@@ -108,7 +113,7 @@ class KeyValueRecordTest {
 
   @Test
   void should_throw_if_get_field_value_with_not_known_prefix() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    KeyValueRecord<Header> record = new KeyValueRecord<>(key, value, null, headers, adapter);
     assertThatThrownBy(() -> record.getFieldValue("non_existing_prefix"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("field name must start with 'key.', 'value.' or 'header.'.");

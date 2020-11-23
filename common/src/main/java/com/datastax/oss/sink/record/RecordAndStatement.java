@@ -16,21 +16,21 @@
 package com.datastax.oss.sink.record;
 
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import org.apache.kafka.connect.sink.SinkRecord;
 
 /** Simple container class to hold a SinkRecord and its associated BoundStatement. */
-public class RecordAndStatement {
-  private final SinkRecord record;
+public class RecordAndStatement<EngineRecord> {
+  private final EngineRecord record;
   private final String keyspaceAndTable;
   private final BoundStatement statement;
 
-  public RecordAndStatement(SinkRecord record, String keyspaceAndTable, BoundStatement statement) {
+  public RecordAndStatement(
+      EngineRecord record, String keyspaceAndTable, BoundStatement statement) {
     this.record = record;
     this.keyspaceAndTable = keyspaceAndTable;
     this.statement = statement;
   }
 
-  public SinkRecord getRecord() {
+  public EngineRecord getRecord() {
     return record;
   }
 

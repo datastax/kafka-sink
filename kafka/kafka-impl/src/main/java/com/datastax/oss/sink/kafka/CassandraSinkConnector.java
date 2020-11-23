@@ -29,6 +29,9 @@ import org.apache.kafka.connect.sink.SinkConnector;
 
 /** Sink connector to insert Kafka records into Apache Cassandra or DSE. */
 public class CassandraSinkConnector extends SinkConnector {
+
+  public static final String KAFKA_CONNECTOR_APPLICATION_NAME = "DataStax Apache Kafka Connector";
+
   private String version;
   private Map<String, String> properties;
 

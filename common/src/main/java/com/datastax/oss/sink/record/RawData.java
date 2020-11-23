@@ -21,7 +21,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.nio.ByteBuffer;
 import java.util.Set;
-import org.apache.kafka.connect.sink.SinkRecord;
 
 /** The key or value of a {@link SinkRecord} when it is a primitive type. */
 public class RawData implements KeyOrValue, RecordMetadata {

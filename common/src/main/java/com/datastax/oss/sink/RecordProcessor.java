@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -46,18 +47,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.errors.RetriableException;
-import org.apache.kafka.connect.header.Headers;
-import org.apache.kafka.connect.sink.SinkRecord;
-import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * CassandraSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to
- * DSE.
- */
-public abstract class RecordProcessor extends SinkTask {
+/** CassandraSinkTask does the heavy lifting of processing records and writing them to DSE. */
+public abstract class RecordProcessor<EngineRecord, EngineHeader> {
   private static final Runnable NO_OP = () -> {};
   private static final Logger log = LoggerFactory.getLogger(RecordProcessor.class);
   private final ExecutorService boundStatementProcessorService =
@@ -66,25 +60,35 @@ public abstract class RecordProcessor extends SinkTask {
   private InstanceState instanceState;
   private TaskStateManager taskStateManager;
 
-  @Override
+  public abstract EngineAPIAdapter<EngineRecord, ?, ?, ?, EngineHeader> apiAdapter();
+
   public final void start(Map<String, String> props) {
     log.debug("{} starting with props: {}", getClass().getName(), props);
     taskStateManager = new TaskStateManager();
     beforeStart(props);
     instanceState = LifeCycleManager.startTask(this, props);
+    //    try {
+    //    } catch (ConfigException ex) {
+    //      throw apiAdapter().adapt(ex);
+    //    }
   }
 
+  /**
+   * Executes before initialization of cassandra session
+   *
+   * @param config
+   */
   protected abstract void beforeStart(Map<String, String> config);
 
+  /** Executes before processing of next portion of records */
   protected abstract void onProcessingStart();
 
   /**
    * Entry point for record processing.
    *
-   * @param sinkRecords collection of Kafka {@link SinkRecord}'s to process
+   * @param sinkRecords collection of records to process
    */
-  @Override
-  public final void put(Collection<SinkRecord> sinkRecords) {
+  public final void process(Collection<EngineRecord> sinkRecords) {
     if (sinkRecords.isEmpty()) {
       // Nothing to process.
       return;
@@ -100,9 +104,10 @@ public abstract class RecordProcessor extends SinkTask {
           List<CompletableFuture<Void>> mappingFutures;
           Collection<CompletionStage<? extends AsyncResultSet>> queryFutures =
               new ConcurrentLinkedQueue<>();
-          BlockingQueue<RecordAndStatement> boundStatementsQueue = new LinkedBlockingQueue<>();
-          BoundStatementProcessor boundStatementProcessor =
-              new BoundStatementProcessor(
+          BlockingQueue<RecordAndStatement<EngineRecord>> boundStatementsQueue =
+              new LinkedBlockingQueue<>();
+          BoundStatementProcessor<EngineRecord> boundStatementProcessor =
+              new BoundStatementProcessor<>(
                   this,
                   boundStatementsQueue,
                   queryFutures,
@@ -167,11 +172,10 @@ public abstract class RecordProcessor extends SinkTask {
         });
   }
 
-  protected final CassandraSinkConfig config() {
+  public final CassandraSinkConfig config() {
     return instanceState.getConfig();
   }
 
-  @Override
   public final void stop() {
     taskStateManager.toStopTransitionLogic(
         NO_OP, () -> LifeCycleManager.stopTask(this.instanceState, this));
@@ -187,13 +191,13 @@ public abstract class RecordProcessor extends SinkTask {
    * BoundStatement}'s to the given queue for further processing.
    *
    * @param boundStatementsQueue the queue that processes {@link RecordAndStatement}'s
-   * @param record the {@link SinkRecord} to map
+   * @param record the record to map
    */
   @VisibleForTesting
-  final void mapAndQueueRecord(
-      BlockingQueue<RecordAndStatement> boundStatementsQueue, SinkRecord record) {
+  public final void mapAndQueueRecord(
+      BlockingQueue<RecordAndStatement<EngineRecord>> boundStatementsQueue, EngineRecord record) {
     try {
-      String topicName = record.topic();
+      String topicName = apiAdapter().topic(record);
       TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
 
       for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
@@ -201,16 +205,22 @@ public abstract class RecordProcessor extends SinkTask {
             () ->
                 instanceState.incrementFailedCounter(topicName, tableConfig.getKeyspaceAndTable());
         try {
-          InnerDataAndMetadata key = MetadataCreator.makeMeta(record.key());
-          InnerDataAndMetadata value = MetadataCreator.makeMeta(record.value());
-          Headers headers = record.headers();
+          InnerDataAndMetadata key =
+              MetadataCreator.makeMeta(apiAdapter().key(record), apiAdapter());
+          InnerDataAndMetadata value =
+              MetadataCreator.makeMeta(apiAdapter().value(record), apiAdapter());
+          Set<EngineHeader> headers = apiAdapter().headers(record);
 
           KeyValueRecord keyValueRecord =
-              new KeyValueRecord(
-                  key.getInnerData(), value.getInnerData(), record.timestamp(), headers);
+              new KeyValueRecord<>(
+                  key.getInnerData(),
+                  value.getInnerData(),
+                  apiAdapter().timestamp(record),
+                  headers,
+                  apiAdapter());
           RecordMapper mapper = instanceState.getRecordMapper(tableConfig);
           boundStatementsQueue.offer(
-              new RecordAndStatement(
+              new RecordAndStatement<>(
                   record,
                   tableConfig.getKeyspaceAndTable(),
                   mapper
@@ -218,7 +228,7 @@ public abstract class RecordProcessor extends SinkTask {
                           new KeyValueRecordMetadata(
                               key.getInnerMetadata(),
                               value.getInnerMetadata(),
-                              new HeadersDataMetadata(headers)),
+                              new HeadersDataMetadata<>(headers, apiAdapter())),
                           keyValueRecord)
                       .setConsistencyLevel(tableConfig.getConsistencyLevel())));
         } catch (Exception ex) {
@@ -241,13 +251,22 @@ public abstract class RecordProcessor extends SinkTask {
   /**
    * Handle a failed record.
    *
-   * @param record the {@link SinkRecord} that failed to process
+   * @param record the record that failed to process
    * @param e the exception
    * @param cql the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered
    */
   protected abstract void handleFailure(
-      SinkRecord record, Throwable e, String cql, Runnable failCounter);
+      EngineRecord record, Throwable e, String cql, Runnable failCounter);
 
-  protected abstract void handleSuccess(SinkRecord record);
+  /**
+   * Handle a successful record.
+   *
+   * @param record
+   */
+  protected abstract void handleSuccess(EngineRecord record);
+
+  public abstract String version();
+
+  public abstract String appName();
 }

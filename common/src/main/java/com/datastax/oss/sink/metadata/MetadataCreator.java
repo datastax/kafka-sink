@@ -18,6 +18,7 @@ package com.datastax.oss.sink.metadata;
 import static com.fasterxml.jackson.databind.DeserializationFeature.*;
 
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.sink.EngineAPIAdapter;
 import com.datastax.oss.sink.record.JsonData;
 import com.datastax.oss.sink.record.KeyOrValue;
 import com.datastax.oss.sink.record.RawData;
@@ -31,7 +32,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Map;
-import org.apache.kafka.connect.data.Struct;
 
 public class MetadataCreator {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -49,20 +49,26 @@ public class MetadataCreator {
 
   /**
    * Create a metadata object describing the structure of the given key or value (extracted from a
-   * {@link SinkRecord} and a data object that homogenizes interactions with the given key/value
-   * (e.g. an implementation of {@link KeyOrValue}).
+   * record and a data object that homogenizes interactions with the given key/value (e.g. an
+   * implementation of {@link KeyOrValue}).
    *
    * @param keyOrValue the key or value
    * @return a pair of (RecordMetadata, KeyOrValue)
    * @throws IOException if keyOrValue is a String and JSON parsing fails in some unknown way. It's
    *     unclear if this exception can ever trigger in the context of this Connector.
    */
-  public static InnerDataAndMetadata makeMeta(Object keyOrValue) throws IOException {
-    if (keyOrValue instanceof Struct) {
-      Struct innerRecordStruct = (Struct) keyOrValue;
+  public static <EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
+      InnerDataAndMetadata makeMeta(
+          Object keyOrValue,
+          EngineAPIAdapter<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
+              adapter)
+          throws IOException {
+    if (adapter.isStruct(keyOrValue)) {
+      EngineStruct innerRecordStruct = (EngineStruct) keyOrValue;
       // TODO: PERF: Consider caching these metadata objects, keyed on schema.
       return new InnerDataAndMetadata(
-          new StructData(innerRecordStruct), new StructDataMetadata(innerRecordStruct.schema()));
+          new StructData<>(innerRecordStruct, adapter),
+          new StructDataMetadata<>(adapter.schema(innerRecordStruct), adapter));
     } else if (keyOrValue instanceof String) {
       return handleJsonRecord(keyOrValue, (k) -> (String) k);
     } else if (keyOrValue instanceof Map) {

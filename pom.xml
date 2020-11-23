@@ -88,6 +88,11 @@
         <version>${pulsar.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.pulsar</groupId>
+        <artifactId>pulsar-client</artifactId>
+        <version>${pulsar.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.datastax.oss</groupId>
         <artifactId>kafka-connect-cassandra-sink</artifactId>
         <version>${project.version}</version>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright DataStax, Inc.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>cassandra-sink-parent</artifactId>
+    <groupId>com.datastax.oss</groupId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>cassandra-sink-config-shade-kafka</artifactId>
+  <!--<version>${kafka.connect.version}</version>-->
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <includes>
+                    <include>org/apache/kafka/common/KafkaException*</include>
+                    <include>org/apache/kafka/common/config/provider/ConfigProvider*</include>
+                    <include>org/apache/kafka/common/config/provider/FileConfigProvider*</include>
+                    <include>org/apache/kafka/common/config/Config*</include>
+                    <include>org/apache/kafka/common/config/ConfigTransformer*</include>
+                    <include>org/apache/kafka/common/config/ConfigException*</include>
+                    <include>org/apache/kafka/common/config/ConfigChangeCallback*</include>
+                    <include>org/apache/kafka/common/config/ConfigData*</include>
+                    <include>org/apache/kafka/common/config/ConfigDef*</include>
+                    <include>org/apache/kafka/common/config/ConfigTransformerResult*</include>
+                    <include>org/apache/kafka/common/config/types/Password*</include>
+                    <include>org/apache/kafka/common/config/AbstractConfig*</include>
+                    <include>org/apache/kafka/common/config/ConfigValue*</include>
+                    <include>org/apache/kafka/common/utils/Utils*</include>
+                    <include>org/apache/kafka/common/Configurable*</include>
+                  </includes>
+                </filter>
+              </filters>
+              <!--
+              <relocations>
+                <relocation>
+                  <pattern>org.apache.kafka</pattern>
+                  <shadedPattern>com.datastax.oss.sink.shade.kafka</shadedPattern>
+                </relocation>
+              </relocations>
+              -->
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

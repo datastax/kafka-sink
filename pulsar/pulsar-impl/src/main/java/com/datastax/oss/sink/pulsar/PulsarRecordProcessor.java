@@ -15,20 +15,28 @@
  */
 package com.datastax.oss.sink.pulsar;
 
+import com.datastax.oss.sink.EngineAPIAdapter;
 import com.datastax.oss.sink.RecordProcessor;
 import java.util.Map;
-import org.apache.kafka.connect.sink.SinkRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PulsarRecordProcessor extends RecordProcessor {
+public class PulsarRecordProcessor extends RecordProcessor<PulsarAPIAdapter.LocalRecord, Header> {
 
   private static final Logger log = LoggerFactory.getLogger(PulsarRecordProcessor.class);
+  public static final String PULSAR_CONNECTOR_APPLICATION_NAME = "DataStax Apache Pulsar Connector";
+
+  private PulsarAPIAdapter adapter = new PulsarAPIAdapter();
 
   private PulsarSinkConnector connector;
 
   PulsarRecordProcessor(PulsarSinkConnector connector) {
     this.connector = connector;
+  }
+
+  @Override
+  public EngineAPIAdapter<PulsarAPIAdapter.LocalRecord, ?, ?, ?, Header> apiAdapter() {
+    return adapter;
   }
 
   @Override
@@ -38,7 +46,8 @@ public class PulsarRecordProcessor extends RecordProcessor {
   protected void onProcessingStart() {}
 
   @Override
-  protected void handleFailure(SinkRecord record, Throwable e, String cql, Runnable failCounter) {
+  protected void handleFailure(
+      PulsarAPIAdapter.LocalRecord record, Throwable e, String cql, Runnable failCounter) {
     log.info("failure on {}", record);
     log.info("failed cql {}", cql);
     log.error(e.getMessage(), e);
@@ -46,12 +55,17 @@ public class PulsarRecordProcessor extends RecordProcessor {
   }
 
   @Override
-  protected void handleSuccess(SinkRecord record) {
+  protected void handleSuccess(PulsarAPIAdapter.LocalRecord record) {
     connector.onSuccess(record);
   }
 
   @Override
   public String version() {
     return null;
+  }
+
+  @Override
+  public String appName() {
+    return PULSAR_CONNECTOR_APPLICATION_NAME;
   }
 }

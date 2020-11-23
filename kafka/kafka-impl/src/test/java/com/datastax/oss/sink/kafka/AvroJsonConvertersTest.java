@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink;
+package com.datastax.oss.sink.kafka;
 
 import static org.apache.kafka.connect.json.JsonConverterConfig.DECIMAL_FORMAT_CONFIG;
 import static org.assertj.core.api.Assertions.assertThat;

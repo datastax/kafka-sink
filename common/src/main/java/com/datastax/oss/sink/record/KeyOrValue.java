@@ -16,9 +16,8 @@
 package com.datastax.oss.sink.record;
 
 import java.util.Set;
-import org.apache.kafka.connect.sink.SinkRecord;
 
-/** The key or value part of a Kafka {@link SinkRecord}. */
+/** The key or value part of a record. */
 public interface KeyOrValue {
   Set<String> fields();
 

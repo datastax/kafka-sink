@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.codecs;
+package com.datastax.oss.sink.kafka.codecs;
 
 import static com.datastax.oss.dsbulk.tests.assertions.TestAssertions.assertThat;
 
@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.dsbulk.codecs.text.TextConversionContext;
+import com.datastax.oss.sink.kafka.codec.StructToUDTCodec;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -53,6 +54,8 @@ class StructToUDTCodecTest {
 
   @Test
   void should_convert_from_valid_external() {
+    System.out.println(udtCodec1);
+    System.out.println(struct);
     assertThat(udtCodec1)
         .convertsFromExternal(struct)
         .toInternal(udt1Value)

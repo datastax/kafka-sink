@@ -19,24 +19,26 @@ import static com.datastax.oss.sink.record.StructDataMetadataSupport.*;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.sink.EngineAPIAdapter;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 /** Metadata associated with a {@link StructData}. */
-public class StructDataMetadata implements RecordMetadata {
-  private final Schema schema;
+public class StructDataMetadata<EngineSchema> implements RecordMetadata {
+  private final EngineSchema schema;
+  private final EngineAPIAdapter<?, EngineSchema, ?, ?, ?> adapter;
 
-  public StructDataMetadata(@NonNull Schema schema) {
+  public StructDataMetadata(
+      @NonNull EngineSchema schema, EngineAPIAdapter<?, EngineSchema, ?, ?, ?> adapter) {
     this.schema = schema;
+    this.adapter = adapter;
   }
 
   @Override
   public GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType) {
     if (field.equals(RawData.FIELD_NAME)) {
-      return GenericType.of(Struct.class);
+      return GenericType.of(adapter.structClass());
     }
-    Schema fieldType = schema.field(field).schema();
-    return getGenericType(fieldType);
+    EngineSchema fieldType = adapter.fieldSchema(schema, field);
+    return getGenericType(fieldType, adapter);
   }
 }

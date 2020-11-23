@@ -42,7 +42,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.sink.SinkRecord;
 
 /**
  * Runnable class that pulls [sink-record, bound-statement] pairs from a queue and groups them based
@@ -50,19 +49,20 @@ import org.apache.kafka.connect.sink.SinkRecord;
  * (currently 32). Execute BoundStatement's when there is only one in a group and we know no more
  * BoundStatements will be added to the queue.
  */
-class BoundStatementProcessor implements Callable<Void> {
-  private static final RecordAndStatement END_STATEMENT = new RecordAndStatement(null, null, null);
-  private final RecordProcessor task;
-  private final BlockingQueue<RecordAndStatement> boundStatementsQueue;
+public class BoundStatementProcessor<EngineRecord> implements Callable<Void> {
+  private static final RecordAndStatement END_STATEMENT =
+      new RecordAndStatement<>(null, null, null);
+  private final RecordProcessor<EngineRecord, ?> task;
+  private final BlockingQueue<RecordAndStatement<EngineRecord>> boundStatementsQueue;
   private final Collection<CompletionStage<? extends AsyncResultSet>> queryFutures;
   private final int maxNumberOfRecordsInBatch;
   private final AtomicInteger successfulRecordCount = new AtomicInteger();
   private final ProtocolVersion protocolVersion;
   private final CodecRegistry codecRegistry;
 
-  BoundStatementProcessor(
-      RecordProcessor task,
-      BlockingQueue<RecordAndStatement> boundStatementsQueue,
+  public BoundStatementProcessor(
+      RecordProcessor<EngineRecord, ?> task,
+      BlockingQueue<RecordAndStatement<EngineRecord>> boundStatementsQueue,
       Collection<CompletionStage<? extends AsyncResultSet>> queryFutures,
       int maxNumberOfRecordsInBatch) {
     this.task = task;
@@ -79,30 +79,35 @@ class BoundStatementProcessor implements Callable<Void> {
    *
    * @param statements list of statements to execute
    */
-  private void executeStatements(List<RecordAndStatement> statements) {
+  private void executeStatements(List<RecordAndStatement<EngineRecord>> statements) {
     Statement statement;
     if (statements.isEmpty()) {
       // Should never happen, but just in case. No-op.
       return;
     }
 
-    RecordAndStatement firstStatement = statements.get(0);
+    RecordAndStatement<EngineRecord> firstStatement = statements.get(0);
     InstanceState instanceState = task.getInstanceState();
     Histogram batchSizeHistogram =
         instanceState.getBatchSizeHistogram(
-            firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+            task.apiAdapter().topic(firstStatement.getRecord()),
+            firstStatement.getKeyspaceAndTable());
     Histogram batchSizeInBytesHistogram =
         instanceState.getBatchSizeInBytesHistogram(
-            firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+            task.apiAdapter().topic(firstStatement.getRecord()),
+            firstStatement.getKeyspaceAndTable());
 
     Consumer<Integer> recordIncrement =
         v ->
             instanceState.incrementRecordCounter(
-                firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable(), v);
+                task.apiAdapter().topic(firstStatement.getRecord()),
+                firstStatement.getKeyspaceAndTable(),
+                v);
     Runnable failedRecordIncrement =
         () ->
             instanceState.incrementFailedCounter(
-                firstStatement.getRecord().topic(), firstStatement.getKeyspaceAndTable());
+                task.apiAdapter().topic(firstStatement.getRecord()),
+                firstStatement.getKeyspaceAndTable());
 
     if (statements.size() == 1) {
       statement = firstStatement.getStatement();
@@ -126,25 +131,22 @@ class BoundStatementProcessor implements Callable<Void> {
               requestBarrier.release();
               if (ex != null) {
                 statements.forEach(
-                    recordAndStatement -> {
-                      SinkRecord record = recordAndStatement.getRecord();
-                      task.handleFailure(
-                          record,
-                          ex,
-                          recordAndStatement.getStatement().getPreparedStatement().getQuery(),
-                          failedRecordIncrement);
-                    });
+                    recordAndStatement ->
+                        task.handleFailure(
+                            recordAndStatement.getRecord(),
+                            ex,
+                            recordAndStatement.getStatement().getPreparedStatement().getQuery(),
+                            failedRecordIncrement));
               } else {
                 successfulRecordCount.addAndGet(statements.size());
-                statements.forEach(
-                    recordAndStatement -> task.handleSuccess(recordAndStatement.getRecord()));
+                statements.stream().map(RecordAndStatement::getRecord).forEach(task::handleSuccess);
               }
               recordIncrement.accept(statements.size());
             }));
   }
 
   private void updateBatchSizeMetrics(
-      List<RecordAndStatement> statements,
+      List<RecordAndStatement<EngineRecord>> statements,
       Histogram batchSizeHistogram,
       Histogram batchSizeInBytesHistogram) {
     statements.forEach(
@@ -172,15 +174,17 @@ class BoundStatementProcessor implements Callable<Void> {
   }
 
   @VisibleForTesting
-  void runLoop(Consumer<List<RecordAndStatement>> consumer) throws InterruptedException {
+  public void runLoop(Consumer<List<RecordAndStatement<EngineRecord>>> consumer)
+      throws InterruptedException {
     // Map of <topic, map<partition-key, list<recordAndStatement>>
-    Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
+    Map<String, Map<ByteBuffer, List<RecordAndStatement<EngineRecord>>>> statementGroups =
+        new HashMap<>();
     while (true) {
 
       // Note: this call may block indefinitely if stop() is never called.
       // It is the producer's responsibility to call stop() when there are no more records
       // to process.
-      RecordAndStatement recordAndStatement = boundStatementsQueue.take();
+      RecordAndStatement<EngineRecord> recordAndStatement = boundStatementsQueue.take();
 
       if (recordAndStatement == END_STATEMENT) {
         // There are no more bound-statements being produced.
@@ -203,7 +207,7 @@ class BoundStatementProcessor implements Callable<Void> {
       // bound statements for a particular table. Each collection contains
       // statements for a particular routing key (a representation of partition key).
 
-      List<RecordAndStatement> recordsAndStatements =
+      List<RecordAndStatement<EngineRecord>> recordsAndStatements =
           categorizeStatement(statementGroups, recordAndStatement);
       if (recordsAndStatements.size() == maxNumberOfRecordsInBatch) {
         // We're ready to send out a batch request!
@@ -223,26 +227,29 @@ class BoundStatementProcessor implements Callable<Void> {
    */
   @VisibleForTesting
   @NonNull
-  List<RecordAndStatement> categorizeStatement(
-      Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups,
-      RecordAndStatement recordAndStatement) {
+  public List<RecordAndStatement<EngineRecord>> categorizeStatement(
+      Map<String, Map<ByteBuffer, List<RecordAndStatement<EngineRecord>>>> statementGroups,
+      RecordAndStatement<EngineRecord> recordAndStatement) {
     BoundStatement statement = recordAndStatement.getStatement();
-    SinkRecord sinkRecord = recordAndStatement.getRecord();
+    EngineRecord sinkRecord = recordAndStatement.getRecord();
     ByteBuffer routingKey = statement.getRoutingKey();
-    Map<ByteBuffer, List<RecordAndStatement>> statementGroup =
+    Map<ByteBuffer, List<RecordAndStatement<EngineRecord>>> statementGroup =
         statementGroups.computeIfAbsent(
             makeGroupKey(recordAndStatement, sinkRecord), t -> new HashMap<>());
-    List<RecordAndStatement> recordsAndStatements =
+    List<RecordAndStatement<EngineRecord>> recordsAndStatements =
         statementGroup.computeIfAbsent(routingKey, t -> new ArrayList<>());
     recordsAndStatements.add(recordAndStatement);
     return recordsAndStatements;
   }
 
-  private static String makeGroupKey(RecordAndStatement recordAndStatement, SinkRecord sinkRecord) {
-    return String.format("%s.%s", sinkRecord.topic(), recordAndStatement.getKeyspaceAndTable());
+  private String makeGroupKey(
+      RecordAndStatement<EngineRecord> recordAndStatement, EngineRecord sinkRecord) {
+    return String.format(
+        "%s.%s", task.apiAdapter().topic(sinkRecord), recordAndStatement.getKeyspaceAndTable());
   }
 
-  void stop() {
+  @SuppressWarnings("unchecked")
+  public void stop() {
     boundStatementsQueue.add(END_STATEMENT);
   }
 }

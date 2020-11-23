@@ -66,7 +66,12 @@ public class StringUtil {
         flatNode(et, nkey, acc);
       }
     } else {
-      acc.put(nkey, String.valueOf(node.getValue()));
+      String sv =
+          node.getValue() instanceof Double
+                  && ((Double) node.getValue()).intValue() == (Double) node.getValue()
+              ? String.valueOf(((Double) node.getValue()).intValue())
+              : String.valueOf(node.getValue());
+      acc.put(nkey, sv);
     }
   }
 }

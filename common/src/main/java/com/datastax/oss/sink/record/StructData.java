@@ -15,30 +15,34 @@
  */
 package com.datastax.oss.sink.record;
 
+import com.datastax.oss.sink.EngineAPIAdapter;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.sink.SinkRecord;
 
-/** The key or value of a {@link SinkRecord} when it is a {@link Struct}. */
-public class StructData implements KeyOrValue {
+public class StructData<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
+    implements KeyOrValue {
 
-  private final Struct struct;
+  private final EngineStruct struct;
   private final Set<String> fields;
+  private final EngineAPIAdapter<
+          EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
+      adapter;
 
-  public StructData(@Nullable Struct struct) {
+  public StructData(
+      @Nullable EngineStruct struct,
+      EngineAPIAdapter<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
+          adapter) {
     this.struct = struct;
+    this.adapter = adapter;
     if (struct == null) {
       fields = Collections.singleton(RawData.FIELD_NAME);
     } else {
       fields = new HashSet<>();
       fields.add(RawData.FIELD_NAME);
-      fields.addAll(struct.schema().fields().stream().map(Field::name).collect(Collectors.toSet()));
+      fields.addAll(adapter.fields(struct));
     }
   }
 
@@ -57,7 +61,7 @@ public class StructData implements KeyOrValue {
       return null;
     }
 
-    Object value = struct.get(field);
+    Object value = adapter.fieldValue(struct, field);
     if (value instanceof byte[]) {
       // The driver requires a ByteBuffer rather than byte[] when inserting a blob.
       return ByteBuffer.wrap((byte[]) value);

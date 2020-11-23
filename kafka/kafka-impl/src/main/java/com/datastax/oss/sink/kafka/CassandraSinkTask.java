@@ -15,13 +15,21 @@
  */
 package com.datastax.oss.sink.kafka;
 
+import com.datastax.oss.sink.EngineAPIAdapter;
 import com.datastax.oss.sink.RecordProcessor;
 import com.datastax.oss.sink.config.CassandraSinkConfig.IgnoreErrorsPolicy;
+import com.datastax.oss.sink.state.InstanceState;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.header.Header;
 import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.kafka.connect.sink.SinkTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,8 +37,11 @@ import org.slf4j.LoggerFactory;
  * CassandraSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to
  * DSE.
  */
-public class CassandraSinkTask extends RecordProcessor {
+public class CassandraSinkTask extends SinkTask {
+
   private static final Logger log = LoggerFactory.getLogger(CassandraSinkTask.class);
+
+  private Processor processor;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
 
   @Override
@@ -39,13 +50,61 @@ public class CassandraSinkTask extends RecordProcessor {
   }
 
   @Override
-  protected void beforeStart(Map<String, String> config) {
-    failureOffsets = new ConcurrentHashMap<>();
+  public void start(Map<String, String> props) {
+    processor = new Processor();
+    processor.start(props);
+  }
+
+  public InstanceState getInstanceState() {
+    return processor.getInstanceState();
   }
 
   @Override
-  protected void onProcessingStart() {
-    failureOffsets.clear();
+  public void stop() {
+    processor.stop();
+  }
+
+  @Override
+  public void put(Collection<SinkRecord> records) {
+    processor.process(records);
+  }
+
+  public class Processor extends RecordProcessor<SinkRecord, Header> {
+
+    private KafkaAPIAdapter adapter = new KafkaAPIAdapter();
+
+    @Override
+    protected void beforeStart(Map<String, String> config) {
+      CassandraSinkTask.this.failureOffsets = new ConcurrentHashMap<>();
+    }
+
+    @Override
+    protected void onProcessingStart() {
+      failureOffsets.clear();
+    }
+
+    @Override
+    protected void handleFailure(SinkRecord record, Throwable e, String cql, Runnable failCounter) {
+      CassandraSinkTask.this.handleFailure(record, e, cql, failCounter);
+    }
+
+    @Override
+    protected void handleSuccess(SinkRecord record) {}
+
+    @Override
+    public EngineAPIAdapter<SinkRecord, Schema, Struct, Field, Header> apiAdapter() {
+      return adapter;
+    }
+
+    @Override
+    public String appName() {
+      return CassandraSinkConnector.KAFKA_CONNECTOR_APPLICATION_NAME;
+    }
+
+    @Override
+    public String version() {
+      return CassandraSinkTask.this.version();
+    }
   }
 
   /**
@@ -73,7 +132,6 @@ public class CassandraSinkTask extends RecordProcessor {
    * @param cql the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered
    */
-  @Override
   protected synchronized void handleFailure(
       SinkRecord record, Throwable e, String cql, Runnable failCounter) {
     // Store the topic-partition and offset that had an error. However, we want
@@ -88,7 +146,7 @@ public class CassandraSinkTask extends RecordProcessor {
     // we perform these checks/updates in a synchronized block. Presumably failures
     // don't occur that often, so we don't have to be very fancy here.
 
-    IgnoreErrorsPolicy ignoreErrors = config().getIgnoreErrors();
+    IgnoreErrorsPolicy ignoreErrors = processor.config().getIgnoreErrors();
     boolean driverFailure = cql != null;
     if (ignoreErrors == IgnoreErrorsPolicy.NONE
         || (ignoreErrors == IgnoreErrorsPolicy.DRIVER && !driverFailure)) {
@@ -115,7 +173,4 @@ public class CassandraSinkTask extends RecordProcessor {
       log.warn("Error decoding/mapping Kafka record {}: {}", record, e.getMessage());
     }
   }
-
-  @Override
-  protected void handleSuccess(SinkRecord record) {}
 }

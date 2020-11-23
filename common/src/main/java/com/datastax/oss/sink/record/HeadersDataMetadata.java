@@ -19,23 +19,26 @@ import static com.datastax.oss.sink.record.StructDataMetadataSupport.*;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.sink.EngineAPIAdapter;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.kafka.connect.header.Header;
-import org.apache.kafka.connect.header.Headers;
+import java.util.Set;
 
 /** Metadata associated with a {@link StructData}. */
-public class HeadersDataMetadata implements RecordMetadata {
-  private final Headers headers;
+public class HeadersDataMetadata<EngineSchema, EngineHeader> implements RecordMetadata {
+  private final Set<EngineHeader> headers;
+  private final EngineAPIAdapter<?, EngineSchema, ?, ?, EngineHeader> adapter;
 
-  public HeadersDataMetadata(Headers headers) {
+  public HeadersDataMetadata(
+      Set<EngineHeader> headers, EngineAPIAdapter<?, EngineSchema, ?, ?, EngineHeader> adapter) {
     this.headers = headers;
+    this.adapter = adapter;
   }
 
   @Override
   public GenericType<?> getFieldType(@NonNull String field, @NonNull DataType cqlType) {
-    for (Header h : headers) {
-      if (h.key().equals(field)) {
-        return getGenericType(h.schema());
+    for (EngineHeader h : headers) {
+      if (adapter.headerKey(h).equals(field)) {
+        return getGenericType(adapter.headerSchema(h), adapter);
       }
     }
     throw new IllegalArgumentException(

@@ -15,8 +15,6 @@
  */
 package com.datastax.oss.sink.record;
 
-import org.apache.kafka.connect.sink.SinkRecord;
-
 /**
  * A parsed {@link SinkRecord} that is ready to have field mapping applied to it for inserting into
  * the database.

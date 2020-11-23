@@ -26,9 +26,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.kafka.connect.sink.SinkRecord;
 
-/** The key or value of a {@link SinkRecord} when it is a JSON string. */
+/** The key or value of a record when it is a JSON string. */
 public class JsonData implements KeyOrValue {
   private final Map<String, JsonNode> data;
   private final String json;

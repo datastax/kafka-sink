@@ -18,7 +18,7 @@ package com.datastax.oss.sink.metadata;
 import com.datastax.oss.sink.record.KeyOrValue;
 import com.datastax.oss.sink.record.RecordMetadata;
 
-/** Simple container class to tie together a {@link SinkRecord} key/value and its metadata. */
+/** Simple container class to tie together a record key/value and its metadata. */
 public class InnerDataAndMetadata {
   private final KeyOrValue innerData;
   private final RecordMetadata innerMetadata;

@@ -31,6 +31,12 @@
       <groupId>com.datastax.oss</groupId>
       <artifactId>cassandra-sink-common</artifactId>
       <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>cassandra-sink-excerpt-kafka</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>

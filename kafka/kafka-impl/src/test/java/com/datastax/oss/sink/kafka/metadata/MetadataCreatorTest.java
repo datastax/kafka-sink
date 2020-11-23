@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.metadata;
+package com.datastax.oss.sink.kafka.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.PrimitiveType;
+import com.datastax.oss.sink.kafka.KafkaAPIAdapter;
+import com.datastax.oss.sink.metadata.InnerDataAndMetadata;
+import com.datastax.oss.sink.metadata.MetadataCreator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -38,6 +41,8 @@ class MetadataCreatorTest {
   private static final GenericType<JsonNode> JSON_NODE_GENERIC_TYPE =
       GenericType.of(JsonNode.class);
 
+  private KafkaAPIAdapter adapter = new KafkaAPIAdapter();
+
   @Test
   void shouldCreateMetadataForStruct() throws IOException {
     // given
@@ -50,7 +55,7 @@ class MetadataCreatorTest {
     Struct object = new Struct(schema).put("name", "Bobby McGee").put("age", 21);
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(object);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(object, adapter);
 
     // then
     assertThat(innerDataAndMetadata.getInnerData().getFieldValue("name")).isEqualTo("Bobby McGee");
@@ -68,7 +73,7 @@ class MetadataCreatorTest {
     String json = "{\"name\": \"Mike\"}";
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(json);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(json, adapter);
 
     // then
     assertThat(((TextNode) innerDataAndMetadata.getInnerData().getFieldValue("name")).textValue())
@@ -84,7 +89,7 @@ class MetadataCreatorTest {
     String json = "{\"name\": {\"name2\": \"Mike\"}}";
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(json);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(json, adapter);
 
     // then
     assertThat(
@@ -103,7 +108,7 @@ class MetadataCreatorTest {
     String incorrectJson = "{name: Mike}";
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(incorrectJson);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(incorrectJson, adapter);
 
     // then
     assertThat(innerDataAndMetadata.getInnerData().getFieldValue("name")).isEqualTo(incorrectJson);
@@ -119,7 +124,7 @@ class MetadataCreatorTest {
     fields.put("f_1", "v_1");
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(fields);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(fields, adapter);
 
     // then
     assertThat(((TextNode) innerDataAndMetadata.getInnerData().getFieldValue("f_1")).textValue())
@@ -136,7 +141,7 @@ class MetadataCreatorTest {
     fields.put("f_1", Arrays.asList("1", "2", "3"));
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(fields);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(fields, adapter);
 
     // then
     ArrayNode f_1Value = (ArrayNode) innerDataAndMetadata.getInnerData().getFieldValue("f_1");

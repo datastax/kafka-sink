@@ -15,30 +15,29 @@
  */
 package com.datastax.oss.sink.record;
 
+import com.datastax.oss.sink.EngineAPIAdapter;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.header.Header;
-import org.apache.kafka.connect.header.Headers;
-import org.apache.kafka.connect.sink.SinkRecord;
 
-/**
- * The fully parsed {@link SinkRecord} in a form where we can apply mappings of fields to columns.
- */
-public class KeyValueRecord implements Record {
+/** The fully parsed record in a form where we can apply mappings of fields to columns. */
+public class KeyValueRecord<EngineHeader> implements Record {
   @Nullable private final KeyOrValue key;
   @Nullable private final KeyOrValue value;
   @NonNull private final Set<String> fields;
   @Nullable private final Long timestamp;
-  @Nullable private final Headers headers;
+  @Nullable private final Set<EngineHeader> headers;
+  private final EngineAPIAdapter<?, ?, ?, ?, EngineHeader> adapter;
 
   public KeyValueRecord(
       @Nullable KeyOrValue key,
       @Nullable KeyOrValue value,
       @Nullable Long timestamp,
-      @Nullable Headers headers) {
+      @Nullable Set<EngineHeader> headers,
+      EngineAPIAdapter<?, ?, ?, ?, EngineHeader> adapter) {
+    this.adapter = adapter;
     this.key = key;
     this.value = value;
     this.headers = headers;
@@ -50,7 +49,7 @@ public class KeyValueRecord implements Record {
       fields.addAll(value.fields().stream().map(f -> "value." + f).collect(Collectors.toList()));
     }
     if (headers != null) {
-      headers.forEach(h -> fields.add("header." + h.key()));
+      headers.forEach(h -> fields.add("header." + adapter.headerKey(h)));
     }
     this.timestamp = timestamp;
   }
@@ -77,10 +76,10 @@ public class KeyValueRecord implements Record {
   }
 
   @Nullable
-  private Object findHeaderValue(@NonNull String field, @NonNull Headers headers) {
-    for (Header h : headers) {
-      if (h.key().equals(field)) {
-        return h.value();
+  private Object findHeaderValue(@NonNull String field, @NonNull Set<EngineHeader> headers) {
+    for (EngineHeader h : headers) {
+      if (adapter.headerKey(h).equals(field)) {
+        return adapter.headerValue(h);
       }
     }
     return null;

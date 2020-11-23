@@ -13,28 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.record;
+package com.datastax.oss.sink.pulsar.record;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 
+import com.datastax.oss.sink.pulsar.GRecordBuilder;
+import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
+import com.datastax.oss.sink.record.RawData;
+import com.datastax.oss.sink.record.StructData;
 import java.nio.ByteBuffer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.junit.jupiter.api.Test;
 
 class StructDataTest {
+  private final PulsarAPIAdapter adapter = new PulsarAPIAdapter();
   private final Schema schema =
-      SchemaBuilder.struct()
-          .name("Kafka")
-          .field("bigint", Schema.INT64_SCHEMA)
-          .field("boolean", Schema.BOOLEAN_SCHEMA)
-          .field("bytes", Schema.BYTES_SCHEMA)
-          .build();
+      SchemaBuilder.record("Pulsar")
+          .fields()
+          .optionalLong("bigint")
+          .optionalBoolean("boolean")
+          .optionalBytes("bytes")
+          .endRecord();
   private final byte[] bytesArray = {3, 2, 1};
-  private final Struct struct =
-      new Struct(schema).put("bigint", 1234L).put("boolean", false).put("bytes", bytesArray);
-  private final StructData structData = new StructData(struct);
+  private final GenericAvroRecord struct =
+      new GRecordBuilder(schema)
+          .put("bigint", 1234L)
+          .put("boolean", false)
+          .put("bytes", bytesArray)
+          .build();
+  private final StructData structData = new StructData(struct, adapter);
 
   @Test
   void should_parse_field_names_from_struct() {
@@ -55,7 +64,7 @@ class StructDataTest {
 
   @Test
   void should_handle_null_struct() {
-    StructData empty = new StructData(null);
+    StructData empty = new StructData<>(null, adapter);
     assertThat(empty.fields()).containsOnly(RawData.FIELD_NAME);
     assertThat(empty.getFieldValue("junk")).isNull();
   }

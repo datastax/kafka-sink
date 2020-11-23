@@ -27,27 +27,34 @@
   <packaging>jar</packaging>
   <name>DataStax Apache Cassandra (R) Sink Connectors - API and Cassandra support</name>
   <dependencies>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>cassandra-sink-excerpt-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!--<dependency>-->
     <!--<groupId>com.datastax.oss</groupId>-->
-    <!--<artifactId>cassandra-sink-excerpt-kafka</artifactId>-->
+    <!--<artifactId>cassandra-sink-config-shade-kafka</artifactId>-->
     <!--<version>${project.version}</version>-->
+    <!--<exclusions>-->
+    <!--<exclusion>-->
+    <!--<groupId>org.apache.kafka</groupId>-->
+    <!--<artifactId>kafka-clients</artifactId>-->
+    <!--</exclusion>-->
+    <!--</exclusions>-->
     <!--</dependency>-->
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>connect-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>connect-json</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-connect-avro-converter</artifactId>
-    </dependency>
+    <!--<dependency>-->
+    <!--<groupId>org.apache.kafka</groupId>-->
+    <!--<artifactId>kafka-clients</artifactId>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+    <!--<groupId>org.apache.kafka</groupId>-->
+    <!--<artifactId>connect-json</artifactId>-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+    <!--<groupId>io.confluent</groupId>-->
+    <!--<artifactId>kafka-connect-avro-converter</artifactId>-->
+    <!--</dependency>-->
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>dsbulk-codecs-api</artifactId>

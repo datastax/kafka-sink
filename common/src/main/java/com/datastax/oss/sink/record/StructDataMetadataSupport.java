@@ -17,27 +17,27 @@ package com.datastax.oss.sink.record;
 
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.sink.EngineAPIAdapter;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 public class StructDataMetadataSupport {
-  private static final ImmutableMap<Schema.Type, GenericType<?>> TYPE_MAP =
-      ImmutableMap.<Schema.Type, GenericType<?>>builder()
-          .put(Schema.Type.BOOLEAN, GenericType.BOOLEAN)
-          .put(Schema.Type.FLOAT64, GenericType.DOUBLE)
-          .put(Schema.Type.INT64, GenericType.LONG)
-          .put(Schema.Type.FLOAT32, GenericType.FLOAT)
-          .put(Schema.Type.INT8, GenericType.BYTE)
-          .put(Schema.Type.INT16, GenericType.SHORT)
-          .put(Schema.Type.INT32, GenericType.INTEGER)
-          .put(Schema.Type.STRING, GenericType.STRING)
-          .put(Schema.Type.BYTES, GenericType.BYTE_BUFFER)
+  private static final ImmutableMap<SchemaSupport.Type, GenericType<?>> TYPE_MAP =
+      ImmutableMap.<SchemaSupport.Type, GenericType<?>>builder()
+          .put(SchemaSupport.Type.BOOLEAN, GenericType.BOOLEAN)
+          .put(SchemaSupport.Type.FLOAT64, GenericType.DOUBLE)
+          .put(SchemaSupport.Type.INT64, GenericType.LONG)
+          .put(SchemaSupport.Type.FLOAT32, GenericType.FLOAT)
+          .put(SchemaSupport.Type.INT8, GenericType.BYTE)
+          .put(SchemaSupport.Type.INT16, GenericType.SHORT)
+          .put(SchemaSupport.Type.INT32, GenericType.INTEGER)
+          .put(SchemaSupport.Type.STRING, GenericType.STRING)
+          .put(SchemaSupport.Type.BYTES, GenericType.BYTE_BUFFER)
           .build();
 
   @NonNull
-  static GenericType<?> getGenericType(@NonNull Schema fieldType) {
-    GenericType<?> result = TYPE_MAP.get(fieldType.type());
+  static <EngineSchema> GenericType<?> getGenericType(
+      @NonNull EngineSchema fieldType, EngineAPIAdapter<?, EngineSchema, ?, ?, ?> adapter) {
+    GenericType<?> result = TYPE_MAP.get(adapter.type(fieldType));
     if (result != null) {
       return result;
     }
@@ -45,17 +45,18 @@ public class StructDataMetadataSupport {
     // TODO: PERF: Consider caching these results and check the cache before creating
     // new entries.
 
-    switch (fieldType.type()) {
+    switch (adapter.type(fieldType)) {
       case ARRAY:
-        return GenericType.listOf(getGenericType(fieldType.valueSchema()));
+        return GenericType.listOf(getGenericType(adapter.valueSchema(fieldType), adapter));
       case MAP:
         return GenericType.mapOf(
-            getGenericType(fieldType.keySchema()), getGenericType(fieldType.valueSchema()));
+            getGenericType(adapter.keySchema(fieldType), adapter),
+            getGenericType(adapter.valueSchema(fieldType), adapter));
       case STRUCT:
-        return GenericType.of(Struct.class);
+        return GenericType.of(adapter.structClass());
       default:
         throw new IllegalArgumentException(
-            String.format("Unrecognized Kafka field type: %s", fieldType.type().getName()));
+            String.format("Unrecognized Kafka field type: %s", adapter.type(fieldType).getName()));
     }
   }
 }

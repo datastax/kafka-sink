@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink;
+package com.datastax.oss.sink.pulsar;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static com.datastax.oss.sink.pulsar.TestUtil.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.type.codec.registry.CodecRegistry;
+import com.datastax.oss.sink.BoundStatementProcessor;
+import com.datastax.oss.sink.RecordProcessor;
 import com.datastax.oss.sink.record.RecordAndStatement;
 import com.datastax.oss.sink.state.InstanceState;
 import java.nio.ByteBuffer;
@@ -33,7 +35,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.sink.SinkRecord;
+import org.apache.pulsar.functions.api.Record;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -48,11 +50,11 @@ class BoundStatementProcessorTest {
     ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3});
     when(bs1.getRoutingKey()).thenReturn(routingKey);
 
-    SinkRecord record1 = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);
-    RecordAndStatement recordAndStatement1 = new RecordAndStatement(record1, "ks.mytable", bs1);
+    Record record1 = mockRecord("mytopic", null, "value", 1234L);
+    RecordAndStatement recordAndStatement1 = new RecordAndStatement<>(record1, "ks.mytable", bs1);
 
-    SinkRecord record2 = new SinkRecord("yourtopic", 0, null, null, null, "value", 1234L);
-    RecordAndStatement recordAndStatement2 = new RecordAndStatement(record2, "ks.mytable", bs1);
+    Record record2 = mockRecord("yourtopic", null, "value", 1234);
+    RecordAndStatement recordAndStatement2 = new RecordAndStatement<>(record2, "ks.mytable", bs1);
 
     Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
 
@@ -112,10 +114,10 @@ class BoundStatementProcessorTest {
         new Thread(
             () -> {
               for (int i = 0; i < totalNumberOfRecords; i++) {
-                SinkRecord record = new SinkRecord("mytopic", i, null, null, null, i, i);
+                Record record = mockRecord("mytopic", null, i, i);
                 BoundStatement statement = mock(BoundStatement.class);
                 when(statement.getRoutingKey()).thenReturn(routingKey);
-                recordAndStatements.add(new RecordAndStatement(record, "ks.tb", statement));
+                recordAndStatements.add(new RecordAndStatement<>(record, "ks.tb", statement));
               }
               statementProcessor.stop();
             });
@@ -163,7 +165,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table1",
-                  1,
+                  "1",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
               addSinkRecord(
@@ -171,7 +173,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table1",
-                  2,
+                  "2",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
               addSinkRecord(
@@ -179,7 +181,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table1",
-                  3,
+                  "3",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {2}));
 
@@ -229,7 +231,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table1",
-                  1,
+                  "1",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
               addSinkRecord(
@@ -237,7 +239,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table1",
-                  2,
+                  "2",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
               addSinkRecord(
@@ -245,7 +247,7 @@ class BoundStatementProcessorTest {
                   "topic-different",
                   "keyspace1",
                   "table1",
-                  2,
+                  "2",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
 
@@ -295,7 +297,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table1",
-                  1,
+                  "1",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
               addSinkRecord(
@@ -303,7 +305,7 @@ class BoundStatementProcessorTest {
                   "topic1",
                   "keyspace1",
                   "table-different",
-                  2,
+                  "2",
                   "value_1",
                   ByteBuffer.wrap(new byte[] {1}));
 
@@ -336,10 +338,10 @@ class BoundStatementProcessorTest {
       String topic,
       String keyspace,
       String table,
-      Object kafkaKey,
+      String kafkaKey,
       Object kafkaValue,
       ByteBuffer dseRoutingKey) {
-    SinkRecord record = new SinkRecord(topic, 1, null, kafkaKey, null, kafkaValue, 1234);
+    Record record = mockRecord(topic, kafkaKey, kafkaValue, 1234);
     BoundStatement statement = mock(BoundStatement.class);
     when(statement.getRoutingKey()).thenReturn(dseRoutingKey);
     recordAndStatements.add(new RecordAndStatement(record, keyspace + "." + table, statement));
@@ -361,6 +363,7 @@ class BoundStatementProcessorTest {
     when(instanceState.getProtocolVersion()).thenReturn(ProtocolVersion.DEFAULT);
     RecordProcessor sinkTask = mock(RecordProcessor.class);
     when(sinkTask.getInstanceState()).thenReturn(instanceState);
+    when(sinkTask.apiAdapter()).thenReturn(new PulsarAPIAdapter());
     return sinkTask;
   }
 }
