@@ -1,5 +1,5 @@
-name: ds-cassandra
+name: ds-cassandra-bytes
 description: >
-  A Pulsar Connector Sink to load records from Pulsar topics to
+  A DataStax Pulsar Sink to load records from Pulsar topics to
   Apache Cassandra(R) or DataStax Enterprise(DSE)
-sinkClass: com.datastax.oss.sink.pulsar.PulsarSinkConnector
+sinkClass: com.datastax.oss.sink.pulsar.BytesSink

@@ -57,12 +57,10 @@ public class MetadataCreator {
    * @throws IOException if keyOrValue is a String and JSON parsing fails in some unknown way. It's
    *     unclear if this exception can ever trigger in the context of this Connector.
    */
-  public static <EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
-      InnerDataAndMetadata makeMeta(
-          Object keyOrValue,
-          EngineAPIAdapter<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
-              adapter)
-          throws IOException {
+  @SuppressWarnings("unchecked")
+  public static <EngineSchema, EngineStruct> InnerDataAndMetadata makeMeta(
+      Object keyOrValue, EngineAPIAdapter<?, EngineSchema, EngineStruct, ?, ?> adapter)
+      throws IOException {
     if (adapter.isStruct(keyOrValue)) {
       EngineStruct innerRecordStruct = (EngineStruct) keyOrValue;
       // TODO: PERF: Consider caching these metadata objects, keyed on schema.

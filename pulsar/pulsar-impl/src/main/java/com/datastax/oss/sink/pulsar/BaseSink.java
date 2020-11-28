@@ -15,37 +15,19 @@
  */
 package com.datastax.oss.sink.pulsar;
 
-import java.util.Objects;
+import com.datastax.oss.sink.RecordProcessor;
+import org.apache.pulsar.functions.api.Record;
+import org.apache.pulsar.io.core.Sink;
 
-public class Header {
+public interface BaseSink<Coat> extends Sink<Coat> {
 
-  public final String name;
-  public final Object value;
-
-  public Header(String name, Object value) {
-    this.name = name;
-    this.value = value;
+  default void onFailure(Record<Coat> record, Throwable e) {
+    record.fail();
   }
 
-  public String name() {
-    return name;
+  default void onSuccess(Record<Coat> record) {
+    record.ack();
   }
 
-  public Object value() {
-    return value;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Header header = (Header) o;
-    return Objects.equals(name, header.name);
-  }
-
-  @Override
-  public int hashCode() {
-
-    return Objects.hash(name);
-  }
+  RecordProcessor<?, ?> processor();
 }

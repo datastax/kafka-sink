@@ -18,21 +18,19 @@ package com.datastax.oss.sink.pulsar;
 import static org.mockito.Mockito.*;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.StreamSupport;
 import org.apache.pulsar.functions.api.Record;
 
 public class TestUtil {
 
   public static <T> Record<T> mockRecord(String topic, String key, T value, long offset) {
-    return mockRecord(topic, key, value, offset, null, Collections.emptySet(), null, null);
+    return mockRecord(topic, key, value, offset, null, Collections.emptyMap(), null, null);
   }
 
   public static <T> Record<T> mockRecord(
       String topic, String key, T value, long offset, Runnable onAck, Runnable onFail) {
-    return mockRecord(topic, key, value, offset, null, Collections.emptySet(), onAck, onFail);
+    return mockRecord(topic, key, value, offset, null, Collections.emptyMap(), onAck, onFail);
   }
 
   public static <T> Record<T> mockRecord(
@@ -41,7 +39,22 @@ public class TestUtil {
       T value,
       long offset,
       Long timestamp,
-      Iterable<Header> headers,
+      Map<String, String> properties) {
+    return mockRecord(topic, key, value, offset, timestamp, properties, null, null);
+  }
+
+  public static <T> Record<T> mockRecord(
+      String topic, String key, T value, long offset, Long timestamp) {
+    return mockRecord(topic, key, value, offset, timestamp, Collections.emptyMap(), null, null);
+  }
+
+  public static <T> Record<T> mockRecord(
+      String topic,
+      String key,
+      T value,
+      long offset,
+      Long timestamp,
+      Map<String, String> properties,
       Runnable onAck,
       Runnable onFail) {
     Record<T> rec = mock(Record.class);
@@ -49,10 +62,10 @@ public class TestUtil {
     when(rec.getRecordSequence()).thenReturn(Optional.ofNullable(offset));
     when(rec.getValue()).thenReturn(value);
     when(rec.getEventTime()).thenReturn(Optional.ofNullable(timestamp));
-    Map<String, String> props =
-        StreamSupport.stream(headers.spliterator(), false)
-            .collect(HashMap::new, (m, h) -> m.put(h.name, h.value), HashMap::putAll);
-    when(rec.getProperties()).thenReturn(props);
+    //    Map<String, String> props =
+    //        StreamSupport.stream(headers.spliterator(), false)
+    //            .collect(HashMap::new, (m, h) -> m.put(h.name, h.value), HashMap::putAll);
+    when(rec.getProperties()).thenReturn(properties);
     when(rec.getKey()).thenReturn(Optional.ofNullable(key));
     if (onAck != null)
       doAnswer(

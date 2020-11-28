@@ -17,18 +17,19 @@ package com.datastax.oss.sink.pulsar.record;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.datastax.oss.sink.pulsar.GRecordBuilder;
-import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
+import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.record.RawData;
 import com.datastax.oss.sink.record.StructData;
 import java.nio.ByteBuffer;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.junit.jupiter.api.Test;
 
 class StructDataTest {
-  private final PulsarAPIAdapter adapter = new PulsarAPIAdapter();
+  private final AvroAPIAdapter<org.apache.pulsar.client.api.schema.GenericRecord> adapter =
+      new AvroAPIAdapter<>();
   private final Schema schema =
       SchemaBuilder.record("Pulsar")
           .fields()
@@ -37,13 +38,15 @@ class StructDataTest {
           .optionalBytes("bytes")
           .endRecord();
   private final byte[] bytesArray = {3, 2, 1};
-  private final GenericAvroRecord struct =
-      new GRecordBuilder(schema)
-          .put("bigint", 1234L)
-          .put("boolean", false)
-          .put("bytes", bytesArray)
-          .build();
-  private final StructData structData = new StructData(struct, adapter);
+  private final GenericRecord struct =
+      new GenericData.Record(schema) {
+        {
+          put("bigint", 1234L);
+          put("boolean", false);
+          put("bytes", bytesArray);
+        }
+      };
+  private final StructData<GenericRecord> structData = new StructData<>(struct, adapter);
 
   @Test
   void should_parse_field_names_from_struct() {

@@ -22,35 +22,36 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodec;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
-import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
+import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.record.StructDataMetadata;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 
-/** Codec to convert a Pulsar {@link GenericAvroRecord} to a UDT. */
-public class StructToUDTCodec extends ConvertingCodec<GenericAvroRecord, UdtValue> {
+/** Codec to convert a Pulsar {@link GenericRecord} to a UDT. */
+public class StructToUDTCodec extends ConvertingCodec<GenericRecord, UdtValue> {
 
   private final ConvertingCodecFactory codecFactory;
   private final UserDefinedType definition;
-  private static PulsarAPIAdapter adapter = new PulsarAPIAdapter();
+  private static AvroAPIAdapter<?> adapter = new AvroAPIAdapter<>();
 
   StructToUDTCodec(ConvertingCodecFactory codecFactory, UserDefinedType cqlType) {
-    super(codecFactory.getCodecRegistry().codecFor(cqlType), GenericAvroRecord.class);
+    super(codecFactory.getCodecRegistry().codecFor(cqlType), GenericRecord.class);
     this.codecFactory = codecFactory;
     definition = cqlType;
   }
 
   @Override
-  public UdtValue externalToInternal(GenericAvroRecord external) {
+  public UdtValue externalToInternal(GenericRecord external) {
     if (external == null) {
       return null;
     }
 
     int size = definition.getFieldNames().size();
-    Schema schema = external.getAvroRecord().getSchema();
+    Schema schema = external.getSchema();
     StructDataMetadata<Schema> structMetadata = new StructDataMetadata<>(schema, adapter);
     Set<String> structFieldNames =
         schema.getFields().stream().map(Schema.Field::name).collect(Collectors.toSet());
@@ -80,14 +81,16 @@ public class StructToUDTCodec extends ConvertingCodec<GenericAvroRecord, UdtValu
               structMetadata.getFieldType(udtFieldName.asInternal(), udtFieldType);
       ConvertingCodec<Object, Object> fieldCodec =
           codecFactory.createConvertingCodec(udtFieldType, fieldType, false);
-      Object o = fieldCodec.externalToInternal(external.getField(udtFieldName.asInternal()));
+      Object fv = external.get(udtFieldName.asInternal());
+      if (fv instanceof Utf8) fv = fv.toString();
+      Object o = fieldCodec.externalToInternal(fv);
       value = value.set(udtFieldName, o, fieldCodec.getInternalJavaType());
     }
     return value;
   }
 
   @Override
-  public GenericAvroRecord internalToExternal(UdtValue internal) {
+  public GenericRecord internalToExternal(UdtValue internal) {
     if (internal == null) {
       return null;
     }

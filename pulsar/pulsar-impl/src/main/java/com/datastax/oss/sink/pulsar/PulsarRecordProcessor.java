@@ -21,21 +21,25 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PulsarRecordProcessor extends RecordProcessor<PulsarAPIAdapter.LocalRecord, Header> {
+public class PulsarRecordProcessor<Coat, Payload>
+    extends RecordProcessor<LocalRecord<Coat, Payload>, Header> {
 
   private static final Logger log = LoggerFactory.getLogger(PulsarRecordProcessor.class);
   public static final String PULSAR_CONNECTOR_APPLICATION_NAME = "DataStax Apache Pulsar Connector";
 
-  private PulsarAPIAdapter adapter = new PulsarAPIAdapter();
+  private APIAdapter<Coat, ?, LocalRecord<Coat, Payload>, ?, ?, ?, Header> adapter;
 
-  private PulsarSinkConnector connector;
+  private BaseSink<Coat> connector;
 
-  PulsarRecordProcessor(PulsarSinkConnector connector) {
+  public PulsarRecordProcessor(
+      BaseSink<Coat> connector,
+      APIAdapter<Coat, Payload, LocalRecord<Coat, Payload>, ?, ?, ?, Header> adapter) {
     this.connector = connector;
+    this.adapter = adapter;
   }
 
   @Override
-  public EngineAPIAdapter<PulsarAPIAdapter.LocalRecord, ?, ?, ?, Header> apiAdapter() {
+  public EngineAPIAdapter<LocalRecord<Coat, Payload>, ?, ?, ?, Header> apiAdapter() {
     return adapter;
   }
 
@@ -47,7 +51,7 @@ public class PulsarRecordProcessor extends RecordProcessor<PulsarAPIAdapter.Loca
 
   @Override
   protected void handleFailure(
-      PulsarAPIAdapter.LocalRecord record, Throwable e, String cql, Runnable failCounter) {
+      LocalRecord<Coat, Payload> record, Throwable e, String cql, Runnable failCounter) {
     log.info("failure on {}", record);
     log.info("failed cql {}", cql);
     log.error(e.getMessage(), e);
@@ -55,7 +59,7 @@ public class PulsarRecordProcessor extends RecordProcessor<PulsarAPIAdapter.Loca
   }
 
   @Override
-  protected void handleSuccess(PulsarAPIAdapter.LocalRecord record) {
+  protected void handleSuccess(LocalRecord<Coat, Payload> record) {
     connector.onSuccess(record);
   }
 

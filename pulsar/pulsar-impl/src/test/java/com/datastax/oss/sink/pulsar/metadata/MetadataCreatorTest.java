@@ -21,7 +21,7 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.PrimitiveType;
 import com.datastax.oss.sink.metadata.InnerDataAndMetadata;
 import com.datastax.oss.sink.metadata.MetadataCreator;
-import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
+import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -29,14 +29,11 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +43,7 @@ class MetadataCreatorTest {
   private static final GenericType<JsonNode> JSON_NODE_GENERIC_TYPE =
       GenericType.of(JsonNode.class);
 
-  private PulsarAPIAdapter adapter = new PulsarAPIAdapter();
+  private AvroAPIAdapter<GenericAvroRecord> adapter = new AvroAPIAdapter<>();
 
   @Test
   void shouldCreateMetadataForStruct() throws IOException {
@@ -61,16 +58,9 @@ class MetadataCreatorTest {
     GenericRecord gr = new GenericData.Record(schema);
     gr.put("name", "Bobby McGee");
     gr.put("age", 21);
-    List<Field> flds =
-        schema
-            .getFields()
-            .stream()
-            .map(of -> new Field(of.name(), of.pos()))
-            .collect(Collectors.toList());
-    GenericAvroRecord object = new GenericAvroRecord(null, schema, flds, gr);
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(object, adapter);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(gr, adapter);
 
     // then
     assertThat(innerDataAndMetadata.getInnerData().getFieldValue("name")).isEqualTo("Bobby McGee");

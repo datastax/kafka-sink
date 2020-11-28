@@ -22,19 +22,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class StructData<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
-    implements KeyOrValue {
+public class StructData<EngineStruct> implements KeyOrValue {
 
   private final EngineStruct struct;
   private final Set<String> fields;
-  private final EngineAPIAdapter<
-          EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
-      adapter;
+  private final EngineAPIAdapter<?, ?, EngineStruct, ?, ?> adapter;
 
   public StructData(
-      @Nullable EngineStruct struct,
-      EngineAPIAdapter<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
-          adapter) {
+      @Nullable EngineStruct struct, EngineAPIAdapter<?, ?, EngineStruct, ?, ?> adapter) {
     this.struct = struct;
     this.adapter = adapter;
     if (struct == null) {

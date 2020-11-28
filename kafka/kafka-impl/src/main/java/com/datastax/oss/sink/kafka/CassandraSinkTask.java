@@ -89,7 +89,9 @@ public class CassandraSinkTask extends SinkTask {
     }
 
     @Override
-    protected void handleSuccess(SinkRecord record) {}
+    protected void handleSuccess(SinkRecord record) {
+      System.out.println(">>>> " + record);
+    }
 
     @Override
     public EngineAPIAdapter<SinkRecord, Schema, Struct, Field, Header> apiAdapter() {

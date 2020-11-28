@@ -15,37 +15,8 @@
  */
 package com.datastax.oss.sink.pulsar;
 
-import java.util.Objects;
+import com.datastax.oss.sink.EngineAPIAdapter;
 
-public class Header {
-
-  public final String name;
-  public final Object value;
-
-  public Header(String name, Object value) {
-    this.name = name;
-    this.value = value;
-  }
-
-  public String name() {
-    return name;
-  }
-
-  public Object value() {
-    return value;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    Header header = (Header) o;
-    return Objects.equals(name, header.name);
-  }
-
-  @Override
-  public int hashCode() {
-
-    return Objects.hash(name);
-  }
-}
+public interface APIAdapter<
+        Coat, Payload, EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
+    extends EngineAPIAdapter<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader> {}

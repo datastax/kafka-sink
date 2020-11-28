@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sink.pulsar;
 
+import com.datastax.oss.sink.RecordProcessor;
+import com.datastax.oss.sink.pulsar.record.LocalGenericRecord;
 import com.datastax.oss.sink.util.StringUtil;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -27,9 +29,7 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.lang3.SerializationException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.functions.api.Record;
-import org.apache.pulsar.io.core.Sink;
 import org.apache.pulsar.io.core.SinkContext;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
@@ -42,16 +42,17 @@ import org.slf4j.LoggerFactory;
   help = "PulsarSinkConnector is used for moving messages from Pulsar to Cassandra",
   configClass = PulsarSinkConfig.class
 )
-public class PulsarSinkConnector implements Sink<GenericRecord> {
+public class GenericRecordSink implements BaseSink<GenericRecord> {
 
-  private static final Logger log = LoggerFactory.getLogger(PulsarSinkConnector.class);
-  private PulsarRecordProcessor recordProcessor;
+  private static final Logger log = LoggerFactory.getLogger(GenericRecordSink.class);
+  private PulsarRecordProcessor<GenericRecord, org.apache.avro.generic.GenericRecord>
+      recordProcessor;
 
   @Override
   public void open(Map<String, Object> config, SinkContext sinkContext) {
     log.info("start {}", getClass().getName());
     try {
-      recordProcessor = new PulsarRecordProcessor(this);
+      recordProcessor = new PulsarRecordProcessor(this, new AvroAPIAdapter<>());
       recordProcessor.start(StringUtil.flatString(config));
       System.out.println("started");
     } catch (Exception ex) {
@@ -62,35 +63,20 @@ public class PulsarSinkConnector implements Sink<GenericRecord> {
   }
 
   @Override
+  public RecordProcessor<?, ?> processor() {
+    return recordProcessor;
+  }
+
+  @Override
   public void write(Record<GenericRecord> record) throws Exception {
     log.info("got message to process {} {}", record);
-
-    // pulsar doesn't pass schema with the record
-    assert record.getSchema() == null;
-
     try {
-
-      // in fact we need GenericAvroRecord because GenericRecord doesn't provide access to schema
-      log.info("trying to cast");
-      try {
-        // it will fail because of cross-classloading
-        GenericAvroRecord ar = (GenericAvroRecord) record.getValue();
-        log.info("?? {}", ar);
-        org.apache.avro.generic.GenericRecord avrec = ar.getAvroRecord();
-        log.info("avro rec {}", avrec);
-      } catch (Throwable e) {
-        log.error("cannot cast", e);
-      }
-
-      // so, let's do something crazy
-      // retrieve schema and data via reflection
       Method m = record.getValue().getClass().getMethod("getAvroRecord");
       Object avroRecord = m.invoke(record.getValue());
       m = avroRecord.getClass().getMethod("getSchema");
       Object avroSchema = m.invoke(avroRecord);
 
-      // parse the schema and reconstruct avro GenericRecord
-      PulsarAPIAdapter.LocalRecord local = null;
+      LocalGenericRecord local = null;
       try {
         log.info("construct via parsing");
         String schemaStr = avroSchema.toString();
@@ -100,8 +86,7 @@ public class PulsarSinkConnector implements Sink<GenericRecord> {
         org.apache.avro.generic.GenericRecord rec =
             (org.apache.avro.generic.GenericRecord) jsonToAvro(recStr, schema);
         log.info("deserialized rec {}", rec);
-        // wrap the record along with new schema&data object
-        local = new PulsarAPIAdapter.LocalRecord(record, rec);
+        local = new LocalGenericRecord(record, rec);
       } catch (Throwable ex) {
         log.error("could not construct via parsing", ex);
       }
@@ -140,13 +125,5 @@ public class PulsarSinkConnector implements Sink<GenericRecord> {
     log.info("closing sink");
     recordProcessor.stop();
     log.info("closed");
-  }
-
-  void onFailure(PulsarAPIAdapter.LocalRecord record, Throwable t) {
-    record.getActual().fail();
-  }
-
-  void onSuccess(PulsarAPIAdapter.LocalRecord record) {
-    record.getActual().ack();
   }
 }

@@ -21,7 +21,7 @@ import com.datastax.oss.sink.EngineAPIAdapter;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 public class StructDataMetadataSupport {
-  private static final ImmutableMap<SchemaSupport.Type, GenericType<?>> TYPE_MAP =
+  public static final ImmutableMap<SchemaSupport.Type, GenericType<?>> TYPE_MAP =
       ImmutableMap.<SchemaSupport.Type, GenericType<?>>builder()
           .put(SchemaSupport.Type.BOOLEAN, GenericType.BOOLEAN)
           .put(SchemaSupport.Type.FLOAT64, GenericType.DOUBLE)
@@ -56,7 +56,7 @@ public class StructDataMetadataSupport {
         return GenericType.of(adapter.structClass());
       default:
         throw new IllegalArgumentException(
-            String.format("Unrecognized Kafka field type: %s", adapter.type(fieldType).getName()));
+            String.format("Unrecognized field type: %s", adapter.type(fieldType).getName()));
     }
   }
 }

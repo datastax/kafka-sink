@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.*;
 
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
+import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.record.StructDataMetadata;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.avro.Schema;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 class StructDataMetadataTest {
 
-  private final PulsarAPIAdapter adapter = new PulsarAPIAdapter();
+  private final AvroAPIAdapter<?> adapter = new AvroAPIAdapter();
 
   private final Schema schema =
       SchemaBuilder.record("Pulsar")
@@ -62,7 +62,7 @@ class StructDataMetadataTest {
           .noDefault()
           .endRecord();
 
-  private final StructDataMetadata metadata = new StructDataMetadata<>(schema, adapter);
+  private final StructDataMetadata<Schema> metadata = new StructDataMetadata<>(schema, adapter);
 
   @Test
   void should_translate_field_types() {

@@ -17,7 +17,9 @@ package com.datastax.oss.sink.util;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
 
 /** Utility methods for manipulating strings. */
 public class StringUtil {
@@ -73,5 +75,25 @@ public class StringUtil {
               : String.valueOf(node.getValue());
       acc.put(nkey, sv);
     }
+  }
+
+  public static String bytesToString(byte[] bytes) {
+    StringBuilder sb = new StringBuilder();
+    for (byte b : bytes) sb.append(String.format("\\u%04x", b));
+    return sb.toString();
+  }
+
+  public static byte[] stringToBytes(String string) {
+    if (!string.startsWith("\\u"))
+      throw new IllegalArgumentException("doesn't look like a byte array: " + string);
+    byte[] bytes = new byte[string.length() / 5];
+    try (Scanner scanner = new Scanner(string).useDelimiter(Matcher.quoteReplacement("\\u"))) {
+      for (int i = 0; i < bytes.length; i++) {
+        bytes[i] = scanner.nextByte(16);
+      }
+    } catch (Exception ex) {
+      throw new IllegalArgumentException("could not convert");
+    }
+    return bytes;
   }
 }

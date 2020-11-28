@@ -13,39 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.pulsar;
+package com.datastax.oss.sink.pulsar.util;
 
 import java.util.Objects;
 
-public class Header {
+public class MappingPath {
 
-  public final String name;
-  public final Object value;
+  public final String topic;
+  public final String table;
 
-  public Header(String name, Object value) {
-    this.name = name;
-    this.value = value;
-  }
-
-  public String name() {
-    return name;
-  }
-
-  public Object value() {
-    return value;
+  public MappingPath(String topic, String table) {
+    this.topic = topic;
+    this.table = table;
   }
 
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    Header header = (Header) o;
-    return Objects.equals(name, header.name);
+    MappingPath that = (MappingPath) o;
+    return Objects.equals(topic, that.topic) && Objects.equals(table, that.table);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(name);
+    return Objects.hash(topic, table);
   }
 }

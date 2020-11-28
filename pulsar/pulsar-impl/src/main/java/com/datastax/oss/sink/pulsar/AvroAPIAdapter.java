@@ -15,27 +15,25 @@
  */
 package com.datastax.oss.sink.pulsar;
 
-import com.datastax.oss.sink.EngineAPIAdapter;
 import com.datastax.oss.sink.RetriableException;
 import com.datastax.oss.sink.config.ConfigException;
 import com.datastax.oss.sink.record.SchemaSupport;
 import com.google.common.collect.ImmutableMap;
+import java.nio.ByteBuffer;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
-import org.apache.pulsar.functions.api.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Set;
-import java.util.stream.Collectors;
+public class AvroAPIAdapter<Coat>
+    implements APIAdapter<
+        Coat, Object, LocalRecord<Coat, Object>, Schema, GenericRecord, Schema.Field, Header> {
 
-public class PulsarAPIAdapter
-    implements EngineAPIAdapter<
-        PulsarAPIAdapter.LocalRecord, Schema, GenericRecord, Schema.Field, Header> {
-
-  public static final Logger log = LoggerFactory.getLogger(PulsarAPIAdapter.class);
+  public static final Logger log = LoggerFactory.getLogger(AvroAPIAdapter.class);
 
   @Override
   public RuntimeException adapt(ConfigException ex) {
@@ -48,28 +46,28 @@ public class PulsarAPIAdapter
   }
 
   @Override
-  public String topic(LocalRecord record) {
-    return record.topic;
+  public String topic(LocalRecord<Coat, Object> record) {
+    return record.topic();
   }
 
   @Override
-  public Object key(LocalRecord record) {
-    return record.key;
+  public Object key(LocalRecord<Coat, Object> record) {
+    return record.key();
   }
 
   @Override
-  public Object value(LocalRecord record) {
-    return record.value;
+  public Object value(LocalRecord<Coat, Object> record) {
+    return record.payload();
   }
 
   @Override
-  public Long timestamp(LocalRecord record) {
-    return record.timestamp;
+  public Long timestamp(LocalRecord<Coat, Object> record) {
+    return record.timestamp();
   }
 
   @Override
-  public Set<Header> headers(LocalRecord record) {
-    return record.headers;
+  public Set<Header> headers(LocalRecord<Coat, Object> record) {
+    return record.headers();
   }
 
   @Override
@@ -82,18 +80,18 @@ public class PulsarAPIAdapter
     return header.value;
   }
 
-  private static Schema STRING_SCHEMA = Schema.create(Schema.Type.STRING);
-
-  private static Schema HEADER_SCHEMA =
-      SchemaBuilder.record("header")
-          .fields()
-          .requiredString("key")
-          .optionalString("value")
-          .endRecord();
-
   @Override
   public Schema headerSchema(Header header) {
-    return HEADER_SCHEMA;
+    if (header.value == null) return schemaNull;
+    log.info(
+        "get header {} {} {} {}",
+        header.name,
+        header.value,
+        header.value.getClass(),
+        primitiveSchemas.get(header.value.getClass()));
+    Schema schema = primitiveSchemas.get(header.value.getClass());
+    if (schema == null) schema = ((GenericContainer) header.value).getSchema();
+    return schema;
   }
 
   @Override
@@ -121,7 +119,7 @@ public class PulsarAPIAdapter
     log.info("get field val {} {}", struct, fieldName);
     Object v = struct.get(fieldName);
     if (v instanceof Utf8) v = ((Utf8) v).toString();
-    log.info("got {} {}", v, v.getClass());
+    log.info("got {} {}", v, v == null ? "null" : v.getClass());
     return v;
   }
 
@@ -131,7 +129,50 @@ public class PulsarAPIAdapter
     return schema.getField(fieldSchema).schema();
   }
 
-  private static ImmutableMap<Schema.Type, SchemaSupport.Type> types =
+  private static final Schema schemaBoolean = Schema.create(Schema.Type.BOOLEAN);
+  private static final Schema schemaString = Schema.create(Schema.Type.STRING);
+  private static final Schema schemaDouble = Schema.create(Schema.Type.DOUBLE);
+  private static final Schema schemaFloat = Schema.create(Schema.Type.FLOAT);
+  private static final Schema schemaInt = Schema.create(Schema.Type.INT);
+  private static final Schema schemaLong = Schema.create(Schema.Type.LONG);
+  private static final Schema schemaNull = Schema.create(Schema.Type.NULL);
+  private static final Schema schemaBytes = Schema.create(Schema.Type.BYTES);
+
+  static {
+    Class hbbClass = ByteBuffer.class;
+    try {
+      hbbClass =
+          Class.forName("java.nio.HeapByteBuffer", false, AvroAPIAdapter.class.getClassLoader());
+    } catch (Exception ex) {
+      log.error("cound find HeapByteBuffer class");
+    }
+    primitiveSchemas =
+        ImmutableMap.<Class, Schema>builder()
+            .put(Boolean.class, schemaBoolean)
+            .put(boolean.class, schemaBoolean)
+            .put(String.class, schemaString)
+            .put(Utf8.class, schemaString)
+            .put(Double.class, schemaDouble)
+            .put(double.class, schemaDouble)
+            .put(Float.class, schemaFloat)
+            .put(float.class, schemaFloat)
+            .put(Integer.class, schemaInt)
+            .put(int.class, schemaInt)
+            .put(Long.class, schemaLong)
+            .put(long.class, schemaLong)
+            .put(Short.class, schemaInt)
+            .put(short.class, schemaInt)
+            .put(Byte.class, schemaInt)
+            .put(byte.class, schemaInt)
+            .put(byte[].class, schemaBytes)
+            .put(ByteBuffer.class, schemaBytes)
+            .put(hbbClass, schemaBytes)
+            .build();
+  }
+
+  private static final ImmutableMap<Class, Schema> primitiveSchemas;
+
+  private static final ImmutableMap<Schema.Type, SchemaSupport.Type> types =
       ImmutableMap.<Schema.Type, SchemaSupport.Type>builder()
           .put(Schema.Type.BOOLEAN, SchemaSupport.Type.BOOLEAN)
           .put(Schema.Type.BYTES, SchemaSupport.Type.BYTES)
@@ -168,39 +209,11 @@ public class PulsarAPIAdapter
 
   @Override
   public Schema keySchema(Schema schema) {
-    return STRING_SCHEMA;
+    return schemaString;
   }
 
   @Override
   public Class<GenericRecord> structClass() {
     return GenericRecord.class;
-  }
-
-  public static class LocalRecord {
-    private String key;
-    private GenericRecord value;
-    private String topic;
-    private Long timestamp;
-    private Set<Header> headers;
-    private Record<org.apache.pulsar.client.api.schema.GenericRecord> actual;
-
-    public LocalRecord(Record<org.apache.pulsar.client.api.schema.GenericRecord> actual, GenericRecord value) {
-      this.actual = actual;
-      headers =
-          actual.getProperties()
-              .entrySet()
-              .stream()
-              .map(et -> new Header(et.getKey(), et.getValue()))
-              .collect(Collectors.toSet());
-      topic = actual.getTopicName().map(s -> s.substring(s.lastIndexOf("/") + 1)).orElse(null);
-      timestamp = actual.getEventTime().orElse(null);
-      key = actual.getKey().orElse(null);
-
-      this.value = value;
-    }
-
-    public Record getActual() {
-      return actual;
-    }
   }
 }

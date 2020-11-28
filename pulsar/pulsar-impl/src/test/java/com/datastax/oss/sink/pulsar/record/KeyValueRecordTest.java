@@ -18,8 +18,8 @@ package com.datastax.oss.sink.pulsar.record;
 import static org.assertj.core.api.Assertions.*;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.pulsar.Header;
-import com.datastax.oss.sink.pulsar.PulsarAPIAdapter;
 import com.datastax.oss.sink.record.KeyOrValue;
 import com.datastax.oss.sink.record.KeyValueRecord;
 import com.google.common.collect.Sets;
@@ -39,7 +39,7 @@ class KeyValueRecordTest {
   private Map<String, String> valueFields =
       ImmutableMap.<String, String>builder().put("vf1", "vv1").put("vf2", "vv2").build();
 
-  private PulsarAPIAdapter adapter = new PulsarAPIAdapter();
+  private AvroAPIAdapter adapter = new AvroAPIAdapter();
 
   @BeforeEach
   void setUp() {

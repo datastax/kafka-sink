@@ -48,7 +48,7 @@ topics=my_topic
 #jmx=true
 
 
-# Specifies if the connector should ignore errors that occurred when processing the record.
+# Specifies if the connector should ignore errors that occurred when processing the payload.
 # Possible values are:
 # - None: never ignore errors
 # - All: ignore all errors
@@ -119,14 +119,14 @@ topics=my_topic
 
 #### Settings for table my_ks.my_table in topic my_topic ####
 
-# Kafka record field to database table column mapping spec, in the form 'col1=value.f1, col2=key.f1'.
-# You can use special __ttl and __timestamp fields in the mapping to denote the fact that the field from kafka record should
+# Kafka payload field to database table column mapping spec, in the form 'col1=value.f1, col2=key.f1'.
+# You can use special __ttl and __timestamp fields in the mapping to denote the fact that the field from kafka payload should
 # be inserted as the ttl or writetime of this database row.
-# You can extract value from kafka record header using "header." suffix with the name of the header.
+# You can extract value from kafka payload header using "header." suffix with the name of the header.
 # You can use now() function in the mapping to generate TIMEUUID and insert it as a value to the given column.
 topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1, col4=now()
 
-# You can provide own query to be executed when the new record to my_topic will arrive - this is intended for advanced use cases.
+# You can provide own query to be executed when the new payload to my_topic will arrive - this is intended for advanced use cases.
 # For the majority of use cases you should use standard mapping without `query` parameter.
 # This query will be used instead of an auto-generated one and has priority over it.
 # The bound variables used in the query needs to be provided in the mapping column, so for the given query:
@@ -144,7 +144,7 @@ topic.my_topic.my_ks.my_table.mapping=col1=key.f1, col2=value.f1, __ttl=value.f2
 
 # TTL and TIMESTAMP support with `query` parameter:
 # If you are using query parameter all TTL and TIMESTAMP related settings are ignored. There is no automatic extraction
-# of write timestamp from Kafka record. If you wish to add those you need to take care of it
+# of write timestamp from Kafka payload. If you wish to add those you need to take care of it
 # using query parameter for example:
 # `INSERT INTO %s.types (bigintCol, intCol) VALUES (:bigint_col, :int_col) USING TIMESTAMP :timestamp and TTL 1000`
 #

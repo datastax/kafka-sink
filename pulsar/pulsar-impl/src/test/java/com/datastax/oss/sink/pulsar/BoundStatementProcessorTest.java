@@ -43,6 +43,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class BoundStatementProcessorTest {
 
+  static class LocalRec extends LocalRecord<String, String> {
+
+    LocalRec(Record<String> raw, String record) {
+      super(raw, record);
+    }
+
+    static LocalRec rec(String topic, String key, String value, long offset) {
+      return new LocalRec(mockRecord(topic, key, value, offset), value);
+    }
+  }
+
   @Test
   void should_categorize_statement_in_statement_group() {
 
@@ -50,34 +61,37 @@ class BoundStatementProcessorTest {
     ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3});
     when(bs1.getRoutingKey()).thenReturn(routingKey);
 
-    Record record1 = mockRecord("mytopic", null, "value", 1234L);
-    RecordAndStatement recordAndStatement1 = new RecordAndStatement<>(record1, "ks.mytable", bs1);
+    LocalRec record1 = LocalRec.rec("mytopic", null, "value", 1234L);
+    RecordAndStatement<LocalRec> recordAndStatement1 =
+        new RecordAndStatement<>(record1, "ks.mytable", bs1);
 
-    Record record2 = mockRecord("yourtopic", null, "value", 1234);
-    RecordAndStatement recordAndStatement2 = new RecordAndStatement<>(record2, "ks.mytable", bs1);
+    LocalRec record2 = LocalRec.rec("yourtopic", null, "value", 1234);
+    RecordAndStatement<LocalRec> recordAndStatement2 =
+        new RecordAndStatement<>(record2, "ks.mytable", bs1);
 
-    Map<String, Map<ByteBuffer, List<RecordAndStatement>>> statementGroups = new HashMap<>();
+    Map<String, Map<ByteBuffer, List<RecordAndStatement<LocalRec>>>> statementGroups =
+        new HashMap<>();
 
     // We don't care about the args to the constructor for this test.
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(mockCassandraSinkTask(), null, null, 32);
+    BoundStatementProcessor<LocalRec> statementProcessor =
+        new BoundStatementProcessor<>(mockCassandraSinkTask(), null, null, 32);
 
     // Categorize the two statements. Although they refer to the same ks/table and have the
     // same routing key, they should be in different buckets.
-    List<RecordAndStatement> result1 =
+    List<RecordAndStatement<LocalRec>> result1 =
         statementProcessor.categorizeStatement(statementGroups, recordAndStatement1);
-    List<RecordAndStatement> result2 =
+    List<RecordAndStatement<LocalRec>> result2 =
         statementProcessor.categorizeStatement(statementGroups, recordAndStatement2);
 
     assertThat(result1.size()).isEqualTo(1);
     assertThat(result1.get(0)).isSameAs(recordAndStatement1);
     assertThat(statementGroups.size()).isEqualTo(2);
     assertThat(statementGroups.containsKey("mytopic.ks.mytable")).isTrue();
-    Map<ByteBuffer, List<RecordAndStatement>> batchGroups =
+    Map<ByteBuffer, List<RecordAndStatement<LocalRec>>> batchGroups =
         statementGroups.get("mytopic.ks.mytable");
     assertThat(batchGroups.size()).isEqualTo(1);
     assertThat(batchGroups.containsKey(routingKey)).isTrue();
-    List<RecordAndStatement> batchGroup = batchGroups.get(routingKey);
+    List<RecordAndStatement<LocalRec>> batchGroup = batchGroups.get(routingKey);
     assertThat(batchGroup).isSameAs(result1);
 
     batchGroups = statementGroups.get("yourtopic.ks.mytable");
@@ -96,16 +110,17 @@ class BoundStatementProcessorTest {
       int totalNumberOfRecords, int maxNumberOfRecordsInBatch, int[] expectedBatchSizes)
       throws InterruptedException {
     // given
-    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(
+    BlockingQueue<RecordAndStatement<LocalRec>> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor<LocalRec> statementProcessor =
+        new BoundStatementProcessor<>(
             mockCassandraSinkTask(),
             recordAndStatements,
             new ArrayList<>(),
             maxNumberOfRecordsInBatch);
-    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    List<List<RecordAndStatement<LocalRec>>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
-    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+    Consumer<List<RecordAndStatement<LocalRec>>> mockConsumer =
+        e -> actualBatches.add(new ArrayList<>(e));
     ByteBuffer routingKey = ByteBuffer.wrap(new byte[] {1, 2, 3, 4});
 
     // when
@@ -114,7 +129,7 @@ class BoundStatementProcessorTest {
         new Thread(
             () -> {
               for (int i = 0; i < totalNumberOfRecords; i++) {
-                Record record = mockRecord("mytopic", null, i, i);
+                LocalRec record = LocalRec.rec("mytopic", null, String.valueOf(i), i);
                 BoundStatement statement = mock(BoundStatement.class);
                 when(statement.getRoutingKey()).thenReturn(routingKey);
                 recordAndStatements.add(new RecordAndStatement<>(record, "ks.tb", statement));
@@ -147,13 +162,14 @@ class BoundStatementProcessorTest {
   @Test
   void should_group_batch_by_a_partition_key_not_an_input_topic_key() throws InterruptedException {
     // given
-    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(
+    BlockingQueue<RecordAndStatement<LocalRec>> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor<LocalRec> statementProcessor =
+        new BoundStatementProcessor<>(
             mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 3);
-    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    List<List<RecordAndStatement<LocalRec>>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
-    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+    Consumer<List<RecordAndStatement<LocalRec>>> mockConsumer =
+        e -> actualBatches.add(new ArrayList<>(e));
 
     // when
     // emulate CassandraSinkTask.put() behavior
@@ -213,13 +229,14 @@ class BoundStatementProcessorTest {
   void should_create_two_batches_for_the_same_dse_tables_but_different_input_topics()
       throws InterruptedException {
     // given
-    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(
+    BlockingQueue<RecordAndStatement<LocalRec>> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor<LocalRec> statementProcessor =
+        new BoundStatementProcessor<>(
             mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 3);
-    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    List<List<RecordAndStatement<LocalRec>>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
-    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+    Consumer<List<RecordAndStatement<LocalRec>>> mockConsumer =
+        e -> actualBatches.add(new ArrayList<>(e));
 
     // when
     // emulate CassandraSinkTask.put() behavior
@@ -279,13 +296,14 @@ class BoundStatementProcessorTest {
   void should_create_two_batches_for_different_dse_tables_and_same_partition_key()
       throws InterruptedException {
     // given
-    BlockingQueue<RecordAndStatement> recordAndStatements = new LinkedBlockingQueue<>();
-    BoundStatementProcessor statementProcessor =
-        new BoundStatementProcessor(
+    BlockingQueue<RecordAndStatement<LocalRec>> recordAndStatements = new LinkedBlockingQueue<>();
+    BoundStatementProcessor<LocalRec> statementProcessor =
+        new BoundStatementProcessor<>(
             mockCassandraSinkTask(), recordAndStatements, new ArrayList<>(), 2);
-    List<List<RecordAndStatement>> actualBatches = new ArrayList<>();
+    List<List<RecordAndStatement<LocalRec>>> actualBatches = new ArrayList<>();
     // we need to copy the batch into a new list since the original one may be cleared after
-    Consumer<List<RecordAndStatement>> mockConsumer = e -> actualBatches.add(new ArrayList<>(e));
+    Consumer<List<RecordAndStatement<LocalRec>>> mockConsumer =
+        e -> actualBatches.add(new ArrayList<>(e));
 
     // when
     // emulate CassandraSinkTask.put() behavior
@@ -334,17 +352,17 @@ class BoundStatementProcessorTest {
   }
 
   private void addSinkRecord(
-      BlockingQueue<RecordAndStatement> recordAndStatements,
+      BlockingQueue<RecordAndStatement<LocalRec>> recordAndStatements,
       String topic,
       String keyspace,
       String table,
       String kafkaKey,
-      Object kafkaValue,
+      String kafkaValue,
       ByteBuffer dseRoutingKey) {
-    Record record = mockRecord(topic, kafkaKey, kafkaValue, 1234);
+    LocalRec record = LocalRec.rec(topic, kafkaKey, kafkaValue, 1234);
     BoundStatement statement = mock(BoundStatement.class);
     when(statement.getRoutingKey()).thenReturn(dseRoutingKey);
-    recordAndStatements.add(new RecordAndStatement(record, keyspace + "." + table, statement));
+    recordAndStatements.add(new RecordAndStatement<>(record, keyspace + "." + table, statement));
   }
 
   private static Stream<? extends Arguments> batchSizes() {
@@ -357,13 +375,13 @@ class BoundStatementProcessorTest {
         Arguments.of(0, 1, new int[] {}));
   }
 
-  private RecordProcessor mockCassandraSinkTask() {
+  private <R, H> RecordProcessor<R, H> mockCassandraSinkTask() {
     InstanceState instanceState = mock(InstanceState.class);
     when(instanceState.getCodecRegistry()).thenReturn(mock(CodecRegistry.class));
     when(instanceState.getProtocolVersion()).thenReturn(ProtocolVersion.DEFAULT);
-    RecordProcessor sinkTask = mock(RecordProcessor.class);
+    RecordProcessor<R, H> sinkTask = mock(RecordProcessor.class);
     when(sinkTask.getInstanceState()).thenReturn(instanceState);
-    when(sinkTask.apiAdapter()).thenReturn(new PulsarAPIAdapter());
+    when(sinkTask.apiAdapter()).thenReturn(new AvroAPIAdapter());
     return sinkTask;
   }
 }
