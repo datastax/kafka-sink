@@ -55,8 +55,8 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase<byte[]> {
       throws Exception {
     conn.open(makeConnectorProperties(extras), null);
 
-    Record<byte[]> record = mockRecord("mytopic", null, String.valueOf(5725368L).getBytes(), 1234L);
-    runTaskWithRecords(record);
+    Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234L);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -79,12 +79,14 @@ class PlaintextAuthCCMIT extends EndToEndCCMITBase<byte[]> {
   @MethodSource("incorrectCredentialsProvider")
   void should_error_that_password_or_username_is_incorrect(Map<String, Object> extras)
       throws Exception {
-    conn.open(makeConnectorProperties(extras), null);
-
-    Record<byte[]> record = mockRecord("mytopic", null, String.valueOf(5725368L).getBytes(), 1234L);
-    assertThatThrownBy(() -> runTaskWithRecords(record))
+    assertThatThrownBy(() -> conn.open(makeConnectorProperties(extras), null))
         .isInstanceOf(AllNodesFailedException.class)
         .hasMessageContaining("and/or password are incorrect");
+
+    Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234L);
+    assertThatThrownBy(() -> sendRecord(record))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Sink is not open");
   }
 
   private static Stream<? extends Arguments> incorrectCredentialsProvider() {

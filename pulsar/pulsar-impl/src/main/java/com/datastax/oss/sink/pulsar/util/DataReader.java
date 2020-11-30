@@ -33,7 +33,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.SeekableByteArrayInput;
 import org.apache.avro.generic.GenericContainer;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
@@ -95,13 +94,13 @@ public interface DataReader<D> {
 
     @Override
     public GenericContainer read(byte[] data) throws IOException {
-      DatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+      DatumReader<GenericRecord> reader = new Utf8ToStringGenericDatumReader<>(schema);
       return reader.read(null, decoderFactory.binaryDecoder(data, null));
     }
 
     @Override
     public GenericContainer read(String data) throws IOException {
-      DatumReader<GenericRecord> reader = new GenericDatumReader<>();
+      DatumReader<GenericRecord> reader = new Utf8ToStringGenericDatumReader<>();
       return reader.read(null, decoderFactory.jsonDecoder(schema, data));
     }
   }
@@ -109,7 +108,7 @@ public interface DataReader<D> {
   class WornAvroReader implements DataReader<GenericContainer> {
     @Override
     public GenericContainer read(byte[] data) throws IOException {
-      DatumReader<GenericContainer> reader = new GenericDatumReader<>();
+      DatumReader<GenericContainer> reader = new Utf8ToStringGenericDatumReader<>();
       try (DataFileReader<GenericContainer> drdr =
           new DataFileReader<>(new SeekableByteArrayInput(data), reader)) {
         return drdr.next();
@@ -129,7 +128,7 @@ public interface DataReader<D> {
       if (!node.isObject() && !node.isArray()) throw new JsonIsNotContainer(node);
       //            Schema s = new JsonToAvroSchema(mapper).infer(node, "_", "inferred._._");
       Schema s = JsonUtil.inferSchema(node, "_");
-      DatumReader<GenericContainer> jrdr = new GenericDatumReader<>(s);
+      DatumReader<GenericContainer> jrdr = new Utf8ToStringGenericDatumReader<>(s);
       return jrdr.read(null, DecoderFactory.get().jsonDecoder(s, new ByteArrayInputStream(data)));
     }
 
@@ -141,19 +140,19 @@ public interface DataReader<D> {
       if (!node.isObject() && !node.isArray()) throw new JsonIsNotContainer(node);
       //            Schema s = new JsonToAvroSchema(mapper).infer(node, "_", "inferred._._");
       Schema s = JsonUtil.inferSchema(node, "_");
-      DatumReader<GenericContainer> jrdr = new GenericDatumReader<>(s);
+      DatumReader<GenericContainer> jrdr = new Utf8ToStringGenericDatumReader<>(s);
       return jrdr.read(null, DecoderFactory.get().jsonDecoder(s, data));
     }
   }
 
   class BooleanReader implements DataReader<Boolean> {
     @Override
-    public Boolean read(byte[] data) throws IOException {
+    public Boolean read(byte[] data) {
       return null;
     }
 
     @Override
-    public Boolean read(String data) throws IOException {
+    public Boolean read(String data) {
       return Boolean.valueOf(data);
     }
   }

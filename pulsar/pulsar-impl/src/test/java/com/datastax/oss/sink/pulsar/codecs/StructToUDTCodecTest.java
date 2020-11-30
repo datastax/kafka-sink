@@ -59,8 +59,6 @@ class StructToUDTCodecTest {
 
   @Test
   void should_convert_from_valid_external() {
-    System.out.println(udtCodec1);
-    System.out.println(struct);
     assertThat(udtCodec1)
         .convertsFromExternal(struct)
         .toInternal(udt1Value)

@@ -40,7 +40,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_simple_key_value_null() throws Exception {
+  void delete_simple_key_value_null() {
     // First insert a row...
     session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
     List<Row> results = session.execute("SELECT * FROM pk_value").all();
@@ -52,7 +52,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     // Set up records for "mytopic"
     Record<byte[]> rec = mockRecord("mytopic", "1234567", null, 1234);
 
-    runTaskWithRecords(rec);
+    sendRecord(rec);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
@@ -60,7 +60,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_simple_key_value_null_json() throws Exception {
+  void delete_simple_key_value_null_json() {
     // First insert a row...
     session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
     List<Row> results = session.execute("SELECT * FROM pk_value").all();
@@ -73,7 +73,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     String key = "{\"my_pk\": 1234567}";
     Record<byte[]> rec = mockRecord("mytopic", key, null, 1234);
 
-    runTaskWithRecords(rec);
+    sendRecord(rec);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
@@ -81,7 +81,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void insert_with_nulls_when_delete_disabled() throws Exception {
+  void insert_with_nulls_when_delete_disabled() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
@@ -102,7 +102,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("bigint", 1234567L);
     Record<byte[]> record = mockRecord("mytopic", null, wornBytes(value), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted into the database with null non-pk values.
     List<Row> results = session.execute("SELECT * FROM small_simple").all();
@@ -114,7 +114,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_compound_key() throws Exception {
+  void delete_compound_key() {
     // First insert a row...
     session.execute(
         "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
@@ -140,7 +140,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("boolean", true);
     Record<byte[]> record = mockRecord("mytopic", null, wornBytes(value), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
@@ -148,7 +148,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_compound_key_json() throws Exception {
+  void delete_compound_key_json() {
     // First insert a row...
     session.execute(
         "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
@@ -165,7 +165,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     String json = "{\"bigint\": 1234567, \"boolean\": true, \"int\": null}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
@@ -173,7 +173,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_compound_key_value_null_json() throws Exception {
+  void delete_compound_key_value_null_json() {
     // First insert a row...
     session.execute(
         "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
@@ -189,7 +189,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     String key = "{\"bigint\":1234567,\"boolean\":true}";
     Record<byte[]> record = mockRecord("mytopic", key, null, 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM small_compound").all();
@@ -197,7 +197,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_simple_key() throws Exception {
+  void delete_simple_key() {
     // First insert a row...
     session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
     List<Row> results = session.execute("SELECT * FROM pk_value").all();
@@ -217,7 +217,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("my_pk", 1234567L);
     Record<byte[]> record = mockRecord("mytopic", null, wornBytes(value), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
@@ -225,7 +225,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void delete_simple_key_json() throws Exception {
+  void delete_simple_key_json() {
     // First insert a row...
     session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
     List<Row> results = session.execute("SELECT * FROM pk_value").all();
@@ -238,7 +238,7 @@ class DeleteCCMIT extends EndToEndCCMITBase<byte[]> {
     String json = "{\"my_pk\": 1234567, \"my_value\": null}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();

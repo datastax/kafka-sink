@@ -44,6 +44,10 @@ public class CassandraSinkTask extends SinkTask {
   private Processor processor;
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
 
+  public CassandraSinkTask() {
+    processor = new Processor(this);
+  }
+
   @Override
   public String version() {
     return new CassandraSinkConnector().version();
@@ -51,7 +55,6 @@ public class CassandraSinkTask extends SinkTask {
 
   @Override
   public void start(Map<String, String> props) {
-    processor = new Processor();
     processor.start(props);
   }
 
@@ -69,29 +72,33 @@ public class CassandraSinkTask extends SinkTask {
     processor.process(records);
   }
 
-  public class Processor extends RecordProcessor<SinkRecord, Header> {
+  private static class Processor extends RecordProcessor<SinkRecord, Header> {
+
+    private CassandraSinkTask task;
+
+    private Processor(CassandraSinkTask task) {
+      this.task = task;
+    }
 
     private KafkaAPIAdapter adapter = new KafkaAPIAdapter();
 
     @Override
     protected void beforeStart(Map<String, String> config) {
-      CassandraSinkTask.this.failureOffsets = new ConcurrentHashMap<>();
+      task.failureOffsets = new ConcurrentHashMap<>();
     }
 
     @Override
     protected void onProcessingStart() {
-      failureOffsets.clear();
+      task.failureOffsets.clear();
     }
 
     @Override
     protected void handleFailure(SinkRecord record, Throwable e, String cql, Runnable failCounter) {
-      CassandraSinkTask.this.handleFailure(record, e, cql, failCounter);
+      task.handleFailure(record, e, cql, failCounter);
     }
 
     @Override
-    protected void handleSuccess(SinkRecord record) {
-      System.out.println(">>>> " + record);
-    }
+    protected void handleSuccess(SinkRecord record) {}
 
     @Override
     public EngineAPIAdapter<SinkRecord, Schema, Struct, Field, Header> apiAdapter() {
@@ -105,7 +112,7 @@ public class CassandraSinkTask extends SinkTask {
 
     @Override
     public String version() {
-      return CassandraSinkTask.this.version();
+      return task.version();
     }
   }
 

@@ -45,11 +45,11 @@ public class PulsarCodecProvider implements ConvertingCodecProvider {
     } else if (cqlType instanceof MapType
         && externalJavaType.equals(GenericType.of(GenericRecord.class))) {
       return Optional.of(new StructToMapCodec(codecFactory, (MapType) cqlType));
-    } else if (cqlType.getProtocolCode() == ProtocolConstants.DataType.TIME
-        && externalJavaType.equals(GenericType.of(Integer.class))) {
-      return Optional.of(
-          new NumberToNumberCodec<>(
-              Integer.class, codecFactory.getCodecRegistry().codecFor(DataTypes.BIGINT)));
+      //    } else if (cqlType.getProtocolCode() == ProtocolConstants.DataType.TIME
+      //        && externalJavaType.equals(GenericType.of(Integer.class))) {
+      //      return Optional.of(
+      //          new NumberToNumberCodec<>(
+      //              Integer.class, codecFactory.getCodecRegistry().codecFor(DataTypes.BIGINT)));
     } else if (cqlType.getProtocolCode() == ProtocolConstants.DataType.COUNTER
         && externalJavaType.equals(GenericType.of(Integer.class))) {
       return Optional.of(

@@ -50,7 +50,7 @@ public class GenericRecordSink implements BaseSink<GenericRecord> {
 
   @Override
   public void open(Map<String, Object> config, SinkContext sinkContext) {
-    log.info("start {}", getClass().getName());
+    log.debug("start {}", getClass().getName());
     try {
       recordProcessor = new PulsarRecordProcessor(this, new AvroAPIAdapter<>());
       recordProcessor.start(StringUtil.flatString(config));
@@ -69,7 +69,7 @@ public class GenericRecordSink implements BaseSink<GenericRecord> {
 
   @Override
   public void write(Record<GenericRecord> record) throws Exception {
-    log.info("got message to process {} {}", record);
+    log.debug("got message to process {} {}", record);
     try {
       Method m = record.getValue().getClass().getMethod("getAvroRecord");
       Object avroRecord = m.invoke(record.getValue());
@@ -78,24 +78,24 @@ public class GenericRecordSink implements BaseSink<GenericRecord> {
 
       LocalGenericRecord local = null;
       try {
-        log.info("construct via parsing");
+        log.debug("construct via parsing");
         String schemaStr = avroSchema.toString();
         String recStr = avroRecord.toString();
         Schema schema = new Schema.Parser().parse(schemaStr);
-        log.info("parsed schema {}", schema);
+        log.debug("parsed schema {}", schema);
         org.apache.avro.generic.GenericRecord rec =
             (org.apache.avro.generic.GenericRecord) jsonToAvro(recStr, schema);
-        log.info("deserialized rec {}", rec);
+        log.debug("deserialized rec {}", rec);
         local = new LocalGenericRecord(record, rec);
       } catch (Throwable ex) {
         log.error("could not construct via parsing", ex);
       }
 
       if (local != null) {
-        log.info("processing....");
+        log.debug("processing....");
         recordProcessor.process(Collections.singleton(local));
       } else {
-        log.info("nothing to process");
+        log.debug("nothing to process");
       }
     } catch (Exception ex) {
       log.error(ex.getMessage(), ex);
@@ -122,8 +122,8 @@ public class GenericRecordSink implements BaseSink<GenericRecord> {
 
   @Override
   public void close() throws Exception {
-    log.info("closing sink");
+    log.debug("closing sink");
     recordProcessor.stop();
-    log.info("closed");
+    log.debug("closed");
   }
 }

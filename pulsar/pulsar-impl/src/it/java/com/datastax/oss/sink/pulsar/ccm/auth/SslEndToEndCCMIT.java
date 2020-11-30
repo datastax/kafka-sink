@@ -61,8 +61,8 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     conn.open(makeConnectorProperties(extras), null);
 
-    Record<byte[]> record = mockRecord("mytopic", null, String.valueOf(5725368L).getBytes(), 1234L);
-    runTaskWithRecords(record);
+    Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234L);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -86,11 +86,11 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             .put(SslConfig.TRUSTSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
             .build();
 
-    conn.open(makeConnectorProperties(extras), null);
-
-    Record<byte[]> record = mockRecord("mytopic", null, String.valueOf(5725368L).getBytes(), 1234L);
-    assertThatThrownBy(() -> runTaskWithRecords(record))
+    assertThatThrownBy(() -> conn.open(makeConnectorProperties(extras), null))
         .isInstanceOf(AllNodesFailedException.class);
+
+    Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234L);
+    assertThatThrownBy(() -> sendRecord(record)).isInstanceOf(IllegalStateException.class);
   }
 
   @Test
@@ -113,8 +113,8 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     conn.open(makeConnectorProperties(extras), null);
 
-    Record<byte[]> record = mockRecord("mytopic", null, String.valueOf(5725368L).getBytes(), 1234L);
-    runTaskWithRecords(record);
+    Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234L);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -140,10 +140,10 @@ class SslEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             .put(SslConfig.TRUSTSTORE_PASSWORD_OPT, CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD)
             .build();
 
-    conn.open(makeConnectorProperties(extras), null);
-
-    Record<byte[]> record = mockRecord("mytopic", null, String.valueOf(5725368L).getBytes(), 1234L);
-    assertThatThrownBy(() -> runTaskWithRecords(record))
+    assertThatThrownBy(() -> conn.open(makeConnectorProperties(extras), null))
         .isInstanceOf(AllNodesFailedException.class);
+
+    Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234L);
+    assertThatThrownBy(() -> sendRecord(record)).isInstanceOf(IllegalStateException.class);
   }
 }

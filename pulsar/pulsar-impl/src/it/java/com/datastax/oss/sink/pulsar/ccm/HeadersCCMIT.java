@@ -28,6 +28,7 @@ import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.datastax.oss.sink.pulsar.BytesSink;
 import com.datastax.oss.sink.util.StringUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -52,14 +53,13 @@ class HeadersCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-142 */
   @Test
-  void should_use_header_values_as_ttl_and_timestamp() throws Exception {
+  void should_use_header_values_as_ttl_and_timestamp() {
     Map<String, Object> cfg =
         makeConnectorProperties(
             "bigintcol=header.bigint, doublecol=header.double, __ttl=header.ttlcolumn, __timestamp = header.timestampcolumn",
             ImmutableMap.of(
                 String.format("topic.mytopic.%s.%s.timestampTimeUnit", keyspaceName, "types"),
                 "MILLISECONDS"));
-    StringUtil.printMap(cfg);
     initConnectorAndTask(cfg);
 
     long ttlValue = 1_000_000;
@@ -74,7 +74,7 @@ class HeadersCCMIT extends EndToEndCCMITBase<byte[]> {
     Record<byte[]> record = mockRecord("mytopic", null, null, 1234, 1L, props);
 
     // when
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -90,7 +90,7 @@ class HeadersCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_delete_when_header_values_are_null() throws Exception {
+  void should_delete_when_header_values_are_null() {
     // First insert a row...
     session.execute("INSERT INTO pk_value (my_pk, my_value) VALUES (1234567, true)");
     List<Row> results = session.execute("SELECT * FROM pk_value").all();
@@ -109,15 +109,16 @@ class HeadersCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record = mockRecord("mytopic", null, null, 1234, 1L, headers);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was deleted from the database.
     results = session.execute("SELECT * FROM pk_value").all();
     assertThat(results.size()).isEqualTo(0);
   }
+
   /** Test for KAF-142 */
   @Test
-  void should_use_values_from_header_in_mapping() throws Exception {
+  void should_use_values_from_header_in_mapping() throws JsonProcessingException {
     // values used in this test are random and irrelevant for the test
     // given
     initConnectorAndTask(
@@ -192,7 +193,7 @@ class HeadersCCMIT extends EndToEndCCMITBase<byte[]> {
         mockRecord("mytopic", null, json.getBytes(StandardCharsets.UTF_8), 1234, 1L, headers);
 
     // when
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -227,7 +228,7 @@ class HeadersCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_fail_when_using_header_without_specific_field_in_a_mapping() throws Exception {
+  void should_fail_when_using_header_without_specific_field_in_a_mapping() {
     assertThatThrownBy(
             () -> initConnectorAndTask(makeConnectorProperties("bigintcol=key, udtcol=header")))
         .isInstanceOf(ConfigException.class)

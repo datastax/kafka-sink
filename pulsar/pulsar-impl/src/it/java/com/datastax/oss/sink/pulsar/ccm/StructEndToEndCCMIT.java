@@ -40,6 +40,7 @@ import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.datastax.oss.sink.pulsar.BytesSink;
 import java.nio.ByteBuffer;
+import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,7 +65,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void struct_value_only() throws Exception {
+  void struct_value_only() throws ParseException {
     // We skip testing the following datatypes, since in Kafka messages, values for these
     // types would simply be strings or numbers, and we'd just pass these right through to
     // the ExtendedCodecRegistry for encoding:
@@ -195,19 +196,19 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     Map<String, Integer> mapValue =
         ImmutableMap.<String, Integer>builder().put("sub1", 37).put("sub2", 96).build();
 
-    Map<String, Map<String, String>> nestedMapValue =
-        ImmutableMap.<String, Map<String, String>>builder()
+    Map<String, Map<Integer, String>> nestedMapValue =
+        ImmutableMap.<String, Map<Integer, String>>builder()
             .put(
                 "sub1",
-                ImmutableMap.<String, String>builder()
-                    .put("37", "sub1sub1")
-                    .put("96", "sub1sub2")
+                ImmutableMap.<Integer, String>builder()
+                    .put(37, "sub1sub1")
+                    .put(96, "sub1sub2")
                     .build())
             .put(
                 "sub2",
-                ImmutableMap.<String, String>builder()
-                    .put("47", "sub2sub1")
-                    .put("90", "sub2sub2")
+                ImmutableMap.<Integer, String>builder()
+                    .put(47, "sub2sub1")
+                    .put(90, "sub2sub2")
                     .build())
             .build();
 
@@ -251,7 +252,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))");
     value.put("daterange", "[* TO 2014-12-01]");
 
-    runTaskWithRecords(mockRecord("mytopic", null, wornBytes(value), 1234));
+    sendRecord(mockRecord("mytopic", null, wornBytes(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -324,7 +325,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void struct_value_struct_field() throws Exception {
+  void struct_value_struct_field() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -368,7 +369,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("struct", fieldValue);
     value.put("booleanstruct", booleanFieldValue);
 
-    runTaskWithRecords(mockRecord("mytopic", null, wornBytes(value), 1234));
+    sendRecord(mockRecord("mytopic", null, wornBytes(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -394,7 +395,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void struct_optional_fields_missing() throws Exception {
+  void struct_optional_fields_missing() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, intcol=value.int, smallintcol=value.smallint"));
@@ -418,7 +419,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("bigint", baseValue);
     value.put("int", baseValue.intValue());
 
-    runTaskWithRecords(mockRecord("mytopic", null, wornBytes(value), 1234));
+    sendRecord(mockRecord("mytopic", null, wornBytes(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -429,7 +430,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void struct_optional_fields_with_values() throws Exception {
+  void struct_optional_fields_with_values() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, "
@@ -470,7 +471,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("tinyint", (int) baseValue.byteValue());
     value.put("blob", ByteBuffer.wrap(blobValue));
 
-    runTaskWithRecords(mockRecord("mytopic", null, wornBytes(value), 1234));
+    sendRecord(mockRecord("mytopic", null, wornBytes(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -490,8 +491,9 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  @Disabled // schema evolution is not supported yet
-  void struct_optional_field_with_default_value() throws Exception {
+  @Disabled
+  // schema evolution is not supported yet
+  void struct_optional_field_with_default_value() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=value.bigint, intcol=value.int"));
 
     Schema schema = SchemaBuilder.record("pulsar").fields().optionalLong("bigint").endRecord();
@@ -509,7 +511,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             .endRecord();
     ((BytesSink) conn).setSchema("mytopic", readSchema);
 
-    runTaskWithRecords(mockRecord("mytopic", null, valueBytes, 1234));
+    sendRecord(mockRecord("mytopic", null, valueBytes, 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -522,7 +524,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_udt_value_from_struct() throws Exception {
+  void raw_udt_value_from_struct() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, udtcol=value"));
 
     Schema schema =
@@ -537,7 +539,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record =
         mockRecord("mytopic", String.valueOf(98761234L), wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
@@ -555,7 +557,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_udt_value_and_cherry_pick_from_struct() throws Exception {
+  void raw_udt_value_and_cherry_pick_from_struct() {
     initConnectorAndTask(
         makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1"));
 
@@ -571,7 +573,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record =
         mockRecord("mytopic", String.valueOf(98761234L), wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
@@ -590,7 +592,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void multiple_records_multiple_topics() throws Exception {
+  void multiple_records_multiple_topics() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double",
@@ -619,9 +621,9 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record3 = mockRecord("yourtopic", "5555", intBytes(3333), 1235);
 
-    runTaskWithRecords(record1);
-    runTaskWithRecords(record2);
-    runTaskWithRecords(record3);
+    sendRecord(record1);
+    sendRecord(record2);
+    sendRecord(record3);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, doublecol, intcol FROM types").all();
@@ -641,7 +643,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void single_record_multiple_tables() throws Exception {
+  void single_record_multiple_tables() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
@@ -663,7 +665,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("int", 5725);
     Record<byte[]> record = mockRecord("mytopic", null, wornBytes(value), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that a record was inserted in each of small_simple and types tables.
     {
@@ -686,7 +688,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-83 (case-sensitive fields and columns). */
   @Test
-  void single_map_quoted_fields_to_quoted_columns() throws Exception {
+  void single_map_quoted_fields_to_quoted_columns() {
     session.execute(
         SimpleStatement.builder(
                 "CREATE TABLE \"CASE_SENSITIVE\" ("
@@ -724,7 +726,7 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record = mockRecord("mytopic", key, wornBytes(value), 1234);
 
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that a record was inserted
     List<Row> results = session.execute("SELECT * FROM \"CASE_SENSITIVE\"").all();

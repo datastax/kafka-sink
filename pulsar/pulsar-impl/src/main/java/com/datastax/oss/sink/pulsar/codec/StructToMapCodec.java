@@ -26,7 +26,7 @@ import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 
-/** Codec to convert a Pulsar {@link GenericRecord} to a Map. */
+/** Codec to convert an avro {@link GenericRecord} to a Map. */
 public class StructToMapCodec extends ConvertingCodec<GenericRecord, Map> {
 
   private final ConvertingCodecFactory codecFactory;

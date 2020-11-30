@@ -48,6 +48,7 @@ import java.util.Map;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -59,6 +60,7 @@ import ru.lanwen.wiremock.ext.WiremockResolver;
 @ExtendWith(WiremockResolver.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Tag("medium")
+@Disabled
 public class CloudSniEndToEndIT extends ITConnectorBase {
 
   private final SNIProxyServer proxy;

@@ -48,7 +48,7 @@ class ConnectorSettingsCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-135 */
   @Test
-  void should_load_settings_from_dse_reference_conf() throws Exception {
+  void should_load_settings_from_dse_reference_conf() {
     // given (connector mapping need to be defined)
     initConnectorAndTask(makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double"));
 
@@ -67,7 +67,7 @@ class ConnectorSettingsCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_insert_when_using_java_driver_contact_points_setting() throws Exception {
+  void should_insert_when_using_java_driver_contact_points_setting() {
     Map<String, Object> connectorProperties =
         makeConnectorPropertiesWithoutContactPointsAndPort("bigintcol=key, listcol=value");
     // use single datastax-java-driver prefixed property that carry host:port
@@ -89,7 +89,7 @@ class ConnectorSettingsCCMIT extends EndToEndCCMITBase<byte[]> {
     GenericContainer r = new GenericData.Array<>(schema, Arrays.asList(42, 37));
 
     Record<byte[]> record = TestUtil.mockRecord("mytopic", "98761234", "[42,37]".getBytes(), 1234L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, listcol FROM types").all();

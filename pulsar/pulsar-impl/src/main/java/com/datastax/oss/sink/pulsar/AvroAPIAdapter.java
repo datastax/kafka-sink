@@ -83,7 +83,7 @@ public class AvroAPIAdapter<Coat>
   @Override
   public Schema headerSchema(Header header) {
     if (header.value == null) return schemaNull;
-    log.info(
+    log.debug(
         "get header {} {} {} {}",
         header.name,
         header.value,
@@ -116,16 +116,15 @@ public class AvroAPIAdapter<Coat>
 
   @Override
   public Object fieldValue(GenericRecord struct, String fieldName) {
-    log.info("get field val {} {}", struct, fieldName);
+    log.debug("get field val {} {}", struct, fieldName);
     Object v = struct.get(fieldName);
-    if (v instanceof Utf8) v = ((Utf8) v).toString();
-    log.info("got {} {}", v, v == null ? "null" : v.getClass());
+    log.debug("got {} {}", v, v == null ? "null" : v.getClass());
     return v;
   }
 
   @Override
   public Schema fieldSchema(Schema schema, String fieldSchema) {
-    log.info("get field schema {} -> {}", fieldSchema, schema.getField(fieldSchema).schema());
+    log.debug("get field schema {} -> {}", fieldSchema, schema.getField(fieldSchema).schema());
     return schema.getField(fieldSchema).schema();
   }
 
@@ -192,6 +191,9 @@ public class AvroAPIAdapter<Coat>
     if (schema.getType() == Schema.Type.UNION) {
       if (schema.getTypes().size() == 2 && schema.getTypes().get(0).getType() == Schema.Type.NULL) {
         t = schema.getTypes().get(1).getType();
+      } else if (schema.getTypes().size() == 2
+          && schema.getTypes().get(1).getType() == Schema.Type.NULL) {
+        t = schema.getTypes().get(0).getType();
       }
     }
     if (!types.containsKey(t)) {

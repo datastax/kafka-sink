@@ -16,6 +16,7 @@
 package com.datastax.oss.sink.util;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
+import java.io.PrintStream;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.TreeMap;
@@ -35,20 +36,24 @@ public class StringUtil {
   }
 
   public static void printMap(Map<String, ?> map) {
-    for (Map.Entry<String, ?> et : map.entrySet()) printNode(et, 0);
+    printMap(map, System.out);
+  }
+
+  public static void printMap(Map<String, ?> map, PrintStream out) {
+    for (Map.Entry<String, ?> et : map.entrySet()) printNode(et, 0, out);
   }
 
   @SuppressWarnings("unchecked")
-  private static void printNode(Map.Entry<String, ?> et, int dept) {
+  private static void printNode(Map.Entry<String, ?> et, int dept, PrintStream out) {
     boolean ismap = et.getValue() instanceof Map;
     String val;
     if (ismap) val = "";
     else if (et.getValue() == null) val = " = null";
     else val = " = " + et.getValue().getClass().getSimpleName() + "[" + et.getValue() + "]";
-    System.out.println(Strings.repeat(" ", dept) + et.getKey() + val);
+    out.println(Strings.repeat(" ", dept) + et.getKey() + val);
     if (ismap) {
       for (Map.Entry<String, ?> et1 : ((Map<String, ?>) et.getValue()).entrySet()) {
-        printNode(et1, dept + 2);
+        printNode(et1, dept + 2, out);
       }
     }
   }

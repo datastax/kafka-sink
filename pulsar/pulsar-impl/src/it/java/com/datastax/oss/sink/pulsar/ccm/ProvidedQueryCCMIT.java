@@ -60,8 +60,8 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   private static final Schema UDT_SCHEMA =
       SchemaBuilder.record("pulsar")
           .fields()
-          .requiredInt("udtmem1")
-          .requiredString("udtmem2")
+          .optionalInt("udtmem1")
+          .optionalString("udtmem2")
           .endRecord();
 
   public ProvidedQueryCCMIT(CCMCluster ccm, CqlSession session) {
@@ -87,7 +87,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_insert_json_using_query_parameter() throws Exception {
+  void should_insert_json_using_query_parameter() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -105,7 +105,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Long recordTimestamp = 123456L;
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234, recordTimestamp);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -120,7 +120,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_fail_insert_json_using_query_parameter_with_deletes_enabled() throws Exception {
+  void should_fail_insert_json_using_query_parameter_with_deletes_enabled() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -131,23 +131,26 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
             .put(deletesEnabled())
             .build();
 
-    initConnectorAndTask(
-        makeConnectorProperties("bigintcol=value.bigint, intcol=value.int", extras));
+    assertThatThrownBy(
+            () ->
+                initConnectorAndTask(
+                    makeConnectorProperties("bigintcol=value.bigint, intcol=value.int", extras)))
+        .isInstanceOf(ConfigException.class)
+        .hasMessageContaining("If you want to provide own query, set the deletesEnabled to false.");
 
     String value = "{\"bigint\": 1234, \"int\": 10000}";
 
     Long recordTimestamp = 123456L;
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234, recordTimestamp);
 
-    assertThatThrownBy(() -> runTaskWithRecords(record))
-        .isInstanceOf(ConfigException.class)
-        .hasMessageContaining("If you want to provide own query, set the deletesEnabled to false.");
+    assertThatThrownBy(() -> sendRecord(record))
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Sink is not open");
   }
 
   @Test
   void
-      should_allow_insert_json_using_query_parameter_with_bound_variables_different_than_cql_columns()
-          throws Exception {
+      should_allow_insert_json_using_query_parameter_with_bound_variables_different_than_cql_columns() {
     // when providing custom query, the connector is not validating bound variables from prepared
     // statements user needs to take care of the query requirements on their own.
     ImmutableMap<String, Object> extras =
@@ -166,7 +169,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     String value = "{\"bigint\": 1234, \"int\": 10000}";
 
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -177,7 +180,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_update_json_using_query_parameter() throws Exception {
+  void should_update_json_using_query_parameter() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -194,8 +197,8 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
     Record<byte[]> record2 = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
-    runTaskWithRecords(record);
+    sendRecord(record);
+    sendRecord(record);
 
     // Verify that two values were append to listcol
     List<Row> results = session.execute("SELECT * FROM types where bigintcol = 1234").all();
@@ -206,7 +209,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_insert_json_using_query_parameter_and_ttl() throws Exception {
+  void should_insert_json_using_query_parameter_and_ttl() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -226,7 +229,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     String value = "{\"bigint\": 1234, \"int\": 10000, \"ttl\": 100000}";
 
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, intcol, ttl(intcol) FROM types").all();
@@ -238,7 +241,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_insert_json_using_query_parameter_and_timestamp() throws Exception {
+  void should_insert_json_using_query_parameter_and_timestamp() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -260,7 +263,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     String value = "{\"bigint\": 1234, \"int\": 10000, \"timestamp\": 100000}";
 
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -273,7 +276,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_insert_struct_with_query_parameter() throws Exception {
+  void should_insert_struct_with_query_parameter() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -299,7 +302,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("int", 1000);
 
     Record<byte[]> record = mockRecord("mytopic", null, wornBytes(value), 1234, 153000987L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -315,7 +318,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_use_query_to_partially_update_non_frozen_udt_when_null_to_unset() throws Exception {
+  void should_use_query_to_partially_update_non_frozen_udt_when_null_to_unset() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -343,7 +346,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("udtmem2", "the answer");
 
     Record<byte[]> record = mockRecord("mytopic", "98761234", wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -363,7 +366,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("udtmem1", 42);
 
     record = mockRecord("mytopic", "98761234", wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
     row = extractAndAssertThatOneRowInResult(results);
@@ -374,8 +377,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_use_update_query_on_non_frozen_udt_and_override_with_null_when_null_to_unset_false()
-      throws Exception {
+  void should_use_update_query_on_non_frozen_udt_and_override_with_null_when_null_to_unset_false() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -402,7 +404,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("udtmem2", "the answer");
 
     Record<byte[]> record = mockRecord("mytopic", "98761234", wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -422,7 +424,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("udtmem1", 42);
 
     record = mockRecord("mytopic", "98761234", wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     results = session.execute("SELECT bigintcol, udtColNotFrozen FROM types_with_frozen").all();
     row = extractAndAssertThatOneRowInResult(results);
@@ -433,7 +435,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_fail_when_use_query_to_partially_update_frozen_udt() throws Exception {
+  void should_fail_when_use_query_to_partially_update_frozen_udt() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -449,11 +451,15 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
                 "true")
             .build();
 
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2",
-            "types_with_frozen",
-            extras));
+    assertThatThrownBy(
+            () ->
+                initConnectorAndTask(
+                    makeConnectorProperties(
+                        "bigintcol=key, udtcol1=value.udtmem1, udtcol2=value.udtmem2",
+                        "types_with_frozen",
+                        extras)))
+        .hasCauseInstanceOf(InvalidQueryException.class)
+        .hasStackTraceContaining("for frozen UDT column udtcol");
 
     GenericRecord value = new GenericData.Record(UDT_SCHEMA);
     value.put("udtmem1", 42);
@@ -461,13 +467,13 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record = mockRecord("mytopic", "98761234", wornBytes(value), 1234);
 
-    assertThatThrownBy(() -> runTaskWithRecords(record))
-        .hasCauseInstanceOf(InvalidQueryException.class)
-        .hasStackTraceContaining("for frozen UDT column udtcol");
+    assertThatThrownBy(() -> sendRecord(record))
+        .isInstanceOf(IllegalStateException.class)
+        .hasStackTraceContaining("Sink is not open");
   }
 
   @Test
-  void should_use_query_to_partially_update_map_when_null_to_unset() throws Exception {
+  void should_use_query_to_partially_update_map_when_null_to_unset() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -483,7 +489,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     String value = "{\"pk\": 98761234, \"key\": \"key_1\", \"value\": 10}}";
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -495,7 +501,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     value = "{\"pk\": 42, \"key\": \"key_1\", \"value\": null}";
     record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
     results = session.execute("SELECT * FROM types").all();
     row = extractAndAssertThatOneRowInResult(results);
     mapcol = row.getMap("mapcol", String.class, Integer.class);
@@ -506,8 +512,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_use_query_to_partially_update_map_and_remove_when_using_null_to_unset_false()
-      throws Exception {
+  void should_use_query_to_partially_update_map_and_remove_when_using_null_to_unset_false() {
     ImmutableMap<String, Object> extras =
         ImmutableMap.<String, Object>builder()
             .put(
@@ -523,7 +528,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     String value = "{\"pk\": 98761234, \"key\": \"key_1\", \"value\": 10}}";
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -535,7 +540,7 @@ class ProvidedQueryCCMIT extends EndToEndCCMITBase<byte[]> {
 
     value = "{\"pk\": 98761234, \"key\": \"key_1\", \"value\": null}";
     record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
     results = session.execute("SELECT * FROM types").all();
     // setting value for map = null when nullToUnset = false will cause the record to be removed
     assertThat(results.size()).isEqualTo(0);

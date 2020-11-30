@@ -436,7 +436,8 @@ limitations under the License.]]></inlineHeader>
           </executions>
           <configuration>
             <excludes>
-              <exclude>com.datastax.oss.kafka.sink/schema/Mapping*</exclude>
+              <exclude>com.datastax.oss.sink.kafka/schema/Mapping*</exclude>
+              <exclude>META-INF/**</exclude>
             </excludes>
           </configuration>
         </plugin>

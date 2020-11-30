@@ -46,7 +46,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void timestamp() throws Exception {
+  void timestamp() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=value.bigint, doublecol=value.double"));
 
     Schema schema =
@@ -61,7 +61,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record =
         mockRecord("mytopic", null, wornBytes(value), 1234l, 153000987L, Collections.emptyMap());
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -75,7 +75,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-107. */
   @Test
-  void should_insert_record_with_ttl_provided_via_mapping() throws Exception {
+  void should_insert_record_with_ttl_provided_via_mapping() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol"));
@@ -95,7 +95,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record =
         mockRecord("mytopic", null, wornBytes(value), 1234, 153000987L, Collections.emptyMap());
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -111,7 +111,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   @ParameterizedTest(name = "[{index}] schema={0}, ttlValue={1}, expectedTtlValue={2}")
   @MethodSource("ttlColProvider")
   void should_insert_record_with_ttl_provided_via_mapping_and_validate_ttl_of_table(
-      Schema schema, Number ttlValue, Number expectedTtlValue) throws Exception {
+      Schema schema, Number ttlValue, Number expectedTtlValue) {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
@@ -126,7 +126,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record =
         mockRecord("mytopic", null, wornBytes(value), 1234L, 153000987L, Collections.emptyMap());
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -153,7 +153,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_extract_ttl_from_json_and_use_as_ttl_column() throws Exception {
+  void should_extract_ttl_from_json_and_use_as_ttl_column() {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -165,7 +165,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     // when
     String json = "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000000}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -178,8 +178,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns()
-      throws Exception {
+  void should_extract_ttl_and_timestamp_from_json_and_use_as_ttl_and_timestamp_columns() {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -194,7 +193,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     String json =
         "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000000, \"timestampcol\": 1000}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -210,7 +209,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_extract_ttl_from_json_and_use_existing_column_as_ttl() throws Exception {
+  void should_extract_ttl_from_json_and_use_existing_column_as_ttl() {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -222,7 +221,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000000.0}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -235,7 +234,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_use_ttl_from_config_and_use_as_ttl() throws Exception {
+  void should_use_ttl_from_config_and_use_as_ttl() {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -246,7 +245,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -260,7 +259,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-46. */
   @Test
-  void should_extract_timestamp_from_json_and_use_existing_column_as_timestamp() throws Exception {
+  void should_extract_timestamp_from_json_and_use_existing_column_as_timestamp() {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -274,7 +273,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -288,7 +287,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-46. */
   @Test
-  void should_insert_record_with_timestamp_provided_via_mapping() throws Exception {
+  void should_insert_record_with_timestamp_provided_via_mapping() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.timestamp"));
@@ -307,7 +306,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
     Record<byte[]> record =
         mockRecord("mytopic", null, wornBytes(value), 1234, 153000987L, Collections.emptyMap());
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =
@@ -321,7 +320,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-46. */
   @Test
-  void should_extract_write_timestamp_from_json_and_use_as_write_time_column() throws Exception {
+  void should_extract_write_timestamp_from_json_and_use_as_write_time_column() {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -330,7 +329,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     // when
     String json = "{\"bigint\": 1234567, \"double\": 42.0, \"timestampcol\": 1000}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     List<Row> results =
@@ -346,7 +345,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
   @ParameterizedTest(name = "[{index}] schema={0}, timestampValue={1}, expectedTimestampValue={2}")
   @MethodSource("timestampColProvider")
   void should_insert_record_with_timestamp_provided_via_mapping_and_validate_timestamp_of_table(
-      Schema schema, Number timestampValue, Number expectedTimestampValue) throws Exception {
+      Schema schema, Number timestampValue, Number expectedTimestampValue) {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.timestampcol",
@@ -360,7 +359,7 @@ public class WriteTimestampAndTtlCCMIT extends EndToEndCCMITBase<byte[]> {
     value.put("timestampcol", timestampValue);
 
     Record<byte[]> record = mockRecord("mytopic", null, wornBytes(value), 1234L, 153000987L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results =

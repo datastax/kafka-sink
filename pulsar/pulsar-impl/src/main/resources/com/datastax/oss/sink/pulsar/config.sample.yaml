@@ -34,8 +34,6 @@ configs:
       password:
       path:
     cipherSuites:
-  value.converter: org.apache.kafka.connect.storage.StringConverter
-  value.converter.schemas.enable: false
   topic:
     my_topic:
       my_ks:
@@ -54,3 +52,7 @@ configs:
         date: ISO_LOCAL_DATE
         time: ISO_LOCAL_TIME
         unit: MILLISECONDS
+  pulsarAdminService:
+    url: http://localhost:8080
+    username:
+    password:

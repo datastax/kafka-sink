@@ -67,10 +67,6 @@ public abstract class RecordProcessor<EngineRecord, EngineHeader> {
     taskStateManager = new TaskStateManager();
     beforeStart(props);
     instanceState = LifeCycleManager.startTask(this, props);
-    //    try {
-    //    } catch (ConfigException ex) {
-    //      throw apiAdapter().adapt(ex);
-    //    }
   }
 
   /**

@@ -30,9 +30,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminBuilder;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -54,11 +56,11 @@ public class BytesSink implements BaseSink<byte[]> {
   private static final Logger log = LoggerFactory.getLogger(BytesSink.class);
 
   private PulsarAdmin admin;
-  private Map<String, DataReader> valueReaders = new HashMap<>();
-  private Map<String, DataReader> keyReaders = new HashMap<>();
-  private Map<String, Map<String, DataReader>> headerReaders = new HashMap<>();
+  private final Map<String, DataReader> valueReaders = new HashMap<>();
+  private final Map<String, DataReader> keyReaders = new HashMap<>();
+  private final Map<String, Map<String, DataReader>> headerReaders = new HashMap<>();
 
-  private boolean standalone;
+  private final boolean standalone;
 
   public BytesSink() {
     this(false);
@@ -80,19 +82,34 @@ public class BytesSink implements BaseSink<byte[]> {
     return processor;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public void open(Map<String, Object> config, SinkContext sinkContext) throws Exception {
-    log.info("start {}", getClass().getName());
+    log.debug("start {}", getClass().getName());
     try {
-      log.info("starting processor");
+      log.debug("starting processor");
+      if (!standalone) {
+        PulsarAdminBuilder builder = PulsarAdmin.builder();
+        Map<String, Object> adminServiceConfig =
+            (Map<String, Object>) config.get("pulsarAdminService");
+        if (adminServiceConfig != null) {
+          if (adminServiceConfig.containsKey("url"))
+            builder = builder.serviceHttpUrl((String) adminServiceConfig.get("url"));
+          if (adminServiceConfig.containsKey("username")) {
+            builder =
+                builder.authentication(
+                    (String) adminServiceConfig.get("username"),
+                    (String) adminServiceConfig.getOrDefault("password", ""));
+          }
+        } else {
+          throw new Exception("pulsarAdminService is not configured");
+        }
+        admin = builder.build();
+      }
       processor = new PulsarRecordProcessor<>(this, new AvroAPIAdapter<>());
       processor.start(StringUtil.flatString(config));
-      if (!standalone)
-        admin = PulsarAdmin.builder().serviceHttpUrl("http://localhost:8080").build();
-
       processor
-          .getInstanceState()
-          .getConfig()
+          .config()
           .getTopicConfigs()
           .forEach(
               (topic, topicConfig) -> {
@@ -101,15 +118,17 @@ public class BytesSink implements BaseSink<byte[]> {
                   checkSchemaRegister(topic, sinkContext.getTenant(), sinkContext.getNamespace());
               });
 
-      log.info("started {}", getClass().getName());
+      running.set(true);
+      log.debug("started {}", getClass().getName());
     } catch (Throwable ex) {
       log.error("initialization error", ex);
+      close();
       throw ex;
     }
   }
 
   private void detectTopicReaders(String topic, Collection<TableConfig> tableConfigs) {
-    log.info("checking column types for topic [{}]", topic);
+    log.debug("checking column types for topic [{}]", topic);
     Metadata metadata = processor.getInstanceState().getSession().getMetadata();
     for (TableConfig tableConfig : tableConfigs) {
       for (Map.Entry<CqlIdentifier, CqlIdentifier> et : tableConfig.getMapping().entrySet()) {
@@ -124,13 +143,13 @@ public class BytesSink implements BaseSink<byte[]> {
                   String path = et.getValue().asInternal();
                   if (path.equals("value.__self")) {
                     valueReaders.put(topic, reader);
-                    log.info(
+                    log.debug(
                         "  chosen value reader for [{}] {}",
                         topic,
                         reader.getClass().getSimpleName());
                   } else if (path.equals("key.__self")) {
                     keyReaders.put(topic, reader);
-                    log.info(
+                    log.debug(
                         "  chosen key reader for [{}] {}",
                         topic,
                         reader.getClass().getSimpleName());
@@ -139,7 +158,7 @@ public class BytesSink implements BaseSink<byte[]> {
                     headerReaders
                         .computeIfAbsent(topic, k -> new HashMap<>())
                         .put(headerKey, reader);
-                    log.info(
+                    log.debug(
                         "  chosen header reader for [{}/{}] {}",
                         topic,
                         headerKey,
@@ -148,12 +167,12 @@ public class BytesSink implements BaseSink<byte[]> {
                 });
       }
     }
-    log.info("column types checked");
+    log.debug("column types checked");
   }
 
   private void checkSchemaRegister(String topic, String tenant, String namespace) {
     if (!standalone) {
-      log.info("checking for schemas in register");
+      log.debug("checking for schemas in register");
       try {
         SchemaInfo info =
             admin.schemas().getSchemaInfo(String.format("%s/%s/%s", tenant, namespace, topic));
@@ -162,7 +181,7 @@ public class BytesSink implements BaseSink<byte[]> {
               apiSchema = org.apache.pulsar.client.api.Schema.generic(info);
           Schema schema = ((GenericAvroSchema) apiSchema).getAvroSchema();
           valueReaders.put(topic, DataReader.createSingleAvro(schema));
-          log.info("got value schema from register for [{}] {}", topic, schema);
+          log.debug("got value schema from register for [{}] {}", topic, schema);
         }
       } catch (PulsarAdminException ex) {
         log.warn("could not get value schema from register for topic " + topic, ex);
@@ -172,7 +191,9 @@ public class BytesSink implements BaseSink<byte[]> {
 
   @Override
   public void write(Record<byte[]> record) throws Exception {
-    log.info("got record for processing {} {}", record.getValue(), record);
+    if (!running.get()) throw new IllegalStateException("Sink is not open");
+
+    log.debug("got record for processing {} {}", record.getValue(), record);
     String topic = LocalRecord.shortTopic(record);
 
     Object payload = null;
@@ -221,14 +242,14 @@ public class BytesSink implements BaseSink<byte[]> {
                 })
             .collect(Collectors.toSet());
 
-    log.info("payload prepared {}", payload);
-    log.info("key prepared {}", key);
-    log.info(
+    log.debug("payload prepared {}", payload);
+    log.debug("key prepared {}", key);
+    log.debug(
         "headers prepared {}",
         headers.stream().map(h -> h.name + "=" + h.value).collect(Collectors.toSet()));
     if (payload != null || key != null || !headers.isEmpty())
       processor.process(Collections.singleton(new LocalRecord<>(record, headers, key, payload)));
-    else log.info("both key and value are null, nothing to process");
+    else log.debug("header, key and value are empty, nothing to process");
   }
 
   private Object readFromString(DataReader reader, String string) {
@@ -245,11 +266,17 @@ public class BytesSink implements BaseSink<byte[]> {
     }
   }
 
+  private AtomicBoolean running = new AtomicBoolean(false);
+
   @Override
   public void close() throws Exception {
-    log.info("closing {}", getClass().getName());
-    processor.stop();
+    log.debug("closing {}", getClass().getName());
+    if (processor != null) processor.stop();
     if (admin != null) admin.close();
-    log.info("closed {}", getClass().getName());
+    valueReaders.clear();
+    keyReaders.clear();
+    headerReaders.clear();
+    running.set(false);
+    log.debug("closed {}", getClass().getName());
   }
 }

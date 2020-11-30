@@ -41,30 +41,12 @@
       <groupId>org.apache.pulsar</groupId>
       <artifactId>pulsar-client-admin-original</artifactId>
       <version>${pulsar.version}</version>
-      <!--<scope>provided</scope>-->
     </dependency>
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
       <version>1.9.1</version>
     </dependency>
-    <!--<dependency>-->
-    <!--<groupId>net.jodah</groupId>-->
-    <!--<artifactId>typetools</artifactId>-->
-    <!--<version>0.6.2</version>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.kafka</groupId>-->
-    <!--<artifactId>connect-api</artifactId>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.kafka</groupId>-->
-    <!--<artifactId>connect-json</artifactId>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>io.confluent</groupId>-->
-    <!--<artifactId>kafka-connect-avro-converter</artifactId>-->
-    <!--</dependency>-->
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>dsbulk-codecs-api</artifactId>
@@ -101,10 +83,10 @@
           <groupId>org.apache.tinkerpop</groupId>
           <artifactId>*</artifactId>
         </exclusion>
-        <!--<exclusion>-->
-        <!--<groupId>org.reactivestreams</groupId>-->
-        <!--<artifactId>reactive-streams</artifactId>-->
-        <!--</exclusion>-->
+        <exclusion>
+          <groupId>org.reactivestreams</groupId>
+          <artifactId>reactive-streams</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -221,57 +203,28 @@
     <dependency>
       <groupId>org.reactivestreams</groupId>
       <artifactId>reactive-streams</artifactId>
-      <!--<scope>test</scope>-->
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
       <scope>provided</scope>
     </dependency>
-    <!--<dependency>-->
-    <!--<groupId>org.cassandraunit</groupId>-->
-    <!--<artifactId>cassandra-unit</artifactId>-->
-    <!--<version>4.3.1.0</version>-->
-    <!--<scope>test</scope>-->
-    <!--</dependency>-->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>cassandra</artifactId>
+      <version>1.15.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>pulsar</artifactId>
+      <version>1.15.0</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.4</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-            <configuration>
-              <!--
-              <relocations>
-                <relocation>
-                  <pattern>org.apache.avro</pattern>
-                  <shadedPattern>org.apache.pulsar.shade.org.apache.avro</shadedPattern>
-                  <excludes>
-                    <exclude>org.apache.avro.reflect.AvroAlias</exclude>
-                    <exclude>org.apache.avro.reflect.AvroDefault</exclude>
-                    <exclude>org.apache.avro.reflect.AvroEncode</exclude>
-                    <exclude>org.apache.avro.reflect.AvroIgnore</exclude>
-                    <exclude>org.apache.avro.reflect.AvroMeta</exclude>
-                    <exclude>org.apache.avro.reflect.AvroName</exclude>
-                    <exclude>org.apache.avro.reflect.AvroSchema</exclude>
-                    <exclude>org.apache.avro.reflect.Nullable</exclude>
-                    <exclude>org.apache.avro.reflect.Stringable</exclude>
-                    <exclude>org.apache.avro.reflect.Union</exclude>
-                  </excludes>
-                </relocation>
-              </relocations>
-              -->
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-maven-plugin</artifactId>

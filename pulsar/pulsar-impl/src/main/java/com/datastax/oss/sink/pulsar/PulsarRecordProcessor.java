@@ -52,8 +52,8 @@ public class PulsarRecordProcessor<Coat, Payload>
   @Override
   protected void handleFailure(
       LocalRecord<Coat, Payload> record, Throwable e, String cql, Runnable failCounter) {
-    log.info("failure on {}", record);
-    log.info("failed cql {}", cql);
+    log.debug("failure on {}", record);
+    log.debug("failed cql {}", cql);
     log.error(e.getMessage(), e);
     connector.onFailure(record, e);
   }

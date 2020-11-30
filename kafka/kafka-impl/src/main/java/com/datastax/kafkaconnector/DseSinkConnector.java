@@ -13,7 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.record;
+package com.datastax.kafkaconnector;
 
-/** @author Pavel Kozhevnikov */
-public class StructField {}
+import com.datastax.oss.sink.kafka.CassandraSinkConnector;
+
+/**
+ * @deprecated This class is kept for the backward compatibility; use {@link CassandraSinkConnector}
+ *     instead.
+ */
+@Deprecated
+public class DseSinkConnector extends CassandraSinkConnector {}

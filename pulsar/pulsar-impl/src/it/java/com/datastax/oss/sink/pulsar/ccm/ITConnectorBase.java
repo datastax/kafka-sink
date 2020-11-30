@@ -58,18 +58,30 @@ public class ITConnectorBase<Coat> {
     conn.close();
   }
 
-  protected void runTaskWithRecords(Map<String, Object> config, Record<Coat> record)
-      throws Exception {
+  protected void sendRecord(Map<String, Object> config, Record<Coat> record) throws Exception {
     initConnectorAndTask(config);
-    runTaskWithRecords(record);
+    sendRecord(record);
   }
 
-  protected void runTaskWithRecords(Record<Coat> record) throws Exception {
-    conn.write(record);
+  protected void sendRecord(Record<Coat> record) {
+    try {
+      conn.write(record);
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
   }
 
-  void initConnectorAndTask(Map<String, Object> config) throws Exception {
-    conn.open(config, null);
+  void initConnectorAndTask(Map<String, Object> config) {
+    try {
+      conn.open(config, null);
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
+  }
+
+  static RuntimeException toRuntime(Throwable t) {
+    if (t instanceof RuntimeException) return (RuntimeException) t;
+    return new RuntimeException(t);
   }
 
   protected Map<String, Object> makeConnectorProperties(

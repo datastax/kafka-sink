@@ -25,7 +25,6 @@ import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
 import com.datastax.oss.dsbulk.tests.driver.VersionUtils;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import org.apache.avro.file.DataFileWriter;
@@ -171,22 +170,30 @@ public abstract class EndToEndCCMITBase<Coat> extends ITConnectorBase<Coat> {
     return ByteBuffer.allocate(4).putInt(i).array();
   }
 
-  protected byte[] wornBytes(GenericContainer record) throws IOException {
+  protected byte[] wornBytes(GenericContainer record) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
     DataFileWriter<GenericContainer> wrt = new DataFileWriter<>(dwrt);
-    wrt.create(record.getSchema(), baos);
-    wrt.append(record);
-    wrt.close();
+    try {
+      wrt.create(record.getSchema(), baos);
+      wrt.append(record);
+      wrt.close();
+    } catch (Exception ex) {
+      throw ITConnectorBase.toRuntime(ex);
+    }
     return baos.toByteArray();
   }
 
-  protected byte[] nakedBytes(GenericContainer record) throws IOException {
+  protected byte[] nakedBytes(GenericContainer record) {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
     Encoder encoder = EncoderFactory.get().binaryEncoder(baos, null);
-    dwrt.write(record, encoder);
-    encoder.flush();
+    try {
+      dwrt.write(record, encoder);
+      encoder.flush();
+    } catch (Exception ex) {
+      throw ITConnectorBase.toRuntime(ex);
+    }
     return baos.toByteArray();
   }
 }

@@ -29,6 +29,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.datastax.oss.sink.pulsar.BytesSink;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -48,11 +49,11 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_bigint_value() throws Exception {
+  void raw_bigint_value() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=value"));
 
     Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -62,13 +63,13 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void should_insert_from_topic_with_complex_name() throws Exception {
+  void should_insert_from_topic_with_complex_name() {
     initConnectorAndTask(
         makeConnectorProperties("bigintcol=value", "types", null, "this.is.complex_topic-name"));
 
     Record<byte[]> record =
         mockRecord("this.is.complex_topic-name", null, longBytes(5725368L), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -78,7 +79,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_bigint_value_snappy() throws Exception {
+  void raw_bigint_value_snappy() {
     // Technically, this doesn't test compression because it's possible that the connector
     // ignores the setting entirely and just issues requests as usual. A more strict test
     // would gather metrics on bytes sent during the test and make sure it's less than
@@ -88,7 +89,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
         makeConnectorProperties("bigintcol=value", ImmutableMap.of("compression", "Snappy")));
 
     Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -98,7 +99,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_bigint_value_lz4() throws Exception {
+  void raw_bigint_value_lz4() {
     // Technically, this doesn't test compression because it's possible that the connector
     // ignores the setting entirely and just issues requests as usual. A more strict test
     // would gather metrics on bytes sent during the test and make sure it's less than
@@ -108,7 +109,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
         makeConnectorProperties("bigintcol=value", ImmutableMap.of("compression", "LZ4")));
 
     Record<byte[]> record = mockRecord("mytopic", null, longBytes(5725368L), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol FROM types").all();
@@ -118,12 +119,12 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_string_value() throws Exception {
+  void raw_string_value() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, textcol=value"));
 
     Record<byte[]> record =
         mockRecord("mytopic", String.valueOf(98761234L), "my text".getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
@@ -134,12 +135,12 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_byte_array_value() throws Exception {
+  void raw_byte_array_value() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, blobcol=value"));
 
     byte[] bytes = new byte[] {1, 2, 3};
     Record<byte[]> record = mockRecord("mytopic", String.valueOf(98761234L), bytes, 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, blobcol FROM types").all();
@@ -154,7 +155,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   // only records are supported yet
   /*
   @Test
-  void raw_list_value_from_json() throws Exception {
+  void raw_list_value_from_json()  {
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, listcol=value"));
 
     Record<byte[]> record = mockRecord("mytopic", String.valueOf(98761234L), "[42, 37]".getBytes(), 1234);
@@ -170,7 +171,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_list_value_from_list() throws Exception {
+  void raw_list_value_from_list()  {
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, listcol=value"));
 
     Record<byte[]> record = mockRecord("mytopic", String.valueOf(98761234L), "[42, 37]".getBytes(), 1234);
@@ -190,14 +191,14 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   */
 
   @Test
-  void null_to_unset_true() throws Exception {
+  void null_to_unset_true() {
     // Make a row with some value for textcol to start with.
     session.execute("INSERT INTO types (bigintcol, textcol) VALUES (1234567, 'got here')");
 
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, textcol=value"));
 
     Record<byte[]> record = mockRecord("mytopic", "1234567", null, 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database; textcol should be unchanged.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
@@ -208,7 +209,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void null_to_unset_false() throws Exception {
+  void null_to_unset_false() {
     // Make a row with some value for textcol to start with.
     session.execute("INSERT INTO types (bigintcol, textcol) VALUES (1234567, 'got here')");
 
@@ -219,7 +220,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
                 String.format("topic.mytopic.%s.types.nullToUnset", keyspaceName), "false")));
 
     Record<byte[]> record = mockRecord("mytopic", "1234567", null, 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database; textcol should be unchanged.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
@@ -230,7 +231,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void map_only() throws Exception {
+  void map_only() throws JsonProcessingException {
     // given
     initConnectorAndTask(
         makeConnectorProperties(
@@ -280,7 +281,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     String jsonval = new ObjectMapper().writeValueAsString(value);
     Record<byte[]> record = mockRecord("mytopic", null, jsonval.getBytes(), 1234L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -299,7 +300,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_udt_value_map() throws Exception {
+  void raw_udt_value_map() throws JsonProcessingException {
     // given
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, listudtcol=value"));
 
@@ -313,7 +314,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
         mockRecord("mytopic", String.valueOf(98761234L), jsonval.getBytes(), 1234L);
 
     // when
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     // Verify that the record was inserted properly in the database.
@@ -335,7 +336,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
   /** Test for KAF-84. */
   @Test
-  void raw_udt_value_map_case_sensitive() throws Exception {
+  void raw_udt_value_map_case_sensitive() throws JsonProcessingException {
     // given
     session.execute(
         SimpleStatement.builder(
@@ -362,7 +363,7 @@ class RawDataEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
         mockRecord("mytopic", String.valueOf(98761234L), jsonval.getBytes(), 1234L);
 
     // when
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // then
     // Verify that the record was inserted properly in the database.

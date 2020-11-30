@@ -47,7 +47,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_udt_value_from_json() throws Exception {
+  void raw_udt_value_from_json() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=key, udtcol=value"));
 
     Record<byte[]> record =
@@ -56,7 +56,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             "98761234",
             "{\"udtmem1\": 42, \"udtmem2\": \"the answer\"}".getBytes(),
             1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
@@ -74,7 +74,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void raw_udt_value_and_cherry_pick_from_json() throws Exception {
+  void raw_udt_value_and_cherry_pick_from_json() {
     initConnectorAndTask(
         makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1"));
 
@@ -84,7 +84,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             "98761234",
             "{\"udtmem1\": 42, \"udtmem2\": \"the answer\"}".getBytes(),
             1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
@@ -103,7 +103,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void simple_json_value_only() throws Exception {
+  void simple_json_value_only() {
     // Since the well-established JSON converter codecs do all the heavy lifting,
     // we don't test json very deeply here.
     initConnectorAndTask(
@@ -138,7 +138,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             baseValue.byteValue());
 
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -155,12 +155,12 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void complex_json_value_only() throws Exception {
+  void complex_json_value_only() {
     initConnectorAndTask(makeConnectorProperties("bigintcol=value.f1, mapcol=value.f2"));
 
     String value = "{\"f1\": 42, \"f2\": {\"sub1\": 37, \"sub2\": 96}}";
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -174,7 +174,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void json_key_struct_value() throws Exception {
+  void json_key_struct_value() {
     // Map various fields from the key and value to columns.
     initConnectorAndTask(
         makeConnectorProperties(
@@ -233,7 +233,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
             baseKey.byteValue());
 
     Record<byte[]> record = mockRecord("mytopic", jsonKey, wornBytes(value), 1234);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -250,7 +250,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void null_in_json() throws Exception {
+  void null_in_json() {
     // Make a row with some value for textcol to start with.
     session.execute("INSERT INTO types (bigintcol, textcol) VALUES (1234567, 'got here')");
 
@@ -258,7 +258,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
 
     String json = "{\"bigint\": 1234567, \"text\": null}";
     Record<byte[]> record = mockRecord("mytopic", null, json.getBytes(), 1234L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database; textcol should be unchanged.
     List<Row> results = session.execute("SELECT bigintcol, textcol FROM types").all();
@@ -269,7 +269,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void update_counter_table() throws Exception {
+  void update_counter_table() {
     session.execute(
         "CREATE TABLE IF NOT EXISTS mycounter "
             + "(c1 int, c2 int, c3 counter, c4 counter, PRIMARY KEY (c1, c2))");
@@ -284,8 +284,8 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
     Record<byte[]> record = mockRecord("ctr", null, value.getBytes(), 1234L);
 
     // Insert the record twice; the counter columns should accrue.
-    runTaskWithRecords(record);
-    runTaskWithRecords(record);
+    sendRecord(record);
+    sendRecord(record);
     //    task.put(Collections.singletonList(record));
 
     // Verify...
@@ -297,7 +297,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void timezone_and_locale_UNITS_SINCE_EPOCH() throws Exception {
+  void timezone_and_locale_UNITS_SINCE_EPOCH() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.key, "
@@ -317,11 +317,11 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
         "{\n"
             + "  \"key\": 4376,\n"
             + "  \"vdate\": \"vendredi, 9 mars 2018\",\n"
-            + "  \"vtime\": 171232584,\n"
+            + "  \"vtime\": \"171232584\",\n"
             + "  \"vseconds\": 1520611952\n"
             + "}";
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT datecol, timecol, secondscol FROM types").all();
@@ -333,7 +333,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
   }
 
   @Test
-  void timezone_and_locale_ISO_ZONED_DATE_TIME() throws Exception {
+  void timezone_and_locale_ISO_ZONED_DATE_TIME() {
     initConnectorAndTask(
         makeConnectorProperties(
             "bigintcol=value.key, "
@@ -353,11 +353,11 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase<byte[]> {
         "{\n"
             + "  \"key\": 4376,\n"
             + "  \"vdate\": \"vendredi, 9 mars 2018\",\n"
-            + "  \"vtime\": 171232584,\n"
+            + "  \"vtime\": \"171232584\",\n"
             + "  \"vtimestamp\": \"2018-03-09T17:12:32.584+01:00[Europe/Paris]\"\n"
             + "}";
     Record<byte[]> record = mockRecord("mytopic", null, value.getBytes(), 1234L);
-    runTaskWithRecords(record);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT datecol, timecol, timestampcol FROM types").all();
