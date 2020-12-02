@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Connector(
-  name = "ds-cassandra-bytes",
+  name = "dssc-bytes",
   type = IOType.SINK,
   help = "DataStax Pulsar Sink is used for moving messages from Pulsar to Cassandra",
   configClass = PulsarSinkConfig.class

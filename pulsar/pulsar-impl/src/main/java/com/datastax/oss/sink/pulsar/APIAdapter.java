@@ -17,6 +17,6 @@ package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.sink.EngineAPIAdapter;
 
-public interface APIAdapter<
-        Coat, Payload, EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader>
-    extends EngineAPIAdapter<EngineRecord, EngineSchema, EngineStruct, EngineField, EngineHeader> {}
+public interface APIAdapter<Coat, Payload, EngineSchema, EngineStruct, EngineField, EngineHeader>
+    extends EngineAPIAdapter<
+        LocalRecord<Coat, Payload>, EngineSchema, EngineStruct, EngineField, EngineHeader> {}

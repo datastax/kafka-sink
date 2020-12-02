@@ -44,9 +44,8 @@ public class SchemaSupport {
     /**
      * 64-bit signed integer
      *
-     * <p>Note that if you have an unsigned 64-bit data source, the {@link GenDecimal} logical type
-     * (encoded as {@link SchemaSupport.Type#BYTES}) will be required to safely capture all valid
-     * values
+     * <p>Note that if you have an unsigned 64-bit data source, the Decimal logical type (encoded as
+     * {@link SchemaSupport.Type#BYTES}) will be required to safely capture all valid values
      */
     INT64,
     /** 32-bit IEEE 754 floating point number */
@@ -68,14 +67,17 @@ public class SchemaSupport {
     ARRAY,
     /**
      * A mapping from keys to values. Both keys and values can be arbitrarily complex types,
-     * including complex types such as {@link GenStruct}.
+     * including complex types such as Struct.
      */
     MAP,
     /**
      * A structured record containing a set of named fields, each field using a fixed, independent
-     * {@link GenSchema}.
+     * Schema.
      */
-    STRUCT;
+    STRUCT,
+
+    NULL,
+    ;
 
     private String name;
 

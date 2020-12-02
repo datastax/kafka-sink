@@ -47,14 +47,6 @@
     <!--<groupId>org.apache.kafka</groupId>-->
     <!--<artifactId>kafka-clients</artifactId>-->
     <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>org.apache.kafka</groupId>-->
-    <!--<artifactId>connect-json</artifactId>-->
-    <!--</dependency>-->
-    <!--<dependency>-->
-    <!--<groupId>io.confluent</groupId>-->
-    <!--<artifactId>kafka-connect-avro-converter</artifactId>-->
-    <!--</dependency>-->
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>dsbulk-codecs-api</artifactId>

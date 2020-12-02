@@ -27,13 +27,12 @@ public class PulsarRecordProcessor<Coat, Payload>
   private static final Logger log = LoggerFactory.getLogger(PulsarRecordProcessor.class);
   public static final String PULSAR_CONNECTOR_APPLICATION_NAME = "DataStax Apache Pulsar Connector";
 
-  private APIAdapter<Coat, ?, LocalRecord<Coat, Payload>, ?, ?, ?, Header> adapter;
+  private APIAdapter<Coat, Payload, ?, ?, ?, Header> adapter;
 
   private BaseSink<Coat> connector;
 
   public PulsarRecordProcessor(
-      BaseSink<Coat> connector,
-      APIAdapter<Coat, Payload, LocalRecord<Coat, Payload>, ?, ?, ?, Header> adapter) {
+      BaseSink<Coat> connector, APIAdapter<Coat, Payload, ?, ?, ?, Header> adapter) {
     this.connector = connector;
     this.adapter = adapter;
   }

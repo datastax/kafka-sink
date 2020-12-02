@@ -1,5 +1,5 @@
 configs:
-  connector.class: com.datastax.oss.sink.pulsar.PulsarSinkConnector
+  connector.class: com.datastax.oss.sink.pulsar.BytesSink
   tasks.max: 1
   topics: my_topic
   contactPoints:

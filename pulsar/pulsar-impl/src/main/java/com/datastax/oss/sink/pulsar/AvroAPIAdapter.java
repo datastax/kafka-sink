@@ -30,8 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AvroAPIAdapter<Coat>
-    implements APIAdapter<
-        Coat, Object, LocalRecord<Coat, Object>, Schema, GenericRecord, Schema.Field, Header> {
+    implements APIAdapter<Coat, Object, Schema, GenericRecord, Schema.Field, Header> {
 
   public static final Logger log = LoggerFactory.getLogger(AvroAPIAdapter.class);
 

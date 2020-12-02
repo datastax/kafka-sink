@@ -16,18 +16,15 @@
 package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.sink.RecordProcessor;
-import com.datastax.oss.sink.pulsar.record.LocalGenericRecord;
+import com.datastax.oss.sink.pulsar.util.Utf8ToStringGenericDatumReader;
 import com.datastax.oss.sink.util.StringUtil;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.util.Utf8;
-import org.apache.commons.lang3.SerializationException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.SinkContext;
@@ -37,22 +34,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Connector(
-  name = "ds-cassandra",
+  name = "dssc-generic",
   type = IOType.SINK,
   help = "PulsarSinkConnector is used for moving messages from Pulsar to Cassandra",
   configClass = PulsarSinkConfig.class
 )
-public class GenericRecordSink implements BaseSink<GenericRecord> {
+public class ReflectionGenericRecordSink implements BaseSink<GenericRecord> {
 
-  private static final Logger log = LoggerFactory.getLogger(GenericRecordSink.class);
-  private PulsarRecordProcessor<GenericRecord, org.apache.avro.generic.GenericRecord>
-      recordProcessor;
+  private static final Logger log = LoggerFactory.getLogger(ReflectionGenericRecordSink.class);
+  private PulsarRecordProcessor<GenericRecord, Object> recordProcessor;
 
   @Override
   public void open(Map<String, Object> config, SinkContext sinkContext) {
     log.debug("start {}", getClass().getName());
     try {
-      recordProcessor = new PulsarRecordProcessor(this, new AvroAPIAdapter<>());
+      recordProcessor = new PulsarRecordProcessor<>(this, new AvroAPIAdapter<>());
       recordProcessor.start(StringUtil.flatString(config));
       System.out.println("started");
     } catch (Exception ex) {
@@ -69,54 +65,30 @@ public class GenericRecordSink implements BaseSink<GenericRecord> {
 
   @Override
   public void write(Record<GenericRecord> record) throws Exception {
-    log.debug("got message to process {} {}", record);
+    log.debug("got message to process {}", record);
     try {
+
+      // TODO process headers
+      Set<Header> headers = Collections.emptySet();
+      // TODO process key
+      Object key = null;
+
       Method m = record.getValue().getClass().getMethod("getAvroRecord");
       Object avroRecord = m.invoke(record.getValue());
       m = avroRecord.getClass().getMethod("getSchema");
       Object avroSchema = m.invoke(avroRecord);
+      String schemaStr = avroSchema.toString();
+      String recStr = avroRecord.toString();
+      Schema schema = new Schema.Parser().parse(schemaStr);
+      DatumReader<org.apache.avro.generic.GenericRecord> reader =
+          new Utf8ToStringGenericDatumReader<>(schema);
+      org.apache.avro.generic.GenericRecord rec =
+          reader.read(null, DecoderFactory.get().jsonDecoder(schema, recStr));
 
-      LocalGenericRecord local = null;
-      try {
-        log.debug("construct via parsing");
-        String schemaStr = avroSchema.toString();
-        String recStr = avroRecord.toString();
-        Schema schema = new Schema.Parser().parse(schemaStr);
-        log.debug("parsed schema {}", schema);
-        org.apache.avro.generic.GenericRecord rec =
-            (org.apache.avro.generic.GenericRecord) jsonToAvro(recStr, schema);
-        log.debug("deserialized rec {}", rec);
-        local = new LocalGenericRecord(record, rec);
-      } catch (Throwable ex) {
-        log.error("could not construct via parsing", ex);
-      }
-
-      if (local != null) {
-        log.debug("processing....");
-        recordProcessor.process(Collections.singleton(local));
-      } else {
-        log.debug("nothing to process");
-      }
+      recordProcessor.process(Collections.singleton(new LocalRecord<>(record, headers, key, rec)));
     } catch (Exception ex) {
       log.error(ex.getMessage(), ex);
       throw ex;
-    }
-  }
-
-  private DecoderFactory decoderFactory = DecoderFactory.get();
-
-  private Object jsonToAvro(String jsonString, Schema schema) {
-    try {
-      DatumReader<Object> reader = new GenericDatumReader<>(schema);
-      Object object = reader.read(null, decoderFactory.jsonDecoder(schema, jsonString));
-
-      if (schema.getType().equals(Schema.Type.STRING)) {
-        object = ((Utf8) object).toString();
-      }
-      return object;
-    } catch (IOException e) {
-      throw new SerializationException(
-          String.format("Error deserializing json %s to Avro of schema %s", jsonString, schema), e);
     }
   }
 
