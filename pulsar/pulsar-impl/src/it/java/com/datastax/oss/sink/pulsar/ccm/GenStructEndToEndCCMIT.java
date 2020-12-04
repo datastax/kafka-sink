@@ -252,7 +252,7 @@ class GenStructEndToEndCCMIT
     value.put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))");
     value.put("daterange", "[* TO 2014-12-01]");
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value), 1234));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -369,7 +369,7 @@ class GenStructEndToEndCCMIT
     value.put("struct", fieldValue);
     value.put("booleanstruct", booleanFieldValue);
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value), 1234));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -419,7 +419,7 @@ class GenStructEndToEndCCMIT
     value.put("bigint", baseValue);
     value.put("int", baseValue.intValue());
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value), 1234));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -471,7 +471,7 @@ class GenStructEndToEndCCMIT
     value.put("tinyint", (int) baseValue.byteValue());
     value.put("blob", ByteBuffer.wrap(blobValue));
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value), 1234));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT * FROM types").all();
@@ -505,7 +505,7 @@ class GenStructEndToEndCCMIT
     value.put("udtmem2", "the answer");
 
     Record<org.apache.pulsar.client.api.schema.GenericRecord> record =
-        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericRecord(value), 1234);
+        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericAvroRecord(value), 1234);
     sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
@@ -538,7 +538,8 @@ class GenStructEndToEndCCMIT
     value.put("udtmem1", 42);
     value.put("udtmem2", "the answer");
 
-    sendRecord(mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericRecord(value), 1234));
+    sendRecord(
+        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericAvroRecord(value), 1234));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
@@ -587,9 +588,9 @@ class GenStructEndToEndCCMIT
 
     // Set up a record for "yourtopic"
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value1), 1234));
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value2), 1234));
-    sendRecord(mockRecord("yourtopic", null, pulsarGenericRecord(value3), 1235));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value1), 1234));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value2), 1234));
+    sendRecord(mockRecord("yourtopic", null, pulsarGenericAvroRecord(value3), 1235));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, doublecol, intcol FROM types").all();
@@ -630,7 +631,7 @@ class GenStructEndToEndCCMIT
     value.put("boolean", true);
     value.put("int", 5725);
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericRecord(value), 1234));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
 
     // Verify that a record was inserted in each of small_simple and types tables.
     {
@@ -689,7 +690,7 @@ class GenStructEndToEndCCMIT
     // Note: with the current mapping grammar, it is not possible to distinguish f1.f2 (i.e. a field
     // "f1" containing a nested field "f2") from a field named "f1.f2".
 
-    sendRecord(mockRecord("mytopic", key, pulsarGenericRecord(value), 1234));
+    sendRecord(mockRecord("mytopic", key, pulsarGenericAvroRecord(value), 1234));
 
     // Verify that a record was inserted
     List<Row> results = session.execute("SELECT * FROM \"CASE_SENSITIVE\"").all();

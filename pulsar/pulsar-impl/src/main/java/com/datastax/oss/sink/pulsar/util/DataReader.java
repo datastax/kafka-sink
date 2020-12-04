@@ -17,6 +17,8 @@ package com.datastax.oss.sink.pulsar.util;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
+import com.datastax.oss.sink.pulsar.gen.GenSchema;
+import com.datastax.oss.sink.pulsar.gen.GenStruct;
 import com.datastax.oss.sink.pulsar.util.kite.JsonUtil;
 import com.datastax.oss.sink.util.StringUtil;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,6 +47,8 @@ public interface DataReader<D> {
 
   DataReader<GenericContainer> WORN_AVRO = new WornAvroReader();
   DataReader<GenericContainer> WORN_JSON = new WornJsonReader();
+  DataReader<GenStruct> GEN_STRUCT_JSON = new GenStructJsonReader();
+  DataReader<String> AS_IS = new NoopReader();
   DataReader<ByteBuffer> BLOB = new BlobReader();
   DataReader<String> STRING = new StringReader();
   DataReader<Long> LONG = new LongReader();
@@ -142,6 +146,36 @@ public interface DataReader<D> {
       Schema s = JsonUtil.inferSchema(node, "_");
       DatumReader<GenericContainer> jrdr = new Utf8ToStringGenericDatumReader<>(s);
       return jrdr.read(null, DecoderFactory.get().jsonDecoder(s, data));
+    }
+  }
+
+  class GenStructJsonReader implements DataReader<GenStruct> {
+    @Override
+    public GenStruct read(byte[] data) throws IOException {
+      JsonNode node = mapper.readTree(data);
+      if (!node.isObject() && !node.isArray()) throw new JsonIsNotContainer(node);
+      return GenSchema.convert(node);
+    }
+
+    private ObjectMapper mapper = new ObjectMapper();
+
+    @Override
+    public GenStruct read(String data) throws IOException {
+      JsonNode node = mapper.readTree(data);
+      if (!node.isObject() && !node.isArray()) throw new JsonIsNotContainer(node);
+      return GenSchema.convert(node);
+    }
+  }
+
+  class NoopReader implements DataReader<String> {
+    @Override
+    public String read(byte[] data) throws IOException {
+      return new String(data, StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public String read(String data) throws IOException {
+      return data;
     }
   }
 

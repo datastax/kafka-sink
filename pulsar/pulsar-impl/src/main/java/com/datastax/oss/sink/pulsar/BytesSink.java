@@ -141,6 +141,11 @@ public class BytesSink extends BaseSink<byte[], Object> {
   }
 
   @Override
+  protected DataReader structuredStringReader() {
+    return DataReader.WORN_JSON;
+  }
+
+  @Override
   protected void release() {
     if (admin != null) admin.close();
     valueReaders.clear();

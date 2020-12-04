@@ -25,10 +25,16 @@ import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
 import com.datastax.oss.dsbulk.tests.driver.VersionUtils;
 import com.datastax.oss.sink.pulsar.util.Utf8ToStringGenericDatumReader;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.file.SeekableByteArrayInput;
@@ -38,9 +44,11 @@ import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonReader;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -208,7 +216,7 @@ public abstract class EndToEndCCMITBase<Coat> extends ITConnectorBase<Coat> {
     return baos.toByteArray();
   }
 
-  protected GenericRecord pulsarGenericRecord(org.apache.avro.generic.GenericRecord rec) {
+  protected GenericRecord pulsarGenericAvroRecord(org.apache.avro.generic.GenericRecord rec) {
     rec = (org.apache.avro.generic.GenericRecord) readWorn(wornBytes(rec));
     SchemaInfo info =
         new SchemaInfo(
@@ -218,6 +226,22 @@ public abstract class EndToEndCCMITBase<Coat> extends ITConnectorBase<Coat> {
             Collections.emptyMap());
     GenericSchema<GenericRecord> avroSchema = DefaultImplementation.getGenericSchema(info);
     return new GenericAvroRecord(null, rec.getSchema(), avroSchema.getFields(), rec);
+  }
+
+  private ObjectMapper mapper = new ObjectMapper();
+
+  protected GenericRecord pulsarGenericJsonRecord(String json) {
+    try {
+      JsonNode node = mapper.readTree(json);
+      List<Field> fields = new ArrayList<>();
+      int i = 0;
+      for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
+        fields.add(new Field(it.next(), i++));
+      }
+      return new GenericJsonReader(fields).read(json.getBytes(StandardCharsets.UTF_8));
+    } catch (Exception ex) {
+      throw ITConnectorBase.toRuntime(ex);
+    }
   }
 
   protected GenericContainer readWorn(byte[] data) {

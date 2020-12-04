@@ -82,14 +82,10 @@ public class AvroAPIAdapter<Input>
   @Override
   public Schema headerSchema(Header header) {
     if (header.value == null) return schemaNull;
-    log.debug(
-        "get header {} {} {} {}",
-        header.name,
-        header.value,
-        header.value.getClass(),
-        primitiveSchemas.get(header.value.getClass()));
     Schema schema = primitiveSchemas.get(header.value.getClass());
+    if (header.value instanceof ByteBuffer) schema = schemaBytes;
     if (schema == null) schema = ((GenericContainer) header.value).getSchema();
+    log.debug("get header {} {} {} {}", header.name, header.value, header.value.getClass(), schema);
     return schema;
   }
 
@@ -136,39 +132,27 @@ public class AvroAPIAdapter<Input>
   private static final Schema schemaNull = Schema.create(Schema.Type.NULL);
   private static final Schema schemaBytes = Schema.create(Schema.Type.BYTES);
 
-  static {
-    Class hbbClass = ByteBuffer.class;
-    try {
-      hbbClass =
-          Class.forName("java.nio.HeapByteBuffer", false, AvroAPIAdapter.class.getClassLoader());
-    } catch (Exception ex) {
-      log.error("cound find HeapByteBuffer class");
-    }
-    primitiveSchemas =
-        ImmutableMap.<Class, Schema>builder()
-            .put(Boolean.class, schemaBoolean)
-            .put(boolean.class, schemaBoolean)
-            .put(String.class, schemaString)
-            .put(Utf8.class, schemaString)
-            .put(Double.class, schemaDouble)
-            .put(double.class, schemaDouble)
-            .put(Float.class, schemaFloat)
-            .put(float.class, schemaFloat)
-            .put(Integer.class, schemaInt)
-            .put(int.class, schemaInt)
-            .put(Long.class, schemaLong)
-            .put(long.class, schemaLong)
-            .put(Short.class, schemaInt)
-            .put(short.class, schemaInt)
-            .put(Byte.class, schemaInt)
-            .put(byte.class, schemaInt)
-            .put(byte[].class, schemaBytes)
-            .put(ByteBuffer.class, schemaBytes)
-            .put(hbbClass, schemaBytes)
-            .build();
-  }
-
-  private static final ImmutableMap<Class, Schema> primitiveSchemas;
+  private static final ImmutableMap<Class, Schema> primitiveSchemas =
+      ImmutableMap.<Class, Schema>builder()
+          .put(Boolean.class, schemaBoolean)
+          .put(boolean.class, schemaBoolean)
+          .put(String.class, schemaString)
+          .put(Utf8.class, schemaString)
+          .put(Double.class, schemaDouble)
+          .put(double.class, schemaDouble)
+          .put(Float.class, schemaFloat)
+          .put(float.class, schemaFloat)
+          .put(Integer.class, schemaInt)
+          .put(int.class, schemaInt)
+          .put(Long.class, schemaLong)
+          .put(long.class, schemaLong)
+          .put(Short.class, schemaInt)
+          .put(short.class, schemaInt)
+          .put(Byte.class, schemaInt)
+          .put(byte.class, schemaInt)
+          .put(byte[].class, schemaBytes)
+          .put(ByteBuffer.class, schemaBytes)
+          .build();
 
   private static final ImmutableMap<Schema.Type, SchemaSupport.Type> types =
       ImmutableMap.<Schema.Type, SchemaSupport.Type>builder()

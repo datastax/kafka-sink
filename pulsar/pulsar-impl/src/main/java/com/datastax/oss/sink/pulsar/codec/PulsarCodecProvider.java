@@ -48,6 +48,9 @@ public class PulsarCodecProvider implements ConvertingCodecProvider {
     } else if (cqlType instanceof MapType
         && externalJavaType.equals(GenericType.of(GenericRecord.class))) {
       return Optional.of(new StructToMapCodec(codecFactory, (MapType) cqlType));
+    } else if (cqlType instanceof MapType
+        && externalJavaType.equals(GenericType.of(GenStruct.class))) {
+      return Optional.of(new GenStructToMapCodec(codecFactory, (MapType) cqlType));
     } else if (cqlType.getProtocolCode() == ProtocolConstants.DataType.COUNTER
         && externalJavaType.equals(GenericType.of(Integer.class))) {
       return Optional.of(

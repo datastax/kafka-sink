@@ -68,7 +68,7 @@
     <snappy.version>1.1.7.2</snappy.version>
     <jackson.version>2.10.0</jackson.version>
     <jackson-databind.version>2.10.0</jackson-databind.version>
-    <pulsar.version>2.6.2</pulsar.version>
+    <pulsar.version>2.7.0</pulsar.version>
   </properties>
   <dependencyManagement>
     <dependencies>

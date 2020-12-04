@@ -52,7 +52,7 @@ public class GenStructToUDTCodec extends ConvertingCodec<GenStruct, UdtValue> {
     int size = definition.getFieldNames().size();
     GenSchema.StructGenSchema schema = (GenSchema.StructGenSchema) external.getSchema();
     StructDataMetadata<GenSchema> structMetadata = new StructDataMetadata<>(schema, adapter);
-    Set<String> structFieldNames = schema.fields();
+    Set<String> structFieldNames = schema.fieldNames();
     if (structFieldNames.size() != size) {
       throw new IllegalArgumentException(
           String.format("Expecting %d fields, got %d", size, structFieldNames.size()));

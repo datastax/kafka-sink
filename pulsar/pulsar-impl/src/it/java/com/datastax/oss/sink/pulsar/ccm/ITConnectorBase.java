@@ -32,19 +32,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.TestInstance;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class ITConnectorBase<Coat> {
+public class ITConnectorBase<Input> {
   private final List<EndPoint> contactPoints;
   @Nullable private final Integer binaryPort;
   private final String localDc;
   String keyspaceName;
-  protected Sink<Coat> conn;
+  protected Sink<Input> conn;
 
   public ITConnectorBase(
       List<EndPoint> contactPoints,
       @Nullable Integer binaryPort,
       String localDc,
       CqlSession session,
-      Sink<Coat> sink) {
+      Sink<Input> sink) {
     this.contactPoints = contactPoints;
     this.binaryPort = binaryPort;
     this.localDc = localDc;
@@ -58,12 +58,12 @@ public class ITConnectorBase<Coat> {
     conn.close();
   }
 
-  protected void sendRecord(Map<String, Object> config, Record<Coat> record) throws Exception {
+  protected void sendRecord(Map<String, Object> config, Record<Input> record) throws Exception {
     initConnectorAndTask(config);
     sendRecord(record);
   }
 
-  protected void sendRecord(Record<Coat> record) {
+  protected void sendRecord(Record<Input> record) {
     try {
       conn.write(record);
     } catch (Exception ex) {

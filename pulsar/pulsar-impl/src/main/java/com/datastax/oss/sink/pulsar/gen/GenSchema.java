@@ -15,14 +15,19 @@
  */
 package com.datastax.oss.sink.pulsar.gen;
 
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.sink.record.SchemaSupport;
 import com.datastax.oss.sink.util.Tuple2;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.apache.avro.util.Utf8;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 
@@ -38,8 +43,12 @@ public class GenSchema {
     return (GenStruct) adjustValue(record);
   }
 
+  public static GenStruct convert(JsonNode node) {
+    return (GenStruct) adjustValue(node);
+  }
+
   private static Object adjustValue(Object o) {
-    if (o == null) return null;
+    if (o == null || "null".equals(o)) return null;
     if (o instanceof byte[]) return ByteBuffer.wrap((byte[]) o);
     else if (o instanceof Utf8) return o.toString();
     else if (o instanceof Map)
@@ -55,9 +64,39 @@ public class GenSchema {
       StructGenSchema schema = (StructGenSchema) inferSchema(record);
       Map<String, ?> values =
           schema
-              .fields()
+              .fieldNames()
               .stream()
               .map(f -> Tuple2.of(f, adjustValue(record.getField(f))))
+              .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
+      return new GenStruct(values, schema);
+    } else return o;
+  }
+
+  private static Object adjustValue(JsonNode o) {
+    if (o == null || o.isNull()) return null;
+    if (o.isBinary()) {
+      try {
+        return ByteBuffer.wrap(o.binaryValue());
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    } else if (o.isTextual()) return o.asText();
+    else if (o.isShort()) return o.shortValue();
+    else if (o.isInt()) return o.intValue();
+    else if (o.isFloat()) return o.floatValue();
+    else if (o.isDouble()) return o.doubleValue();
+    else if (o.isBoolean()) return o.booleanValue();
+    else if (o.isArray())
+      return StreamSupport.stream(o.spliterator(), false)
+          .map(GenSchema::adjustValue)
+          .collect(Collectors.toList());
+    else if (o.isObject()) {
+      StructGenSchema schema = (StructGenSchema) inferSchema(o);
+      Map<String, ?> values =
+          schema
+              .fieldNames()
+              .stream()
+              .map(f -> Tuple2.of(f, adjustValue(o.get(f))))
               .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
       return new GenStruct(values, schema);
     } else return o;
@@ -108,6 +147,39 @@ public class GenSchema {
         String.format("could not infer schema of (%s) %s", value.getClass().getName(), value));
   }
 
+  private static GenSchema inferSchema(JsonNode value) {
+    if (value == null || value.isNull()) return STRING;
+    if (value.isObject()) {
+      StructGenSchema schema = new StructGenSchema(value.size());
+      for (Iterator<Map.Entry<String, JsonNode>> it = value.fields(); it.hasNext(); ) {
+        Map.Entry<String, JsonNode> field = it.next();
+        schema.addField(field.getKey(), inferSchema(field.getValue()));
+      }
+      return schema;
+    } else if (value.isArray()) {
+      if (value.isEmpty()) return new ArrayGenSchema(GenSchema.STRING);
+      return new ArrayGenSchema(inferSchema(value.elements().next()));
+    } else if (value.isTextual()) {
+      return STRING;
+    } else if (value.isShort()) {
+      return INT16;
+    } else if (value.isInt()) {
+      return INT32;
+    } else if (value.isBigInteger()) {
+      return INT64;
+    } else if (value.isFloat()) {
+      return FLOAT32;
+    } else if (value.isDouble()) {
+      return FLOAT64;
+    } else if (value.isBoolean()) {
+      return BOOLEAN;
+    } else if (value.isBinary()) {
+      return BYTES;
+    }
+    throw new IllegalArgumentException(
+        String.format("could not infer schema of (%s) %s", value.getClass().getName(), value));
+  }
+
   public static class StructGenSchema extends GenSchema {
     private StructGenSchema(int fieldNum) {
       super(SchemaSupport.Type.STRUCT);
@@ -124,7 +196,7 @@ public class GenSchema {
       return fields.get(fieldName);
     }
 
-    public Set<String> fields() {
+    public Set<String> fieldNames() {
       return fields.keySet();
     }
   }
@@ -166,4 +238,34 @@ public class GenSchema {
   public static final GenSchema INT16 = new GenSchema(SchemaSupport.Type.INT16);
   public static final GenSchema STRING = new GenSchema(SchemaSupport.Type.STRING);
   public static final GenSchema NULL = new GenSchema(SchemaSupport.Type.NULL);
+
+  private static final Map<Class<?>, GenSchema> primitiveSchemas =
+      ImmutableMap.<Class<?>, GenSchema>builder()
+          .put(Boolean.class, BOOLEAN)
+          .put(boolean.class, BOOLEAN)
+          .put(String.class, STRING)
+          .put(Utf8.class, STRING)
+          .put(Double.class, FLOAT64)
+          .put(double.class, FLOAT64)
+          .put(Float.class, FLOAT32)
+          .put(float.class, FLOAT32)
+          .put(Integer.class, INT32)
+          .put(int.class, INT32)
+          .put(Long.class, INT64)
+          .put(long.class, INT64)
+          .put(Short.class, INT16)
+          .put(short.class, INT16)
+          .put(Byte.class, INT8)
+          .put(byte.class, INT8)
+          .put(byte[].class, BYTES)
+          .put(ByteBuffer.class, BYTES)
+          .build();
+
+  public static GenSchema schemaOf(Object o) {
+    if (o == null) return NULL;
+    if (o instanceof ByteBuffer) return BYTES;
+    GenSchema schema = primitiveSchemas.get(o.getClass());
+    if (schema == null) schema = ((GenStruct) o).getSchema();
+    return schema;
+  }
 }

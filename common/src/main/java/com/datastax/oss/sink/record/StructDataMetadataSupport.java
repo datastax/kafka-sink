@@ -35,7 +35,7 @@ public class StructDataMetadataSupport {
           .build();
 
   @NonNull
-  static <EngineSchema> GenericType<?> getGenericType(
+  public static <EngineSchema> GenericType<?> getGenericType(
       @NonNull EngineSchema fieldType, EngineAPIAdapter<?, EngineSchema, ?, ?, ?> adapter) {
     GenericType<?> result = TYPE_MAP.get(adapter.type(fieldType));
     if (result != null) {

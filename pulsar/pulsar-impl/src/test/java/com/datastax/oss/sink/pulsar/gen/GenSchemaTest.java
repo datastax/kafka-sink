@@ -18,7 +18,11 @@ package com.datastax.oss.sink.pulsar.gen;
 import static java.util.Arrays.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,8 +30,11 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonReader;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonRecord;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -115,12 +122,12 @@ public class GenSchemaTest {
     GenSchema.StructGenSchema structSchema = struct.getSchema();
 
     assertEquals(7, struct.fields().size());
-    assertEquals(7, structSchema.fields().size());
+    assertEquals(7, structSchema.fieldNames().size());
     assertTrue(
         struct.fields().containsAll(asList("reqstr", "optint", "reqint", "map", "arr", "inner")));
     assertTrue(
         structSchema
-            .fields()
+            .fieldNames()
             .containsAll(asList("reqstr", "optint", "reqint", "map", "arr", "inner")));
 
     assertSame(GenSchema.STRING, structSchema.field("reqstr"));
@@ -169,5 +176,32 @@ public class GenSchemaTest {
     assertTrue(imapval.keySet().containsAll(asList("ik1", "ik2", "ik3")));
     assertSame(GenSchema.STRING, innerMapSchema.elementSchema());
     assertEquals("iv3", imapval.get("ik3"));
+  }
+
+  private ObjectMapper mapper = new ObjectMapper();
+
+  @Test
+  void json_with_null() throws JsonProcessingException {
+    JsonNode node = mapper.createObjectNode().put("number", 12345).putNull("text");
+    byte[] json = "{\"number\":12345, \"text\":null}".getBytes();
+    GenericJsonRecord rec =
+        new GenericJsonReader(Arrays.asList(new Field("number", 1), new Field("text", 2)))
+            .read(json, 0, json.length);
+    GenStruct struct = GenSchema.convert(rec);
+    //    assertEquals(12345, struct.value("number"));
+    assertTrue(rec.getJsonNode().get("text").isNull());
+    //    assertNull(struct.value("text"));
+
+  }
+
+  @Test
+  void anotherAssert() {
+    byte[] json = "{\"somefield\":null}".getBytes();
+    GenericJsonRecord record =
+        new GenericJsonReader(Collections.singletonList(new Field("somefield", 0)))
+            .read(json, 0, json.length);
+    assert record.getJsonNode().get("somefield").isNull();
+    assert "null".equals(record.getField("somefield"));
+    assert record.getField("somefield") != null;
   }
 }

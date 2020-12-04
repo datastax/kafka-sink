@@ -15,7 +15,9 @@
  */
 package com.datastax.oss.sink.pulsar;
 
+import com.datastax.oss.sink.pulsar.util.DataReader;
 import com.datastax.oss.sink.pulsar.util.Utf8ToStringGenericDatumReader;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
@@ -27,6 +29,7 @@ import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
@@ -42,19 +45,28 @@ public class ReflectionGenericRecordSink extends GenericRecordSink<Object> {
   @Override
   protected Object readValue(Record<GenericRecord> record) throws Exception {
     if (record.getValue() == null) return null;
-    Method m = record.getValue().getClass().getMethod("getAvroRecord");
-    Object avroRecord = m.invoke(record.getValue());
-    m = avroRecord.getClass().getMethod("getSchema");
-    Object avroSchema = m.invoke(avroRecord);
-    String schemaStr = avroSchema.toString();
 
-    String recStr = recToString(avroRecord, avroSchema);
+    if (record.getValue().getClass().getName().equals(GenericAvroRecord.class.getName())) {
+      Method m = record.getValue().getClass().getMethod("getAvroRecord");
+      Object avroRecord = m.invoke(record.getValue());
+      m = avroRecord.getClass().getMethod("getSchema");
+      Object avroSchema = m.invoke(avroRecord);
+      String schemaStr = avroSchema.toString();
 
-    Schema schema = new Schema.Parser().parse(schemaStr);
-    DatumReader<org.apache.avro.generic.GenericRecord> reader =
-        new Utf8ToStringGenericDatumReader<>(schema);
-    return reader.read(null, DecoderFactory.get().jsonDecoder(schema, recStr));
+      String recStr = recToString(avroRecord, avroSchema);
+
+      Schema schema = new Schema.Parser().parse(schemaStr);
+      DatumReader<org.apache.avro.generic.GenericRecord> reader =
+          new Utf8ToStringGenericDatumReader<>(schema);
+      return reader.read(null, DecoderFactory.get().jsonDecoder(schema, recStr));
+    } else {
+      Object jsonNode =
+          record.getValue().getClass().getMethod("getJsonNode").invoke(record.getValue());
+      return DataReader.WORN_JSON.read(jsonNode.toString());
+    }
   }
+
+  private ObjectMapper mapper = new ObjectMapper();
 
   /**
    * Produces JSON string with field types from avro <code>GenericRecord</code>. Executes the
@@ -98,6 +110,11 @@ public class ReflectionGenericRecordSink extends GenericRecordSink<Object> {
     encoder.getClass().getMethod("flush").invoke(encoder);
 
     return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+  }
+
+  @Override
+  protected DataReader structuredStringReader() {
+    return DataReader.AS_IS;
   }
 
   @Override

@@ -18,11 +18,14 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.type.DataType;
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.sink.RecordProcessor;
 import com.datastax.oss.sink.config.TableConfig;
 import com.datastax.oss.sink.config.TopicConfig;
 import com.datastax.oss.sink.pulsar.util.DataReader;
 import com.datastax.oss.sink.pulsar.util.JsonIsNotContainer;
+import com.datastax.oss.sink.util.SinkUtil;
 import com.datastax.oss.sink.util.StringUtil;
 import java.util.Collection;
 import java.util.Collections;
@@ -131,7 +134,15 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
         metadata
             .getKeyspace(tableConfig.getKeyspace())
             .flatMap(ksMeta -> ksMeta.getTable(tableConfig.getTable()))
-            .flatMap(tableMeta -> tableMeta.getColumn(et.getKey()))
+            .flatMap(
+                tableMeta -> {
+                  Optional<ColumnMetadata> res = tableMeta.getColumn(et.getKey());
+                  if (!res.isPresent()
+                      && (et.getKey().asInternal().equals(SinkUtil.TTL_VARNAME)
+                          || et.getKey().asInternal().equals(SinkUtil.TIMESTAMP_VARNAME)))
+                    res = Optional.of(LONG_COLUMN);
+                  return res;
+                })
             .map(ColumnMetadata::getType)
             .flatMap(DataReader::get)
             .ifPresent(
@@ -193,7 +204,7 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
       if (reader != null) return reader.read(string);
       else
         try {
-          return DataReader.WORN_JSON.read(string);
+          return structuredStringReader().read(string);
         } catch (JsonIsNotContainer ex) {
           return DataReader.primitiveValue(ex.getNode());
         }
@@ -201,6 +212,8 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
       return string;
     }
   }
+
+  protected abstract DataReader structuredStringReader();
 
   private AtomicBoolean running = new AtomicBoolean(false);
 
@@ -216,4 +229,28 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
     running.set(false);
     log.debug("closed {}", getClass().getName());
   }
+
+  @SuppressWarnings("NullableProblems")
+  private static ColumnMetadata LONG_COLUMN =
+      new ColumnMetadata() {
+        public CqlIdentifier getKeyspace() {
+          return null;
+        }
+
+        public CqlIdentifier getParent() {
+          return null;
+        }
+
+        public CqlIdentifier getName() {
+          return null;
+        }
+
+        public DataType getType() {
+          return DataTypes.BIGINT;
+        }
+
+        public boolean isStatic() {
+          return false;
+        }
+      };
 }

@@ -69,7 +69,7 @@ public class GenAPIAdapter
 
   @Override
   public GenSchema headerSchema(Header header) {
-    return null;
+    return GenSchema.schemaOf(header.value);
   }
 
   @Override
@@ -89,7 +89,7 @@ public class GenAPIAdapter
 
   @Override
   public Set<String> fields(GenStruct struct) {
-    return struct.getSchema().fields();
+    return struct.getSchema().fieldNames();
   }
 
   @Override
