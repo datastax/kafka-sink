@@ -23,31 +23,31 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.functions.api.Record;
 
-public class LocalRecord<Coat, Payload> implements Record<Coat> {
+public class LocalRecord<Input, Payload> implements Record<Input> {
 
-  private Record<Coat> coat;
+  private Record<Input> input;
   private Object key;
   private Payload payload;
   private Set<Header> headers;
 
-  public LocalRecord(Record<Coat> coat, Set<Header> headers, Object key, Payload payload) {
-    this(coat, key, payload);
+  public LocalRecord(Record<Input> input, Set<Header> headers, Object key, Payload payload) {
+    this(input, key, payload);
     this.headers = Collections.unmodifiableSet(headers);
   }
 
-  public LocalRecord(Record<Coat> coat, Object key, Payload payload) {
-    this(coat, payload);
+  public LocalRecord(Record<Input> input, Object key, Payload payload) {
+    this(input, payload);
     this.key = key;
   }
 
-  public LocalRecord(Record<Coat> coat, Payload payload) {
-    this.coat = coat;
+  public LocalRecord(Record<Input> input, Payload payload) {
+    this.input = input;
     this.payload = payload;
   }
 
   @Override
   public Optional<String> getTopicName() {
-    return coat.getTopicName();
+    return input.getTopicName();
   }
 
   public static String shortTopic(Record<?> record) {
@@ -55,21 +55,21 @@ public class LocalRecord<Coat, Payload> implements Record<Coat> {
   }
 
   public String topic() {
-    return shortTopic(coat);
+    return shortTopic(input);
   }
 
   @Override
   public Optional<String> getKey() {
-    return coat.getKey();
+    return input.getKey();
   }
 
   public String rawKey() {
-    return coat.getKey().orElse(null);
+    return input.getKey().orElse(null);
   }
 
   @Override
-  public Schema<Coat> getSchema() {
-    return coat.getSchema();
+  public Schema<Input> getSchema() {
+    return input.getSchema();
   }
 
   public Payload payload() {
@@ -81,32 +81,32 @@ public class LocalRecord<Coat, Payload> implements Record<Coat> {
   }
 
   @Override
-  public Coat getValue() {
-    return coat.getValue();
+  public Input getValue() {
+    return input.getValue();
   }
 
   @Override
   public Optional<Long> getEventTime() {
-    return coat.getEventTime();
+    return input.getEventTime();
   }
 
   public Long timestamp() {
-    return coat.getEventTime().orElse(null);
+    return input.getEventTime().orElse(null);
   }
 
   @Override
   public Optional<String> getPartitionId() {
-    return coat.getPartitionId();
+    return input.getPartitionId();
   }
 
   @Override
   public Optional<Long> getRecordSequence() {
-    return coat.getRecordSequence();
+    return input.getRecordSequence();
   }
 
   @Override
   public Map<String, String> getProperties() {
-    return coat.getProperties();
+    return input.getProperties();
   }
 
   public Set<Header> headers() {
@@ -115,21 +115,21 @@ public class LocalRecord<Coat, Payload> implements Record<Coat> {
 
   @Override
   public void ack() {
-    coat.ack();
+    input.ack();
   }
 
   @Override
   public void fail() {
-    coat.fail();
+    input.fail();
   }
 
   @Override
   public Optional<String> getDestinationTopic() {
-    return coat.getDestinationTopic();
+    return input.getDestinationTopic();
   }
 
   @Override
-  public Optional<Message<Coat>> getMessage() {
-    return coat.getMessage();
+  public Optional<Message<Input>> getMessage() {
+    return input.getMessage();
   }
 }

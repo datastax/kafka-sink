@@ -25,11 +25,11 @@ import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecProvider;
 import com.datastax.oss.dsbulk.codecs.jdk.number.NumberToNumberCodec;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
+import com.datastax.oss.sink.pulsar.gen.GenStruct;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Optional;
 import org.apache.avro.generic.GenericRecord;
 
-/** Converting codec registry that handles processing Avro {@link GenericRecord} objects. */
 public class PulsarCodecProvider implements ConvertingCodecProvider {
 
   @NonNull
@@ -42,14 +42,12 @@ public class PulsarCodecProvider implements ConvertingCodecProvider {
     if (cqlType instanceof UserDefinedType
         && externalJavaType.equals(GenericType.of(GenericRecord.class))) {
       return Optional.of(new StructToUDTCodec(codecFactory, (UserDefinedType) cqlType));
+    } else if (cqlType instanceof UserDefinedType
+        && externalJavaType.equals(GenericType.of(GenStruct.class))) {
+      return Optional.of(new GenStructToUDTCodec(codecFactory, (UserDefinedType) cqlType));
     } else if (cqlType instanceof MapType
         && externalJavaType.equals(GenericType.of(GenericRecord.class))) {
       return Optional.of(new StructToMapCodec(codecFactory, (MapType) cqlType));
-      //    } else if (cqlType.getProtocolCode() == ProtocolConstants.DataType.TIME
-      //        && externalJavaType.equals(GenericType.of(Integer.class))) {
-      //      return Optional.of(
-      //          new NumberToNumberCodec<>(
-      //              Integer.class, codecFactory.getCodecRegistry().codecFor(DataTypes.BIGINT)));
     } else if (cqlType.getProtocolCode() == ProtocolConstants.DataType.COUNTER
         && externalJavaType.equals(GenericType.of(Integer.class))) {
       return Optional.of(
@@ -57,10 +55,5 @@ public class PulsarCodecProvider implements ConvertingCodecProvider {
               Integer.class, codecFactory.getCodecRegistry().codecFor(DataTypes.COUNTER)));
     }
     return Optional.empty();
-  }
-
-  private boolean isCounterOrTime(DataType type) {
-    return type.getProtocolCode() == ProtocolConstants.DataType.COUNTER
-        || type.getProtocolCode() == ProtocolConstants.DataType.TIME;
   }
 }

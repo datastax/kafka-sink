@@ -34,56 +34,75 @@ public class GenSchema {
     this.type = type;
   }
 
-  public static GenValue adaptValue(Object value) {
-    if (value == null) return GenValue.NULL;
+  public static GenStruct convert(GenericRecord record) {
+    return (GenStruct) adjustValue(record);
+  }
+
+  private static Object adjustValue(Object o) {
+    if (o == null) return null;
+    if (o instanceof byte[]) return ByteBuffer.wrap((byte[]) o);
+    else if (o instanceof Utf8) return o.toString();
+    else if (o instanceof Map)
+      return ((Map<?, ?>) o)
+          .entrySet()
+          .stream()
+          .map(et -> Tuple2.of(et.getKey(), adjustValue(et.getValue())))
+          .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
+    else if (o instanceof List)
+      return ((List<?>) o).stream().map(GenSchema::adjustValue).collect(Collectors.toList());
+    else if (o instanceof GenericRecord) {
+      GenericRecord record = (GenericRecord) o;
+      StructGenSchema schema = (StructGenSchema) inferSchema(record);
+      Map<String, ?> values =
+          schema
+              .fields()
+              .stream()
+              .map(f -> Tuple2.of(f, adjustValue(record.getField(f))))
+              .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
+      return new GenStruct(values, schema);
+    } else return o;
+  }
+
+  private static GenSchema inferSchema(Object value) {
+    if (value == null) return STRING;
     if (value instanceof GenericRecord) {
       GenericRecord record = (GenericRecord) value;
       StructGenSchema schema = new StructGenSchema(record.getFields().size());
-      Map<String, GenValue> values =
-          record
-              .getFields()
-              .stream()
-              .map(
-                  field -> {
-                    GenValue genValue = adaptValue(record.getField(field));
-                    schema.addField(field.getName(), genValue.schema);
-                    return Tuple2.of(field.getName(), genValue);
-                  })
-              .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
-      return new GenValue.GenStruct(values, schema);
+      record
+          .getFields()
+          .forEach(field -> schema.addField(field.getName(), inferSchema(record.getField(field))));
+      return schema;
     } else if (value instanceof Map) {
       @SuppressWarnings("unchecked")
       Map<String, ?> map = (Map<String, ?>) value;
-      if (map.isEmpty()) return new GenValue<>(value, new MapGenSchema(GenSchema.NULL));
-      Map<String, GenValue> val =
-          map.entrySet()
-              .stream()
-              .map(et -> Tuple2.of(et.getKey(), adaptValue(et.getValue())))
-              .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
-      return new GenValue<>(val, new MapGenSchema(val.values().iterator().next().schema));
+      if (map.isEmpty()) return new MapGenSchema(GenSchema.STRING);
+      return new MapGenSchema(inferSchema(map.values().iterator().next()));
     } else if (value instanceof List) {
       List<?> list = (List<?>) value;
-      if (list.isEmpty()) return new GenValue<>(value, new ArrayGenSchema(GenSchema.NULL));
-      List<GenValue> val = list.stream().map(GenSchema::adaptValue).collect(Collectors.toList());
-      return new GenValue<>(val, new ArrayGenSchema(val.get(0).schema));
+      if (list.isEmpty()) return new ArrayGenSchema(GenSchema.STRING);
+      return new ArrayGenSchema(inferSchema(list.get(0)));
     } else if (value instanceof String) {
-      return new GenValue<>(value, STRING);
+      return STRING;
     } else if (value instanceof Utf8) {
-      return new GenValue<>(value.toString(), STRING);
+      return STRING;
+    } else if (value instanceof Byte) {
+      return INT8;
+    } else if (value instanceof Short) {
+      return INT16;
     } else if (value instanceof Integer) {
-      return new GenValue<>(value, INT32);
+      return INT32;
     } else if (value instanceof Long) {
-      return new GenValue<>(value, INT64);
+      return INT64;
     } else if (value instanceof Float) {
-      return new GenValue<>(value, FLOAT32);
+      return FLOAT32;
     } else if (value instanceof Double) {
-      return new GenValue<>(value, FLOAT64);
+      return FLOAT64;
     } else if (value instanceof Boolean) {
-      return new GenValue<>(value, BOOLEAN);
+      return BOOLEAN;
     } else if (value instanceof byte[]) {
-      return new GenValue<>(value, BYTES);
+      return BYTES;
     } else if (value instanceof ByteBuffer) {
-      return new GenValue<>(((ByteBuffer) value).array(), BYTES);
+      return BYTES;
     }
     throw new IllegalArgumentException(
         String.format("could not infer schema of (%s) %s", value.getClass().getName(), value));
@@ -143,6 +162,8 @@ public class GenSchema {
   public static final GenSchema FLOAT64 = new GenSchema(SchemaSupport.Type.FLOAT64);
   public static final GenSchema INT32 = new GenSchema(SchemaSupport.Type.INT32);
   public static final GenSchema INT64 = new GenSchema(SchemaSupport.Type.INT64);
+  public static final GenSchema INT8 = new GenSchema(SchemaSupport.Type.INT8);
+  public static final GenSchema INT16 = new GenSchema(SchemaSupport.Type.INT16);
   public static final GenSchema STRING = new GenSchema(SchemaSupport.Type.STRING);
   public static final GenSchema NULL = new GenSchema(SchemaSupport.Type.NULL);
 }

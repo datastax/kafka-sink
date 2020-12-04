@@ -24,15 +24,26 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
 import com.datastax.oss.dsbulk.tests.driver.VersionUtils;
+import com.datastax.oss.sink.pulsar.util.Utf8ToStringGenericDatumReader;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Collections;
+import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.file.SeekableByteArrayInput;
 import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.pulsar.client.internal.DefaultImplementation;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -195,5 +206,27 @@ public abstract class EndToEndCCMITBase<Coat> extends ITConnectorBase<Coat> {
       throw ITConnectorBase.toRuntime(ex);
     }
     return baos.toByteArray();
+  }
+
+  protected GenericRecord pulsarGenericRecord(org.apache.avro.generic.GenericRecord rec) {
+    rec = (org.apache.avro.generic.GenericRecord) readWorn(wornBytes(rec));
+    SchemaInfo info =
+        new SchemaInfo(
+            rec.getSchema().getName(),
+            rec.getSchema().toString().getBytes(),
+            SchemaType.AVRO,
+            Collections.emptyMap());
+    GenericSchema<GenericRecord> avroSchema = DefaultImplementation.getGenericSchema(info);
+    return new GenericAvroRecord(null, rec.getSchema(), avroSchema.getFields(), rec);
+  }
+
+  protected GenericContainer readWorn(byte[] data) {
+    DatumReader<GenericContainer> reader = new Utf8ToStringGenericDatumReader<>();
+    try (DataFileReader<GenericContainer> drdr =
+        new DataFileReader<>(new SeekableByteArrayInput(data), reader)) {
+      return drdr.next();
+    } catch (Exception ex) {
+      throw ITConnectorBase.toRuntime(ex);
+    }
   }
 }

@@ -18,14 +18,15 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.sink.RetriableException;
 import com.datastax.oss.sink.config.ConfigException;
 import com.datastax.oss.sink.pulsar.gen.GenSchema;
-import com.datastax.oss.sink.pulsar.gen.GenValue;
+import com.datastax.oss.sink.pulsar.gen.GenStruct;
 import com.datastax.oss.sink.record.SchemaSupport;
 import java.util.Set;
 import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 
 public class GenAPIAdapter
-    implements APIAdapter<GenericRecord, GenValue, GenSchema, GenValue.GenStruct, Field, Header> {
+    implements APIAdapter<GenericRecord, GenStruct, GenSchema, GenStruct, Field, Header> {
+
   @Override
   public RuntimeException adapt(ConfigException ex) {
     return ex;
@@ -37,23 +38,23 @@ public class GenAPIAdapter
   }
 
   @Override
-  public String topic(LocalRecord<GenericRecord, GenValue> localRecord) {
+  public String topic(LocalRecord<GenericRecord, GenStruct> localRecord) {
     return localRecord.topic();
   }
 
   @Override
-  public Object key(LocalRecord<GenericRecord, GenValue> localGenRecord) {
-    return localGenRecord.key();
+  public Object key(LocalRecord<GenericRecord, GenStruct> localRecord) {
+    return localRecord.key();
   }
 
   @Override
-  public Object value(LocalRecord<GenericRecord, GenValue> localGenRecord) {
-    return localGenRecord.getValue();
+  public Object value(LocalRecord<GenericRecord, GenStruct> localRecord) {
+    return localRecord.payload();
   }
 
   @Override
-  public Set<Header> headers(LocalRecord<GenericRecord, GenValue> localGenRecord) {
-    return localGenRecord.headers();
+  public Set<Header> headers(LocalRecord<GenericRecord, GenStruct> localRecord) {
+    return localRecord.headers();
   }
 
   @Override
@@ -72,55 +73,54 @@ public class GenAPIAdapter
   }
 
   @Override
-  public Long timestamp(LocalRecord localGenRecord) {
-    return localGenRecord.timestamp();
+  public Long timestamp(LocalRecord localRecord) {
+    return localRecord.timestamp();
   }
 
   @Override
   public boolean isStruct(Object object) {
-    return object instanceof GenValue.GenStruct;
+    return object instanceof GenStruct;
   }
 
   @Override
-  public GenSchema schema(GenValue.GenStruct genRecord) {
-    return genRecord.getSchema();
+  public GenSchema schema(GenStruct struct) {
+    return struct.getSchema();
   }
 
   @Override
-  public Set<String> fields(GenValue.GenStruct genRecord) {
-    return ((GenSchema.StructGenSchema) genRecord.getSchema()).fields();
+  public Set<String> fields(GenStruct struct) {
+    return struct.getSchema().fields();
   }
 
   @Override
-  public Object fieldValue(GenValue.GenStruct genRecord, String fieldName) {
-    return genRecord.value(fieldName);
+  public Object fieldValue(GenStruct struct, String fieldName) {
+    return struct.value(fieldName);
   }
 
   @Override
-  public GenSchema fieldSchema(GenSchema genSchema, String fieldName) {
-    assert genSchema instanceof GenSchema.StructGenSchema;
-    return ((GenSchema.StructGenSchema) genSchema).field(fieldName);
+  public GenSchema fieldSchema(GenSchema schema, String fieldName) {
+    assert schema instanceof GenSchema.StructGenSchema;
+    return ((GenSchema.StructGenSchema) schema).field(fieldName);
   }
 
   @Override
-  public SchemaSupport.Type type(GenSchema genSchema) {
-    return genSchema.type;
+  public SchemaSupport.Type type(GenSchema schema) {
+    return schema.type;
   }
 
   @Override
-  public GenSchema valueSchema(GenSchema genSchema) {
-    assert genSchema instanceof GenSchema.ArrayGenSchema
-        || genSchema instanceof GenSchema.MapGenSchema;
-    return ((GenSchema.CollectionGenSchema) genSchema).elementSchema();
+  public GenSchema valueSchema(GenSchema schema) {
+    assert schema instanceof GenSchema.CollectionGenSchema;
+    return ((GenSchema.CollectionGenSchema) schema).elementSchema();
   }
 
   @Override
-  public GenSchema keySchema(GenSchema genSchema) {
+  public GenSchema keySchema(GenSchema schema) {
     return GenSchema.MapGenSchema.KEY_SCHEMA;
   }
 
   @Override
-  public Class<GenValue.GenStruct> structClass() {
-    return GenValue.GenStruct.class;
+  public Class<GenStruct> structClass() {
+    return GenStruct.class;
   }
 }

@@ -20,6 +20,12 @@ import static org.mockito.Mockito.*;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.apache.pulsar.client.api.schema.GenericSchema;
+import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.pulsar.client.internal.DefaultImplementation;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
 
 public class TestUtil {
@@ -84,5 +90,16 @@ public class TestUtil {
           .when(rec)
           .fail();
     return rec;
+  }
+
+  public static GenericRecord pulsarGenericRecord(org.apache.avro.generic.GenericRecord rec) {
+    SchemaInfo info =
+        new SchemaInfo(
+            rec.getSchema().getName(),
+            rec.getSchema().toString().getBytes(),
+            SchemaType.AVRO,
+            Collections.emptyMap());
+    GenericSchema<GenericRecord> avroSchema = DefaultImplementation.getGenericSchema(info);
+    return new GenericAvroRecord(null, rec.getSchema(), avroSchema.getFields(), rec);
   }
 }

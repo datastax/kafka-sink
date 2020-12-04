@@ -17,38 +17,30 @@ package com.datastax.oss.sink.pulsar.gen;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 
-public class GenValue<Value> {
+public class GenStruct {
+  private GenSchema.StructGenSchema schema;
+  private Map<String, ?> values;
 
-  protected GenSchema schema;
-  protected Value value;
-
-  public static final GenValue NULL = new GenValue<>(null, GenSchema.NULL);
-
-  public GenValue(Value value, GenSchema schema) {
-    this.value = value;
+  public GenStruct(Map<String, ?> values, GenSchema.StructGenSchema schema) {
     this.schema = schema;
+    this.values = Collections.unmodifiableMap(values);
   }
 
-  public GenSchema getSchema() {
+  public GenSchema.StructGenSchema getSchema() {
     return schema;
   }
 
-  public Value getValue() {
-    return value;
+  public Object value(String fieldName) {
+    return values.get(fieldName);
   }
 
-  public static class GenStruct extends GenValue<GenStruct> {
-    private Map<String, GenValue> values;
+  public Set<String> fields() {
+    return values.keySet();
+  }
 
-    public GenStruct(Map<String, GenValue> values, GenSchema.StructGenSchema schema) {
-      super(null, schema);
-      value = this;
-      this.values = Collections.unmodifiableMap(values);
-    }
-
-    public GenValue value(String fieldName) {
-      return values.get(fieldName);
-    }
+  public Map<String, ?> getValues() {
+    return values;
   }
 }

@@ -80,8 +80,6 @@ public class LifeCycleManager {
       new ConcurrentHashMap<>();
   private static MetricRegistry metricRegistry = new MetricRegistry();
 
-  public static final String KAFKA_CONNECTOR_APPLICATION_NAME = "DataStax Apache Kafka Connector";
-
   /** This is a utility class that no one should instantiate. */
   private LifeCycleManager() {}
 
@@ -100,7 +98,7 @@ public class LifeCycleManager {
             props.get(SinkUtil.NAME_OPT),
             x -> {
               CassandraSinkConfig config = new CassandraSinkConfig(props);
-              CqlSession session = buildCqlSession(config, task.version());
+              CqlSession session = buildCqlSession(config, task.version(), task.appName());
               return buildInstanceState(session, config);
             });
     instanceState.registerTask(task);
@@ -469,13 +467,14 @@ public class LifeCycleManager {
    */
   @VisibleForTesting
   @NonNull
-  public static CqlSession buildCqlSession(CassandraSinkConfig config, String version) {
+  public static CqlSession buildCqlSession(
+      CassandraSinkConfig config, String version, String appName) {
     log.info("CassandraSinkTask starting with config:\n{}\n", config.toString());
     SslConfig sslConfig = config.getSslConfig();
     CqlSessionBuilder builder =
         new SessionBuilder(sslConfig)
             .withApplicationVersion(version)
-            .withApplicationName(KAFKA_CONNECTOR_APPLICATION_NAME)
+            .withApplicationName(appName)
             .withClientId(generateClientId(config.getInstanceName()));
 
     ContactPointsValidator.validateContactPoints(config.getContactPoints());

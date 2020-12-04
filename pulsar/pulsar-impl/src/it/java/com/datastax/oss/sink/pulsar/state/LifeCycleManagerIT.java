@@ -48,6 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CCMExtension.class)
 class LifeCycleManagerIT {
   private static final String VERSION = "v1";
+  private static final String APP_NAME = "pulsar-sink";
 
   private final CCMCluster ccm;
 
@@ -73,7 +74,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -105,7 +107,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -135,7 +138,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -164,7 +168,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -197,7 +202,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -256,12 +262,13 @@ class LifeCycleManagerIT {
     CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       DriverContext context = session.getContext();
       // then
       assertThat((UUID) ReflectionUtils.getInternalState(context, "startupClientId")).isNotNull();
       assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationName"))
-          .isEqualTo(LifeCycleManager.KAFKA_CONNECTOR_APPLICATION_NAME);
+          .isEqualTo("pulsar-sink");
       assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationVersion"))
           .isEqualTo(VERSION);
     }

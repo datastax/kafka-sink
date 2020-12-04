@@ -15,23 +15,10 @@
  */
 package com.datastax.oss.sink.kafka.state;
 
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CLOUD_SECURE_CONNECT_BUNDLE;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONFIG_RELOAD_INTERVAL;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONNECTION_POOL_LOCAL_SIZE;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.CONTACT_POINTS;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_NODE_CQL_MESSAGES_HIGHEST;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_CQL_REQUESTS_INTERVAL;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.METRICS_SESSION_ENABLED;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_COMPRESSION;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.PROTOCOL_MAX_FRAME_LENGTH;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.RECONNECTION_POLICY_CLASS;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_CONSISTENCY;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_DEFAULT_IDEMPOTENCE;
-import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.REQUEST_TIMEOUT;
-import static com.datastax.oss.sink.config.CassandraSinkConfig.withDriverPrefix;
+import static com.datastax.oss.driver.api.core.config.DefaultDriverOption.*;
+import static com.datastax.oss.sink.config.CassandraSinkConfig.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverExecutionProfile;
@@ -61,6 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CCMExtension.class)
 class LifeCycleManagerIT {
   private static final String VERSION = "v1";
+  private static final String APP_NAME = "kafka-sink";
 
   private final CCMCluster ccm;
 
@@ -86,7 +74,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -118,7 +107,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -148,7 +138,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -177,7 +168,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -210,7 +202,8 @@ class LifeCycleManagerIT {
 
     // when
     ResultSet set;
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       // then
       set = session.execute("select * from system.local");
       assertThat(set).isNotNull();
@@ -269,12 +262,13 @@ class LifeCycleManagerIT {
     CassandraSinkConfig cassandraSinkConfig = new CassandraSinkConfig(config);
 
     // when
-    try (CqlSession session = LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION)) {
+    try (CqlSession session =
+        LifeCycleManager.buildCqlSession(cassandraSinkConfig, VERSION, APP_NAME)) {
       DriverContext context = session.getContext();
       // then
       assertThat((UUID) ReflectionUtils.getInternalState(context, "startupClientId")).isNotNull();
       assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationName"))
-          .isEqualTo(LifeCycleManager.KAFKA_CONNECTOR_APPLICATION_NAME);
+          .isEqualTo("kafka-sink");
       assertThat((String) ReflectionUtils.getInternalState(context, "startupApplicationVersion"))
           .isEqualTo(VERSION);
     }

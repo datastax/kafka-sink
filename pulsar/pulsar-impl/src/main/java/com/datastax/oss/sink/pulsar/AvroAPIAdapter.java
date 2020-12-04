@@ -29,8 +29,8 @@ import org.apache.avro.util.Utf8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AvroAPIAdapter<Coat>
-    implements APIAdapter<Coat, Object, Schema, GenericRecord, Schema.Field, Header> {
+public class AvroAPIAdapter<Input>
+    implements APIAdapter<Input, Object, Schema, GenericRecord, Schema.Field, Header> {
 
   public static final Logger log = LoggerFactory.getLogger(AvroAPIAdapter.class);
 
@@ -45,27 +45,27 @@ public class AvroAPIAdapter<Coat>
   }
 
   @Override
-  public String topic(LocalRecord<Coat, Object> record) {
+  public String topic(LocalRecord<Input, Object> record) {
     return record.topic();
   }
 
   @Override
-  public Object key(LocalRecord<Coat, Object> record) {
+  public Object key(LocalRecord<Input, Object> record) {
     return record.key();
   }
 
   @Override
-  public Object value(LocalRecord<Coat, Object> record) {
+  public Object value(LocalRecord<Input, Object> record) {
     return record.payload();
   }
 
   @Override
-  public Long timestamp(LocalRecord<Coat, Object> record) {
+  public Long timestamp(LocalRecord<Input, Object> record) {
     return record.timestamp();
   }
 
   @Override
-  public Set<Header> headers(LocalRecord<Coat, Object> record) {
+  public Set<Header> headers(LocalRecord<Input, Object> record) {
     return record.headers();
   }
 
