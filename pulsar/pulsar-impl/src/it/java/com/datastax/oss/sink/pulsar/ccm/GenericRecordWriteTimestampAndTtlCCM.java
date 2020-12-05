@@ -22,7 +22,6 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
@@ -31,6 +30,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,11 +38,14 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @Tag("medium")
-public class GenWriteTimestampAndTtlCCMIT
+public abstract class GenericRecordWriteTimestampAndTtlCCM
     extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
 
-  GenWriteTimestampAndTtlCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new GenSchemaGenericRecordSink());
+  protected GenericRecordWriteTimestampAndTtlCCM(
+      CCMCluster ccm,
+      CqlSession session,
+      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   @Test

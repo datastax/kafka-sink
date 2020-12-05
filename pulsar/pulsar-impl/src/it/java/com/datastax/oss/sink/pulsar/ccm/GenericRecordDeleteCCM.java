@@ -23,19 +23,21 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
 import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.Tag;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.Test;
 
-@Tag("medium")
-class GenDeleteCCMIT extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
-  GenDeleteCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new GenSchemaGenericRecordSink());
+public abstract class GenericRecordDeleteCCM
+    extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
+  protected GenericRecordDeleteCCM(
+      CCMCluster ccm,
+      CqlSession session,
+      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   @Test

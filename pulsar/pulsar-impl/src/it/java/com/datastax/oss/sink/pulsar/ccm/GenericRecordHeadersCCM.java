@@ -26,7 +26,6 @@ import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
 import com.datastax.oss.sink.util.StringUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,14 +41,13 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
-import org.junit.jupiter.api.Tag;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.Test;
 
-@Tag("medium")
-class GenHeadersCCMIT extends EndToEndCCMITBase<GenericRecord> {
+public abstract class GenericRecordHeadersCCM extends EndToEndCCMITBase<GenericRecord> {
 
-  GenHeadersCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new GenSchemaGenericRecordSink());
+  protected GenericRecordHeadersCCM(CCMCluster ccm, CqlSession session, Sink<GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   /** Test for KAF-142 */

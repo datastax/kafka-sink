@@ -25,7 +25,6 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import com.datastax.oss.sink.pulsar.ReflectionGenericRecordSink;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -35,15 +34,17 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.Tag;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.Test;
 
-@Tag("medium")
-class ReflectJsonEndToEndCCMIT
+public abstract class GenericRecordJsonEndToEndCCM
     extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
 
-  public ReflectJsonEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new ReflectionGenericRecordSink());
+  protected GenericRecordJsonEndToEndCCM(
+      CCMCluster ccm,
+      CqlSession session,
+      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   @Test

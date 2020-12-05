@@ -31,7 +31,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMRequirements;
 import com.datastax.oss.dsbulk.tests.ccm.annotations.CCMVersionRequirement;
-import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -42,6 +41,7 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.common.config.ConfigException;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -55,7 +55,7 @@ import org.junit.jupiter.api.Test;
   }
 )
 // minimum version required because support of non frozen types
-class GenProvidedQueryCCMIT
+public abstract class GenericRecordProvidedQueryCCM
     extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
   private static final Schema UDT_SCHEMA =
       SchemaBuilder.record("pulsar")
@@ -64,8 +64,11 @@ class GenProvidedQueryCCMIT
           .optionalString("udtmem2")
           .endRecord();
 
-  public GenProvidedQueryCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new GenSchemaGenericRecordSink());
+  protected GenericRecordProvidedQueryCCM(
+      CCMCluster ccm,
+      CqlSession session,
+      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   @BeforeAll

@@ -38,7 +38,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import com.datastax.oss.sink.pulsar.ReflectionGenericRecordSink;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Duration;
@@ -52,15 +51,20 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
+import org.apache.pulsar.functions.api.Record;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
-class ReflectStructEndToEndCCMIT
+public abstract class GenericRecordStructEndToEndCCM
     extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
 
-  ReflectStructEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new ReflectionGenericRecordSink());
+  protected GenericRecordStructEndToEndCCM(
+      CCMCluster ccm,
+      CqlSession session,
+      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   @Test
@@ -503,8 +507,9 @@ class ReflectStructEndToEndCCMIT
     value.put("udtmem1", 42);
     value.put("udtmem2", "the answer");
 
-    sendRecord(
-        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericAvroRecord(value), 1234));
+    Record<org.apache.pulsar.client.api.schema.GenericRecord> record =
+        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericAvroRecord(value), 1234);
+    sendRecord(record);
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
@@ -562,7 +567,7 @@ class ReflectStructEndToEndCCMIT
             "bigintcol=value.bigint, doublecol=value.double",
             ImmutableMap.of(
                 String.format("topic.yourtopic.%s.types.mapping", keyspaceName),
-                "bigintcol=key, intcol=value.value")));
+                "bigintcol=value.key, intcol=value.value")));
 
     // Set up records for "mytopic"
     Schema schema =
@@ -578,13 +583,17 @@ class ReflectStructEndToEndCCMIT
     value2.put("bigint", 9876543L);
     value2.put("double", 21.0);
 
-    Schema schema2 = SchemaBuilder.record("your").fields().requiredInt("value").endRecord();
-    GenericRecord value3 = new GenericData.Record(schema2);
+    schema =
+        SchemaBuilder.record("third").fields().requiredLong("key").requiredInt("value").endRecord();
+    GenericRecord value3 = new GenericData.Record(schema);
+    value3.put("key", 5555L);
     value3.put("value", 3333);
 
+    // Set up a record for "yourtopic"
+
     sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value1), 1234));
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value2), 1235));
-    sendRecord(mockRecord("yourtopic", "5555", pulsarGenericAvroRecord(value3), 1235));
+    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value2), 1234));
+    sendRecord(mockRecord("yourtopic", null, pulsarGenericAvroRecord(value3), 1235));
 
     // Verify that the record was inserted properly in the database.
     List<Row> results = session.execute("SELECT bigintcol, doublecol, intcol FROM types").all();

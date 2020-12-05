@@ -23,7 +23,6 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -31,15 +30,17 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.junit.jupiter.api.Tag;
+import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.Test;
 
-@Tag("medium")
-class GenNowFunctionCCMIT
+public class GenericRecordNowFunctionCCM
     extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
 
-  GenNowFunctionCCMIT(CCMCluster ccm, CqlSession session) {
-    super(ccm, session, new GenSchemaGenericRecordSink());
+  protected GenericRecordNowFunctionCCM(
+      CCMCluster ccm,
+      CqlSession session,
+      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
+    super(ccm, session, sink);
   }
 
   @Test
