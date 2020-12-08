@@ -23,10 +23,10 @@ import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.sink.RecordProcessor;
 import com.datastax.oss.sink.config.TableConfig;
 import com.datastax.oss.sink.config.TopicConfig;
+import com.datastax.oss.sink.pulsar.util.ConfigUtil;
 import com.datastax.oss.sink.pulsar.util.DataReader;
 import com.datastax.oss.sink.pulsar.util.JsonIsNotContainer;
 import com.datastax.oss.sink.util.SinkUtil;
-import com.datastax.oss.sink.util.StringUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,9 +97,14 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
     log.debug("start {}", getClass().getName());
     try {
       log.debug("starting processor");
-      beforeStart(config, sinkContext);
+      @SuppressWarnings("unchecked")
+      Map<String, Object> cfg =
+          //              config.containsKey("configs") ?
+          //              (Map<String, Object>) config.get("configs") :
+          config;
+      beforeStart(cfg, sinkContext);
       processor = new PulsarRecordProcessor<>(this, createAPIAdapter());
-      processor.start(StringUtil.flatString(config));
+      processor.start(ConfigUtil.flatString(cfg));
       processor
           .config()
           .getTopicConfigs()
@@ -149,14 +154,14 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
                 reader -> {
                   String path = et.getValue().asInternal();
                   if (path.equals("value.__self")) {
-                    log.debug(
+                    log.info(
                         "  chosen value reader for [{}] {}",
                         topic,
                         reader.getClass().getSimpleName());
                     onValueReaderDetected(topic, reader);
                   } else if (path.equals("key.__self")) {
                     keyReaders.put(topic, reader);
-                    log.debug(
+                    log.info(
                         "  chosen key reader for [{}] {}",
                         topic,
                         reader.getClass().getSimpleName());
@@ -165,7 +170,7 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
                     headerReaders
                         .computeIfAbsent(topic, k -> new HashMap<>())
                         .put(headerKey, reader);
-                    log.debug(
+                    log.info(
                         "  chosen header reader for [{}/{}] {}",
                         topic,
                         headerKey,
@@ -183,15 +188,15 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
   public final void write(Record<Input> record) throws Exception {
     if (!running.get()) throw new IllegalStateException("Sink is not open");
 
-    log.debug("got record for processing {} {}", record.getValue(), record);
+    log.info("got record for processing {} {}", record.getValue(), record);
 
     Payload payload = readValue(record);
     Object key = readKey(record);
     Set<Header> headers = readHeaders(record);
 
-    log.debug("payload prepared {}", payload);
-    log.debug("key prepared {}", key);
-    log.debug(
+    log.info("payload prepared {}", payload);
+    log.info("key prepared {}", key);
+    log.info(
         "headers prepared {}",
         headers.stream().map(h -> h.name + "=" + h.value).collect(Collectors.toSet()));
     if (payload != null || key != null || !headers.isEmpty())

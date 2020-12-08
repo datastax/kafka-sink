@@ -25,6 +25,7 @@ import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecProvider;
 import com.datastax.oss.dsbulk.codecs.jdk.number.NumberToNumberCodec;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
+import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
 import com.datastax.oss.sink.pulsar.gen.GenStruct;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Optional;
@@ -45,9 +46,16 @@ public class PulsarCodecProvider implements ConvertingCodecProvider {
     } else if (cqlType instanceof UserDefinedType
         && externalJavaType.equals(GenericType.of(GenStruct.class))) {
       return Optional.of(new GenStructToUDTCodec(codecFactory, (UserDefinedType) cqlType));
+    } else if (cqlType instanceof UserDefinedType
+        && externalJavaType.equals(GenericType.of(SchemedGenericRecord.class))) {
+      return Optional.of(
+          new SchemedGenericRecordToUDTCodec(codecFactory, (UserDefinedType) cqlType));
     } else if (cqlType instanceof MapType
         && externalJavaType.equals(GenericType.of(GenericRecord.class))) {
       return Optional.of(new StructToMapCodec(codecFactory, (MapType) cqlType));
+    } else if (cqlType instanceof MapType
+        && externalJavaType.equals(GenericType.of(SchemedGenericRecord.class))) {
+      return Optional.of(new SchemedGenericRecordToMapCodec(codecFactory, (MapType) cqlType));
     } else if (cqlType instanceof MapType
         && externalJavaType.equals(GenericType.of(GenStruct.class))) {
       return Optional.of(new GenStructToMapCodec(codecFactory, (MapType) cqlType));

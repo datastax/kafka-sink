@@ -17,12 +17,15 @@ package com.datastax.oss.sink.pulsar;
 
 import static org.mockito.Mockito.*;
 
+import com.datastax.oss.sink.pulsar.util.kite.JsonUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonRecord;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.common.schema.SchemaType;
@@ -67,6 +70,27 @@ public class TestUtil {
     when(rec.getTopicName()).thenReturn(Optional.of("persistent://public/default/" + topic));
     when(rec.getRecordSequence()).thenReturn(Optional.ofNullable(offset));
     when(rec.getValue()).thenReturn(value);
+    if (value instanceof GenericAvroRecord) {
+      org.apache.avro.generic.GenericRecord arec = ((GenericAvroRecord) value).getAvroRecord();
+      SchemaInfo info =
+          new SchemaInfo(
+              arec.getSchema().getName(),
+              arec.getSchema().toString().getBytes(),
+              SchemaType.AVRO,
+              Collections.emptyMap());
+      Schema<T> avroSchema = (Schema<T>) DefaultImplementation.getGenericSchema(info);
+      when(rec.getSchema()).thenReturn(avroSchema);
+    }
+    if (value instanceof GenericJsonRecord) {
+      GenericJsonRecord jrec = (GenericJsonRecord) value;
+      SchemaInfo info =
+          new SchemaInfo(
+              "_",
+              JsonUtil.inferSchema(jrec.getJsonNode(), "_").toString().getBytes(),
+              SchemaType.JSON,
+              Collections.emptyMap());
+      when(rec.getSchema()).thenReturn((Schema<T>) Schema.generic(info));
+    }
     when(rec.getEventTime()).thenReturn(Optional.ofNullable(timestamp));
     //    Map<String, String> props =
     //        StreamSupport.stream(headers.spliterator(), false)

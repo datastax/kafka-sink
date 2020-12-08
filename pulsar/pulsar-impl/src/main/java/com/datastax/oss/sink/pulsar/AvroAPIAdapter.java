@@ -81,6 +81,10 @@ public class AvroAPIAdapter<Input>
 
   @Override
   public Schema headerSchema(Header header) {
+    return headerAvroSchema(header);
+  }
+
+  static Schema headerAvroSchema(Header header) {
     if (header.value == null) return schemaNull;
     Schema schema = primitiveSchemas.get(header.value.getClass());
     if (header.value instanceof ByteBuffer) schema = schemaBytes;
@@ -124,7 +128,7 @@ public class AvroAPIAdapter<Input>
   }
 
   private static final Schema schemaBoolean = Schema.create(Schema.Type.BOOLEAN);
-  private static final Schema schemaString = Schema.create(Schema.Type.STRING);
+  static final Schema schemaString = Schema.create(Schema.Type.STRING);
   private static final Schema schemaDouble = Schema.create(Schema.Type.DOUBLE);
   private static final Schema schemaFloat = Schema.create(Schema.Type.FLOAT);
   private static final Schema schemaInt = Schema.create(Schema.Type.INT);
@@ -170,6 +174,10 @@ public class AvroAPIAdapter<Input>
 
   @Override
   public SchemaSupport.Type type(Schema schema) {
+    return commonType(schema);
+  }
+
+  static SchemaSupport.Type commonType(Schema schema) {
     Schema.Type t = schema.getType();
     if (schema.getType() == Schema.Type.UNION) {
       if (schema.getTypes().size() == 2 && schema.getTypes().get(0).getType() == Schema.Type.NULL) {
@@ -188,6 +196,10 @@ public class AvroAPIAdapter<Input>
 
   @Override
   public Schema valueSchema(Schema schema) {
+    return collectionElementSchema(schema);
+  }
+
+  static Schema collectionElementSchema(Schema schema) {
     if (schema.getType() == Schema.Type.ARRAY) return schema.getElementType();
     return schema.getValueType();
   }

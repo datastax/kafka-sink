@@ -36,7 +36,7 @@ public class ITConnectorBase<Input> {
   private final List<EndPoint> contactPoints;
   @Nullable private final Integer binaryPort;
   private final String localDc;
-  String keyspaceName;
+  public String keyspaceName;
   protected Sink<Input> conn;
 
   public ITConnectorBase(
@@ -71,7 +71,7 @@ public class ITConnectorBase<Input> {
     }
   }
 
-  void initConnectorAndTask(Map<String, Object> config) {
+  public void initConnectorAndTask(Map<String, Object> config) {
     try {
       conn.open(config, null);
     } catch (Exception ex) {

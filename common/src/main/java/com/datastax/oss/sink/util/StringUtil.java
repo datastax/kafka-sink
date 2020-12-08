@@ -15,11 +15,7 @@
  */
 package com.datastax.oss.sink.util;
 
-import com.datastax.oss.driver.shaded.guava.common.base.Strings;
-import java.io.PrintStream;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 
 /** Utility methods for manipulating strings. */
@@ -33,53 +29,6 @@ public class StringUtil {
 
   public static boolean isEmpty(String s) {
     return s == null || s.isEmpty();
-  }
-
-  public static void printMap(Map<String, ?> map) {
-    printMap(map, System.out);
-  }
-
-  public static void printMap(Map<String, ?> map, PrintStream out) {
-    for (Map.Entry<String, ?> et : map.entrySet()) printNode(et, 0, out);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static void printNode(Map.Entry<String, ?> et, int dept, PrintStream out) {
-    boolean ismap = et.getValue() instanceof Map;
-    String val;
-    if (ismap) val = "";
-    else if (et.getValue() == null) val = " = null";
-    else val = " = " + et.getValue().getClass().getSimpleName() + "[" + et.getValue() + "]";
-    out.println(Strings.repeat(" ", dept) + et.getKey() + val);
-    if (ismap) {
-      for (Map.Entry<String, ?> et1 : ((Map<String, ?>) et.getValue()).entrySet()) {
-        printNode(et1, dept + 2, out);
-      }
-    }
-  }
-
-  public static Map<String, String> flatString(Map<String, ?> map) {
-    Map<String, String> flat = new TreeMap<>();
-    for (Map.Entry<String, ?> et : map.entrySet()) flatNode(et, null, flat);
-    return flat;
-  }
-
-  @SuppressWarnings("unchecked")
-  private static void flatNode(Map.Entry<String, ?> node, String key, Map<String, String> acc) {
-    String nkey = key == null ? node.getKey() : String.join(".", key, node.getKey());
-    if (node.getValue() == null) return; // acc.put(nkey, null);
-    else if (node.getValue() instanceof Map) {
-      for (Map.Entry<String, ?> et : ((Map<String, ?>) node.getValue()).entrySet()) {
-        flatNode(et, nkey, acc);
-      }
-    } else {
-      String sv =
-          node.getValue() instanceof Double
-                  && ((Double) node.getValue()).intValue() == (Double) node.getValue()
-              ? String.valueOf(((Double) node.getValue()).intValue())
-              : String.valueOf(node.getValue());
-      acc.put(nkey, sv);
-    }
   }
 
   public static String bytesToString(byte[] bytes) {

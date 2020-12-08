@@ -72,6 +72,7 @@ public class BytesSink extends BaseSink<byte[], Object> {
   protected void beforeStart(Map<String, Object> config, SinkContext sinkContext) throws Exception {
     if (!standalone) {
       PulsarAdminBuilder builder = PulsarAdmin.builder();
+      log.info("config keys {}", config.keySet());
       Map<String, Object> adminServiceConfig =
           (Map<String, Object>) config.get("pulsarAdminService");
       if (adminServiceConfig != null) {
