@@ -26,6 +26,10 @@
   <artifactId>cassandra-sink-pulsar</artifactId>
   <packaging>jar</packaging>
   <name>DataStax Apache Cassandra (R) Pulsar Sink Connector - Implementation</name>
+  <properties>
+    <build.dir>${project.build.directory}</build.dir>
+    <nar>${build.finalName}.nar</nar>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -160,9 +164,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.cassandraunit</groupId>
-      <artifactId>cassandra-unit</artifactId>
-      <version>4.3.1.0</version>
+      <groupId>net.jodah</groupId>
+      <artifactId>failsafe</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -181,6 +184,37 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>properties-maven-plugin</artifactId>
+        <version>1.0.0</version>
+        <executions>
+          <execution>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>write-project-properties</goal>
+            </goals>
+            <configuration>
+              <outputFile>${project.build.outputDirectory}/frompom.properties</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>containers</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <configuration>
+              <groups>containers</groups>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

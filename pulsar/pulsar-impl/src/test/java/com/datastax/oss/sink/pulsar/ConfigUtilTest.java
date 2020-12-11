@@ -67,7 +67,7 @@ class ConfigUtilTest {
     assertEquals("192.168.1.103", read.get("contactPoints"));
     assertEquals("http://localhost:8080", ConfigUtil.value(read, "pulsarAdminService.url"));
     read =
-        ConfigUtil.update(
+        ConfigUtil.extend(
             read,
             ImmutableMap.<String, Object>builder()
                 .put("pulsarAdminService.url", "addvalue")
@@ -100,7 +100,7 @@ class ConfigUtilTest {
             .put("node2.sub21.subval211", false)
             .put("node3", ImmutableMap.builder().put("sub31", 44).build())
             .build();
-    Map<String, Object> updated = ConfigUtil.update(map, update);
+    Map<String, Object> updated = ConfigUtil.extend(map, update);
     assertEquals(1, ConfigUtil.value(updated, "node1.val1"));
     assertEquals("string", ConfigUtil.value(updated, "node1.val2"));
     assertEquals(false, ConfigUtil.value(updated, "node2.sub21.subval211"));

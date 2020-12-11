@@ -52,10 +52,12 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
   protected abstract APIAdapter<Input, Payload, ?, ?, ?, Header> createAPIAdapter();
 
   public void onFailure(Record<Input> record, Throwable e) {
+    log.info("record failed because of", e);
     record.fail();
   }
 
   public void onSuccess(Record<Input> record) {
+    log.info("record acked");
     record.ack();
   }
 

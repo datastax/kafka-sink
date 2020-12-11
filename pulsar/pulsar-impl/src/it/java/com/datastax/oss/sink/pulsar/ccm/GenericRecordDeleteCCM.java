@@ -29,8 +29,10 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.io.core.Sink;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("medium")
 public abstract class GenericRecordDeleteCCM
     extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
   protected GenericRecordDeleteCCM(

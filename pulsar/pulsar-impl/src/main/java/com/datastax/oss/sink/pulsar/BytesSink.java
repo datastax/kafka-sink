@@ -17,6 +17,7 @@ package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.sink.config.TopicConfig;
 import com.datastax.oss.sink.pulsar.util.DataReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -25,7 +26,6 @@ import org.apache.avro.Schema;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminBuilder;
 import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroSchema;
 import org.apache.pulsar.common.schema.SchemaInfo;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.SinkContext;
@@ -109,14 +109,16 @@ public class BytesSink extends BaseSink<byte[], Object> {
         SchemaInfo info =
             admin.schemas().getSchemaInfo(String.format("%s/%s/%s", tenant, namespace, topic));
         if (info != null) {
-          org.apache.pulsar.client.api.Schema<org.apache.pulsar.client.api.schema.GenericRecord>
-              apiSchema = org.apache.pulsar.client.api.Schema.generic(info);
-          Schema schema = ((GenericAvroSchema) apiSchema).getAvroSchema();
-          valueReaders.put(topic, DataReader.createSingleAvro(schema));
-          log.debug("got value schema from register for [{}] {}", topic, schema);
+          try {
+            Schema schema = new Schema.Parser().parse(new ByteArrayInputStream(info.getSchema()));
+            valueReaders.put(topic, DataReader.createSingleAvro(schema));
+            log.debug("got value schema from register for [{}] {}", topic, schema);
+          } catch (Exception ex) {
+            log.error("could not parse value schema from register for topic " + topic, ex);
+          }
         }
       } catch (PulsarAdminException ex) {
-        log.warn("could not get value schema from register for topic " + topic, ex);
+        log.error("could not get value schema from register for topic " + topic, ex);
       }
     }
   }

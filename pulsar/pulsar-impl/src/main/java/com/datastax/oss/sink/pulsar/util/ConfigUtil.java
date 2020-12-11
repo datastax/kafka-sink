@@ -25,7 +25,7 @@ import java.util.TreeMap;
 
 public class ConfigUtil {
 
-  public static Map<String, Object> update(
+  public static Map<String, Object> extend(
       Map<String, Object> initial, Map<String, Object> update) {
     Map<String, Object> flatInitial = flat(initial);
     flatInitial.putAll(flat(update));

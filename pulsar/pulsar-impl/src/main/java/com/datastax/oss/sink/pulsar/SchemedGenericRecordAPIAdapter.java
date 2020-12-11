@@ -22,10 +22,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SchemedGenericRecordAPIAdapter
     implements APIAdapter<
         GenericRecord, SchemedGenericRecord, Schema, SchemedGenericRecord, Schema.Field, Header> {
+
+  private static final Logger log = LoggerFactory.getLogger(SchemedGenericRecordAPIAdapter.class);
+
   @Override
   public RuntimeException adapt(ConfigException ex) {
     return ex;
@@ -98,7 +103,21 @@ public class SchemedGenericRecordAPIAdapter
 
   @Override
   public Object fieldValue(SchemedGenericRecord schemedGenericRecord, String fieldName) {
+    log.info("fieldValue recval={} field={}", schemedGenericRecord.getRecord(), fieldName);
+    log.info("fields of gen record");
+    schemedGenericRecord
+        .getRecord()
+        .getFields()
+        .stream()
+        .forEach(
+            f ->
+                log.info(
+                    "  {}={}",
+                    f.getName(),
+                    schemedGenericRecord.getRecord().getField(f.getName())));
     Object val = schemedGenericRecord.getRecord().getField(fieldName);
+    log.info("val {}", val);
+
     if (val instanceof GenericRecord)
       val =
           new SchemedGenericRecord(

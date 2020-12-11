@@ -17,14 +17,33 @@ package com.datastax.oss.sink.pulsar;
 
 import static org.mockito.Mockito.*;
 
+import com.datastax.oss.sink.pulsar.util.Utf8ToStringGenericDatumReader;
 import com.datastax.oss.sink.pulsar.util.kite.JsonUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.avro.file.DataFileReader;
+import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.file.SeekableByteArrayInput;
+import org.apache.avro.generic.GenericContainer;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.io.DatumReader;
+import org.apache.avro.io.DatumWriter;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
 import org.apache.pulsar.client.api.Schema;
+import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
+import org.apache.pulsar.client.impl.schema.generic.GenericJsonReader;
 import org.apache.pulsar.client.impl.schema.generic.GenericJsonRecord;
 import org.apache.pulsar.client.internal.DefaultImplementation;
 import org.apache.pulsar.common.schema.SchemaInfo;
@@ -57,6 +76,25 @@ public class TestUtil {
     return mockRecord(topic, key, value, offset, timestamp, Collections.emptyMap(), null, null);
   }
 
+  public static Schema<GenericRecord> pulsarSchema(
+      org.apache.avro.generic.GenericRecord avroRecord) {
+    return Schema.generic(
+        new SchemaInfo(
+            avroRecord.getSchema().getName(),
+            avroRecord.getSchema().toString().getBytes(),
+            SchemaType.AVRO,
+            Collections.emptyMap()));
+  }
+
+  public static Schema<GenericRecord> pulsarSchema(JsonNode jsonNode) {
+    return Schema.generic(
+        new SchemaInfo(
+            "_",
+            JsonUtil.inferSchema(jsonNode, "_").toString().getBytes(),
+            SchemaType.JSON,
+            Collections.emptyMap()));
+  }
+
   public static <T> Record<T> mockRecord(
       String topic,
       String key,
@@ -72,24 +110,11 @@ public class TestUtil {
     when(rec.getValue()).thenReturn(value);
     if (value instanceof GenericAvroRecord) {
       org.apache.avro.generic.GenericRecord arec = ((GenericAvroRecord) value).getAvroRecord();
-      SchemaInfo info =
-          new SchemaInfo(
-              arec.getSchema().getName(),
-              arec.getSchema().toString().getBytes(),
-              SchemaType.AVRO,
-              Collections.emptyMap());
-      Schema<T> avroSchema = (Schema<T>) DefaultImplementation.getGenericSchema(info);
-      when(rec.getSchema()).thenReturn(avroSchema);
+      when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(arec));
     }
     if (value instanceof GenericJsonRecord) {
       GenericJsonRecord jrec = (GenericJsonRecord) value;
-      SchemaInfo info =
-          new SchemaInfo(
-              "_",
-              JsonUtil.inferSchema(jrec.getJsonNode(), "_").toString().getBytes(),
-              SchemaType.JSON,
-              Collections.emptyMap());
-      when(rec.getSchema()).thenReturn((Schema<T>) Schema.generic(info));
+      when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(jrec.getJsonNode()));
     }
     when(rec.getEventTime()).thenReturn(Optional.ofNullable(timestamp));
     //    Map<String, String> props =
@@ -116,7 +141,47 @@ public class TestUtil {
     return rec;
   }
 
-  public static GenericRecord pulsarGenericRecord(org.apache.avro.generic.GenericRecord rec) {
+  public static byte[] longBytes(long l) {
+    return ByteBuffer.allocate(8).putLong(l).array();
+  }
+
+  public static byte[] intBytes(int i) {
+    return ByteBuffer.allocate(4).putInt(i).array();
+  }
+
+  private static RuntimeException toRuntime(Throwable t) {
+    if (t instanceof RuntimeException) return (RuntimeException) t;
+    return new RuntimeException(t);
+  }
+
+  public static byte[] wornBytes(GenericContainer record) {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
+    DataFileWriter<GenericContainer> wrt = new DataFileWriter<>(dwrt);
+    try {
+      wrt.create(record.getSchema(), baos);
+      wrt.append(record);
+      wrt.close();
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
+    return baos.toByteArray();
+  }
+
+  public static byte[] nakedBytes(GenericContainer record) {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
+    Encoder encoder = EncoderFactory.get().binaryEncoder(baos, null);
+    try {
+      dwrt.write(record, encoder);
+      encoder.flush();
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
+    return baos.toByteArray();
+  }
+
+  public static GenericRecord pulsarGenericAvroRecord(org.apache.avro.generic.GenericRecord rec) {
     SchemaInfo info =
         new SchemaInfo(
             rec.getSchema().getName(),
@@ -125,5 +190,38 @@ public class TestUtil {
             Collections.emptyMap());
     GenericSchema<GenericRecord> avroSchema = DefaultImplementation.getGenericSchema(info);
     return new GenericAvroRecord(null, rec.getSchema(), avroSchema.getFields(), rec);
+  }
+
+  private static ObjectMapper mapper = new ObjectMapper();
+
+  public static GenericRecord pulsarGenericJsonRecord(String json) {
+    try {
+      return pulsarGenericJsonRecord(mapper.readTree(json));
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
+  }
+
+  public static GenericRecord pulsarGenericJsonRecord(JsonNode node) {
+    try {
+      List<Field> fields = new ArrayList<>();
+      int i = 0;
+      for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
+        fields.add(new Field(it.next(), i++));
+      }
+      return new GenericJsonReader(fields).read(mapper.writeValueAsBytes(node));
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
+  }
+
+  public static GenericContainer readWorn(byte[] data) {
+    DatumReader<GenericContainer> reader = new Utf8ToStringGenericDatumReader<>();
+    try (DataFileReader<GenericContainer> drdr =
+        new DataFileReader<>(new SeekableByteArrayInput(data), reader)) {
+      return drdr.next();
+    } catch (Exception ex) {
+      throw toRuntime(ex);
+    }
   }
 }

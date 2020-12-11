@@ -42,8 +42,10 @@ import org.apache.avro.generic.GenericData;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.io.core.Sink;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag("medium")
 public abstract class GenericRecordHeadersCCM extends EndToEndCCMITBase<GenericRecord> {
 
   protected GenericRecordHeadersCCM(CCMCluster ccm, CqlSession session, Sink<GenericRecord> sink) {

@@ -24,34 +24,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.dsbulk.tests.ccm.CCMExtension;
 import com.datastax.oss.dsbulk.tests.driver.VersionUtils;
-import com.datastax.oss.sink.pulsar.util.Utf8ToStringGenericDatumReader;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import org.apache.avro.file.DataFileReader;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.file.SeekableByteArrayInput;
-import org.apache.avro.generic.GenericContainer;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Encoder;
-import org.apache.avro.io.EncoderFactory;
-import org.apache.pulsar.client.api.schema.Field;
-import org.apache.pulsar.client.api.schema.GenericRecord;
-import org.apache.pulsar.client.api.schema.GenericSchema;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
-import org.apache.pulsar.client.impl.schema.generic.GenericJsonReader;
-import org.apache.pulsar.client.internal.DefaultImplementation;
-import org.apache.pulsar.common.schema.SchemaInfo;
-import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.io.core.Sink;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -178,79 +151,6 @@ public abstract class EndToEndCCMITBase<Coat> extends ITConnectorBase<Coat> {
       // actual ttl value can be less that or equal to expectedTtlValue because some time may elapse
       // between the moment the record was inserted and retrieved from db.
       assertThat(ttlValue).isLessThanOrEqualTo(expectedTtlValue.intValue()).isGreaterThan(0);
-    }
-  }
-
-  protected byte[] longBytes(long l) {
-    return ByteBuffer.allocate(8).putLong(l).array();
-  }
-
-  protected byte[] intBytes(int i) {
-    return ByteBuffer.allocate(4).putInt(i).array();
-  }
-
-  protected byte[] wornBytes(GenericContainer record) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
-    DataFileWriter<GenericContainer> wrt = new DataFileWriter<>(dwrt);
-    try {
-      wrt.create(record.getSchema(), baos);
-      wrt.append(record);
-      wrt.close();
-    } catch (Exception ex) {
-      throw ITConnectorBase.toRuntime(ex);
-    }
-    return baos.toByteArray();
-  }
-
-  protected byte[] nakedBytes(GenericContainer record) {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
-    Encoder encoder = EncoderFactory.get().binaryEncoder(baos, null);
-    try {
-      dwrt.write(record, encoder);
-      encoder.flush();
-    } catch (Exception ex) {
-      throw ITConnectorBase.toRuntime(ex);
-    }
-    return baos.toByteArray();
-  }
-
-  protected GenericRecord pulsarGenericAvroRecord(org.apache.avro.generic.GenericRecord rec) {
-    rec = (org.apache.avro.generic.GenericRecord) readWorn(wornBytes(rec));
-    SchemaInfo info =
-        new SchemaInfo(
-            rec.getSchema().getName(),
-            rec.getSchema().toString().getBytes(),
-            SchemaType.AVRO,
-            Collections.emptyMap());
-    GenericSchema<GenericRecord> avroSchema = DefaultImplementation.getGenericSchema(info);
-    return new GenericAvroRecord(null, rec.getSchema(), avroSchema.getFields(), rec);
-  }
-
-  private ObjectMapper mapper = new ObjectMapper();
-
-  protected GenericRecord pulsarGenericJsonRecord(String json) {
-    try {
-      JsonNode node = mapper.readTree(json);
-      List<Field> fields = new ArrayList<>();
-      int i = 0;
-      for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
-        fields.add(new Field(it.next(), i++));
-      }
-      return new GenericJsonReader(fields).read(json.getBytes(StandardCharsets.UTF_8));
-    } catch (Exception ex) {
-      throw ITConnectorBase.toRuntime(ex);
-    }
-  }
-
-  protected GenericContainer readWorn(byte[] data) {
-    DatumReader<GenericContainer> reader = new Utf8ToStringGenericDatumReader<>();
-    try (DataFileReader<GenericContainer> drdr =
-        new DataFileReader<>(new SeekableByteArrayInput(data), reader)) {
-      return drdr.next();
-    } catch (Exception ex) {
-      throw ITConnectorBase.toRuntime(ex);
     }
   }
 }

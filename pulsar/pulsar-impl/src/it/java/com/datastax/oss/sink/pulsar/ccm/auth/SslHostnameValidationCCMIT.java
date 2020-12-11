@@ -17,6 +17,7 @@ package com.datastax.oss.sink.pulsar.ccm.auth;
 
 import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.*;
 import static com.datastax.oss.sink.config.SslConfig.*;
+import static com.datastax.oss.sink.pulsar.TestUtil.*;
 import static org.assertj.core.api.Assertions.*;
 
 import com.datastax.oss.driver.api.core.CqlSession;

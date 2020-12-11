@@ -48,8 +48,8 @@ class GenStructDataTest {
     GenericRecord struct = new GenericData.Record(schema);
     struct.put("bigint", 1234L);
     struct.put("boolean", false);
-    struct.put("bytes", new byte[] {3, 2, 1});
-    GenStruct genValue = GenSchema.convert(TestUtil.pulsarGenericRecord(struct));
+    struct.put("bytes", ByteBuffer.wrap(new byte[] {3, 2, 1}));
+    GenStruct genValue = GenSchema.convert(TestUtil.pulsarGenericAvroRecord(struct));
 
     structData = new StructData<>(genValue, adapter);
   }
