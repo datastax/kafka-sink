@@ -18,12 +18,12 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.sink.RetriableException;
 import com.datastax.oss.sink.config.ConfigException;
 import com.datastax.oss.sink.record.SchemaSupport;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 public class SchemedGenericRecordAPIAdapter
     implements APIAdapter<
@@ -93,42 +93,18 @@ public class SchemedGenericRecordAPIAdapter
 
   @Override
   public Set<String> fields(SchemedGenericRecord schemedGenericRecord) {
-    return schemedGenericRecord
-        .getSchema()
-        .getFields()
-        .stream()
-        .map(Schema.Field::name)
-        .collect(Collectors.toSet());
+    return schemedGenericRecord.getFields();
   }
 
   @Override
   public Object fieldValue(SchemedGenericRecord schemedGenericRecord, String fieldName) {
-    log.info("fieldValue recval={} field={}", schemedGenericRecord.getRecord(), fieldName);
-    log.info("fields of gen record");
-    schemedGenericRecord
-        .getRecord()
-        .getFields()
-        .stream()
-        .forEach(
-            f ->
-                log.info(
-                    "  {}={}",
-                    f.getName(),
-                    schemedGenericRecord.getRecord().getField(f.getName())));
-    Object val = schemedGenericRecord.getRecord().getField(fieldName);
-    log.info("val {}", val);
-
-    if (val instanceof GenericRecord)
-      val =
-          new SchemedGenericRecord(
-              (GenericRecord) val, schemedGenericRecord.getSchema().getField(fieldName).schema());
-    // workaround pulsar null->"null" bug
-    if ("null".equals(val)) val = null;
-    return val;
+    return schemedGenericRecord.getField(fieldName);
   }
 
   @Override
   public Schema fieldSchema(Schema schema, String fieldName) {
+    Schema schema1 = schema.getField(fieldName).schema();
+    log.info("field schema {} {} {}", schema, fieldName, schema1);
     return schema.getField(fieldName).schema();
   }
 

@@ -25,12 +25,13 @@ import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
 import com.datastax.oss.sink.record.StructDataMetadata;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Codec to convert a Pulsar {@link GenericRecord} to a UDT. */
 public class SchemedGenericRecordToUDTCodec
@@ -83,7 +84,7 @@ public class SchemedGenericRecordToUDTCodec
               structMetadata.getFieldType(udtFieldName.asInternal(), udtFieldType);
       ConvertingCodec<Object, Object> fieldCodec =
           codecFactory.createConvertingCodec(udtFieldType, fieldType, false);
-      Object fv = external.getRecord().getField(udtFieldName.asInternal());
+      Object fv = external.getField(udtFieldName.asInternal());
       if (fv instanceof Utf8) fv = fv.toString();
       Object o = fieldCodec.externalToInternal(fv);
       value = value.set(udtFieldName, o, fieldCodec.getInternalJavaType());

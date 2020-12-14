@@ -15,8 +15,14 @@
  */
 package com.datastax.oss.sink.pulsar;
 
+import com.datastax.oss.sink.util.Tuple2;
 import org.apache.avro.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SchemedGenericRecord {
 
@@ -28,11 +34,30 @@ public class SchemedGenericRecord {
     this.schema = schema;
   }
 
-  public GenericRecord getRecord() {
-    return record;
-  }
-
   public Schema getSchema() {
     return schema;
+  }
+
+  public Set<String> getFields() {
+    return schema.getFields().stream().map(Schema.Field::name).collect(Collectors.toSet());
+  }
+
+  public Object getField(String fieldName) {
+    Object val = record.getField(fieldName);
+    if (val instanceof GenericRecord) {
+      val =
+              new SchemedGenericRecord(
+                      (GenericRecord) val, schema.getField(fieldName).schema());
+    } else if (val instanceof Map) {
+      return castKeys((Map<?, ?>) val);
+    } else if ("null".equals(val)) val = null;
+    return val;
+  }
+
+  public static Map<String, ?> castKeys(Map<?, ?> map) {
+    return ((Map<?, ?>) map).entrySet().stream()
+            .map(e -> Tuple2.of(String.valueOf(e.getKey()),
+                    e.getValue() instanceof Map ? castKeys((Map<?, ?>) e.getValue()) : e.getValue()))
+            .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
   }
 }

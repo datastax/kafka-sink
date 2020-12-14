@@ -15,6 +15,8 @@
  */
 package com.datastax.oss.sink.pulsar.gen;
 
+import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +35,9 @@ public class GenStruct {
   }
 
   public Object value(String fieldName) {
-    return values.get(fieldName);
+    Object val = values.get(fieldName);
+    if (val instanceof Map) return SchemedGenericRecord.castKeys((Map<?, ?>) val);
+    return val;
   }
 
   public Set<String> fields() {

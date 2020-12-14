@@ -22,10 +22,11 @@ import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
 import com.datastax.oss.sink.record.StructDataMetadataSupport;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** Codec to convert an avro {@link GenericRecord} to a Map. */
 public class SchemedGenericRecordToMapCodec extends ConvertingCodec<SchemedGenericRecord, Map> {
@@ -56,7 +57,7 @@ public class SchemedGenericRecordToMapCodec extends ConvertingCodec<SchemedGener
         codecFactory.createConvertingCodec(definition.getValueType(), valueGenType, false);
 
     for (Schema.Field field : schema.getFields()) {
-      result.put(field.name(), codec.externalToInternal(record.getRecord().getField(field.name())));
+      result.put(field.name(), codec.externalToInternal(record.getField(field.name())));
     }
 
     return result;
