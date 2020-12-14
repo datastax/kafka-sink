@@ -16,6 +16,7 @@
 package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.sink.pulsar.util.DataReader;
+import com.datastax.oss.sink.pulsar.util.GenericJsonRecordReconstructor;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
@@ -25,7 +26,6 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.io.DatumWriter;
 import org.apache.pulsar.client.api.schema.GenericRecord;
-import org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.annotations.Connector;
 import org.apache.pulsar.io.core.annotations.IOType;
@@ -43,7 +43,8 @@ public class ReflectionGenericRecordSink extends GenericRecordSink<Object> {
   @Override
   protected Object readValue(Record<GenericRecord> record) throws Exception {
     if (record.getValue() == null) return null;
-    return assimilator.assimilateFromEnvelope(record.getValue());
+    return assimilator.assimilateFromEnvelope(
+        GenericJsonRecordReconstructor.reconstruct(record.getValue()));
   }
 
   public static class GenericRecordAssimilator {
@@ -86,7 +87,8 @@ public class ReflectionGenericRecordSink extends GenericRecordSink<Object> {
 
     public org.apache.avro.generic.GenericRecord assimilateFromEnvelope(GenericRecord envelope)
         throws Exception {
-      if (envelope.getClass().getName().equals(GenericAvroRecord.class.getName())) {
+      if ("org.apache.pulsar.client.impl.schema.generic.GenericAvroRecord"
+          .equals(envelope.getClass().getName())) {
         if (getAvroRecord == null) getAvroRecord = envelope.getClass().getMethod("getAvroRecord");
         return assimilate(getAvroRecord.invoke(envelope));
       } else {
@@ -99,7 +101,7 @@ public class ReflectionGenericRecordSink extends GenericRecordSink<Object> {
 
   @Override
   protected DataReader structuredStringReader() {
-    return DataReader.AS_IS;
+    return DataReader.STRING;
   }
 
   @Override

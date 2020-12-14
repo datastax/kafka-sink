@@ -287,7 +287,13 @@ public class RecordMapper {
       DataType cqlType,
       GenericType<? extends T> javaType) {
     TypeCodec<T> codec = mapping.codec(variable, cqlType, javaType);
-    ByteBuffer bb = codec.encode(raw, builder.protocolVersion());
+
+    ByteBuffer bb;
+    try {
+      bb = codec.encode(raw, builder.protocolVersion());
+    } catch (Exception ex) {
+      throw ex;
+    }
     // Account for nullToUnset.
     if (isNull(bb, cqlType)) {
       if (isPrimaryKey(variable)) {

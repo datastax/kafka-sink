@@ -203,7 +203,10 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
         headers.stream().map(h -> h.name + "=" + h.value).collect(Collectors.toSet()));
     if (payload != null || key != null || !headers.isEmpty())
       processor.process(Collections.singleton(new LocalRecord<>(record, headers, key, payload)));
-    else log.debug("header, key and value are empty, nothing to process");
+    else {
+      log.debug("header, key and value are empty, nothing to process");
+      record.ack();
+    }
   }
 
   private Object readFromString(DataReader reader, String string) {

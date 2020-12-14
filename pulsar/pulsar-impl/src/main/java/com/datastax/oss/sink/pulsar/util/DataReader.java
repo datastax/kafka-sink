@@ -17,6 +17,7 @@ package com.datastax.oss.sink.pulsar.util;
 
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
+import com.datastax.oss.sink.pulsar.AvroGenericRecordJsonNode;
 import com.datastax.oss.sink.pulsar.gen.GenSchema;
 import com.datastax.oss.sink.pulsar.gen.GenStruct;
 import com.datastax.oss.sink.pulsar.util.kite.JsonUtil;
@@ -38,6 +39,9 @@ import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface DataReader<D> {
 
@@ -48,7 +52,6 @@ public interface DataReader<D> {
   DataReader<GenericContainer> WORN_AVRO = new WornAvroReader();
   DataReader<GenericContainer> WORN_JSON = new WornJsonReader();
   DataReader<GenStruct> GEN_STRUCT_JSON = new GenStructJsonReader();
-  DataReader<String> AS_IS = new NoopReader();
   DataReader<ByteBuffer> BLOB = new BlobReader();
   DataReader<String> STRING = new StringReader();
   DataReader<Long> LONG = new LongReader();
@@ -83,29 +86,61 @@ public interface DataReader<D> {
     return Optional.ofNullable(PREDEFS.get(type.getProtocolCode()));
   }
 
-  static DataReader<GenericContainer> createSingleAvro(Schema schema) {
-    return new SingleAvroReader(schema);
+  static DataReader<? extends GenericContainer> createSchemedAvro(Schema schema) {
+    return new SchemedAvroReader(schema);
   }
 
-  class SingleAvroReader implements DataReader<GenericContainer> {
+  static DataReader<? extends GenericRecord> createSchemedJson(Schema schema) {
+    return new SchemedJsonReader(schema);
+  }
+
+  class SchemedAvroReader implements DataReader<GenericContainer> {
     private Schema schema;
 
-    public SingleAvroReader(Schema schema) {
+    private SchemedAvroReader(Schema schema) {
       this.schema = schema;
     }
-
-    private DecoderFactory decoderFactory = DecoderFactory.get();
 
     @Override
     public GenericContainer read(byte[] data) throws IOException {
       DatumReader<GenericRecord> reader = new Utf8ToStringGenericDatumReader<>(schema);
-      return reader.read(null, decoderFactory.binaryDecoder(data, null));
+      return reader.read(null, DecoderFactory.get().binaryDecoder(data, null));
     }
 
     @Override
     public GenericContainer read(String data) throws IOException {
-      DatumReader<GenericRecord> reader = new Utf8ToStringGenericDatumReader<>();
-      return reader.read(null, decoderFactory.jsonDecoder(schema, data));
+      DatumReader<GenericRecord> reader = new Utf8ToStringGenericDatumReader<>(schema);
+      return reader.read(null, DecoderFactory.get().jsonDecoder(schema, data));
+    }
+  }
+
+  static final Logger log = LoggerFactory.getLogger(DataReader.class);
+
+  class SchemedJsonReader implements DataReader<AvroGenericRecordJsonNode> {
+    private Schema schema;
+
+    private SchemedJsonReader(Schema schema) {
+      this.schema = schema;
+    }
+
+    private String unescape(String s) {
+      String us = StringEscapeUtils.unescapeJava(s);
+      if (us.startsWith("\"")) us = us.substring(1, us.length() - 1);
+      log.info("uenscaped {}", us);
+      return us;
+    }
+
+    private ObjectMapper mapper = new ObjectMapper();
+
+    @Override
+    public AvroGenericRecordJsonNode read(byte[] data) throws IOException {
+      return new AvroGenericRecordJsonNode(
+          schema, mapper.readTree(unescape(new String(data, StandardCharsets.UTF_8))));
+    }
+
+    @Override
+    public AvroGenericRecordJsonNode read(String data) throws IOException {
+      return new AvroGenericRecordJsonNode(schema, mapper.readTree(unescape(data)));
     }
   }
 
@@ -164,18 +199,6 @@ public interface DataReader<D> {
       JsonNode node = mapper.readTree(data);
       if (!node.isObject() && !node.isArray()) throw new JsonIsNotContainer(node);
       return GenSchema.convert(node);
-    }
-  }
-
-  class NoopReader implements DataReader<String> {
-    @Override
-    public String read(byte[] data) throws IOException {
-      return new String(data, StandardCharsets.UTF_8);
-    }
-
-    @Override
-    public String read(String data) throws IOException {
-      return data;
     }
   }
 

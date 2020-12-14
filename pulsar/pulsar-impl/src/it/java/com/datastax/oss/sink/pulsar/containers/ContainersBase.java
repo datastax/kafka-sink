@@ -20,10 +20,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.datastax.driver.core.Session;
 import com.datastax.oss.sink.pulsar.BaseSink;
 import com.datastax.oss.sink.pulsar.util.ConfigUtil;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.io.Resources;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,25 +31,20 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.file.DataFileWriter;
-import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.io.DatumWriter;
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.common.io.SinkConfig;
 import org.apache.pulsar.common.policies.data.SinkStatus;
-import org.apache.pulsar.common.schema.SchemaInfo;
-import org.apache.pulsar.common.schema.SchemaType;
 import org.testcontainers.containers.CassandraContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PulsarContainer;
@@ -104,8 +99,6 @@ public class ContainersBase {
       e.printStackTrace();
     }
 
-    System.out.println(">>>nar " + nar.getAbsolutePath());
-
     pulsar =
         new PulsarContainer(DockerImageName.parse("apachepulsar/pulsar:2.8.0-SNAPSHOT"))
             .withImagePullPolicy(PullPolicy.defaultPolicy())
@@ -154,6 +147,10 @@ public class ContainersBase {
             sinkPkgUrl);
   }
 
+  static void deleteSink(String name) throws PulsarAdminException {
+    pulsarAdmin.sinks().deleteSink("public", "default", name);
+  }
+
   void waitForReadySink(String sinkName) {
     Failsafe.with(checkPolicy)
         .run(
@@ -161,6 +158,12 @@ public class ContainersBase {
               SinkStatus status = pulsarAdmin.sinks().getSinkStatus("public", "default", sinkName);
               assertTrue(status.getInstances().get(0).getStatus().isRunning());
             });
+  }
+
+  private Map<String, Integer> lastMessageNum = new HashMap<>();
+
+  protected int lastMessageNum(String sinkName) {
+    return lastMessageNum.computeIfAbsent(sinkName, k -> 0);
   }
 
   void waitForProcessedMessages(String sinkName, int messageNum) {
@@ -172,13 +175,14 @@ public class ContainersBase {
                   messageNum, status.getInstances().get(0).getStatus().getNumReadFromPulsar());
               assertEquals(
                   messageNum, status.getInstances().get(0).getStatus().getNumWrittenToSink());
+              lastMessageNum.put(sinkName, messageNum);
             });
   }
 
-  private RetryPolicy<?> checkPolicy =
+  protected RetryPolicy<?> checkPolicy =
       new RetryPolicy<>().withDelay(Duration.ofSeconds(3)).withMaxRetries(5);
 
-  private String topic(String shortName) {
+  protected String topic(String shortName) {
     return "persistent://public/default/" + shortName;
   }
 
@@ -200,23 +204,15 @@ public class ContainersBase {
     statrec.put("isfact", true);
   }
 
-  SchemaInfo recSchemaInfo(SchemaType type) {
-    return new SchemaInfo(
-        statrec.getSchema().getName(),
-        statrec.getSchema().toString().getBytes(),
-        type,
-        Collections.emptyMap());
-  }
+  ObjectMapper mapper = new ObjectMapper();
 
-  static byte[] wornBytes(GenericContainer record) throws IOException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    DatumWriter<GenericContainer> dwrt = new GenericDatumWriter<>(record.getSchema());
-    DataFileWriter<GenericContainer> wrt = new DataFileWriter<>(dwrt);
-    wrt.create(record.getSchema(), baos);
-    wrt.append(record);
-    wrt.close();
-    return baos.toByteArray();
-  }
+  JsonNode statNode =
+      mapper
+          .createObjectNode()
+          .put("part", "P1")
+          .put("id", UUID.randomUUID().toString())
+          .put("number", 345)
+          .put("isfact", true);
 
   static void runScript(String script, Session session) throws IOException {
     URL url = ContainersBase.class.getResource(script);
@@ -225,10 +221,48 @@ public class ContainersBase {
     cql = cql.replaceAll("(?m)//.*$", "");
     String[] statements = cql.split(";");
     for (String statement : statements) {
-      System.out.println("stmt: " + statement);
       statement = statement.trim();
       if (statement.isEmpty()) continue;
       session.execute(statement);
+    }
+  }
+
+  public static class Pojo {
+    private String part;
+    private String id;
+    private int number;
+    private boolean isfact;
+
+    public String getPart() {
+      return part;
+    }
+
+    public void setPart(String part) {
+      this.part = part;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    public void setId(String id) {
+      this.id = id;
+    }
+
+    public int getNumber() {
+      return number;
+    }
+
+    public void setNumber(int number) {
+      this.number = number;
+    }
+
+    public boolean isIsfact() {
+      return isfact;
+    }
+
+    public void setIsfact(boolean isfact) {
+      this.isfact = isfact;
     }
   }
 }

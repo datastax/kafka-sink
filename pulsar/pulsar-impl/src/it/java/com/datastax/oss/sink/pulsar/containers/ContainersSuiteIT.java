@@ -15,6 +15,10 @@
  */
 package com.datastax.oss.sink.pulsar.containers;
 
+import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
+import com.datastax.oss.sink.pulsar.GenericRecordSink;
+import com.datastax.oss.sink.pulsar.ReflectionGenericRecordSink;
+import com.datastax.oss.sink.pulsar.SchemedGenericRecordSink;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 
@@ -25,8 +29,44 @@ class ContainersSuiteIT {
   class Bytes extends BytesSinkPart {}
 
   @Nested
-  class SchemedAvro extends SchemedGenericAvroRecordSinkPart {}
+  class Schemed extends GenericRecordSinkPart {
+
+    @Override
+    protected String basicName() {
+      return "schemed-gr";
+    }
+
+    @Override
+    protected Class<? extends GenericRecordSink> sinkClass() {
+      return SchemedGenericRecordSink.class;
+    }
+  }
 
   @Nested
-  class SchemedJson extends SchemedGenericJsonRecordSinkPart {}
+  class Reflected extends GenericRecordSinkPart {
+
+    @Override
+    protected String basicName() {
+      return "reflected-gr";
+    }
+
+    @Override
+    protected Class<? extends GenericRecordSink> sinkClass() {
+      return ReflectionGenericRecordSink.class;
+    }
+  }
+
+  @Nested
+  class GenSchema extends GenericRecordSinkPart {
+
+    @Override
+    protected String basicName() {
+      return "genschema-gr";
+    }
+
+    @Override
+    protected Class<? extends GenericRecordSink> sinkClass() {
+      return GenSchemaGenericRecordSink.class;
+    }
+  }
 }

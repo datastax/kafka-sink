@@ -18,6 +18,7 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.sink.pulsar.gen.GenSchema;
 import com.datastax.oss.sink.pulsar.gen.GenStruct;
 import com.datastax.oss.sink.pulsar.util.DataReader;
+import com.datastax.oss.sink.pulsar.util.GenericJsonRecordReconstructor;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.annotations.Connector;
@@ -38,11 +39,12 @@ public class GenSchemaGenericRecordSink extends GenericRecordSink<GenStruct> {
 
   @Override
   protected GenStruct readValue(Record<GenericRecord> record) throws Exception {
-    return GenSchema.convert(record.getValue());
+    if (record.getValue() == null) return null;
+    return GenSchema.convert(GenericJsonRecordReconstructor.reconstruct(record.getValue()));
   }
 
   @Override
   protected DataReader structuredStringReader() {
-    return DataReader.AS_IS;
+    return DataReader.STRING;
   }
 }

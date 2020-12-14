@@ -17,7 +17,6 @@ package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.sink.config.TopicConfig;
 import com.datastax.oss.sink.pulsar.util.DataReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -27,6 +26,7 @@ import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminBuilder;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.SinkContext;
 import org.apache.pulsar.io.core.annotations.Connector;
@@ -59,7 +59,7 @@ public class BytesSink extends BaseSink<byte[], Object> {
 
   public void setSchema(String topic, Schema schema) {
     if (schema == null) valueReaders.remove(topic);
-    else valueReaders.put(topic, DataReader.createSingleAvro(schema));
+    else valueReaders.put(topic, DataReader.createSchemedAvro(schema));
   }
 
   @Override
@@ -103,42 +103,79 @@ public class BytesSink extends BaseSink<byte[], Object> {
   }
 
   private void checkSchemaRegister(String topic, String tenant, String namespace) {
-    if (!standalone) {
-      log.debug("checking for schemas in register");
-      try {
-        SchemaInfo info =
-            admin.schemas().getSchemaInfo(String.format("%s/%s/%s", tenant, namespace, topic));
-        if (info != null) {
-          try {
-            Schema schema = new Schema.Parser().parse(new ByteArrayInputStream(info.getSchema()));
-            valueReaders.put(topic, DataReader.createSingleAvro(schema));
-            log.debug("got value schema from register for [{}] {}", topic, schema);
-          } catch (Exception ex) {
-            log.error("could not parse value schema from register for topic " + topic, ex);
+    if (standalone) return;
+    log.info("checking for schemas in register");
+    try {
+      SchemaInfo info =
+          admin.schemas().getSchemaInfo(String.format("%s/%s/%s", tenant, namespace, topic));
+      if (info != null) {
+        try {
+          DataReader reader = readerFromSchema(info);
+          if (reader != null) {
+            valueReaders.put(topic, reader);
+            log.info(
+                "got value schema from register for [{}] {}", topic, info.getSchemaDefinition());
           }
+        } catch (Exception ex) {
+          log.error("could not parse value schema from register for topic " + topic, ex);
         }
-      } catch (PulsarAdminException ex) {
-        log.error("could not get value schema from register for topic " + topic, ex);
       }
+    } catch (PulsarAdminException ex) {
+      log.error("could not get value schema from register for topic " + topic, ex);
     }
+  }
+
+  private DataReader readerFromSchema(SchemaInfo info) {
+    DataReader reader = null;
+    log.info("schema def {}", info.getSchemaDefinition());
+    log.info("schema len {}", info.getSchema().length);
+    if (!info.getType().isStruct()) return null;
+    Schema schema = new Schema.Parser().parse(info.getSchemaDefinition());
+    if (info.getType() == SchemaType.AVRO) {
+      reader = DataReader.createSchemedAvro(schema);
+    } else if (info.getType() == SchemaType.JSON) {
+      reader = DataReader.createSchemedJson(schema);
+    } else log.warn("reader of type {} not supported", info.getType());
+    return reader;
+  }
+
+  private DataReader getReader(Record<byte[]> record) {
+    String topic = LocalRecord.shortTopic(record);
+    DataReader reader = valueReaders.get(topic);
+    if (reader != null) return reader;
+    if (record.getSchema() == null) return null;
+    reader = readerFromSchema(record.getSchema().getSchemaInfo());
+    if (reader != null) {
+      valueReaders.put(topic, reader);
+      log.info("chosen {} for topic {}", reader.getClass().getSimpleName(), topic);
+    }
+    return reader;
   }
 
   @Override
   protected Object readValue(Record<byte[]> record) throws IOException {
     if (record.getValue() == null) return null;
-    DataReader reader = valueReaders.get(LocalRecord.shortTopic(record));
+    DataReader reader = getReader(record);
+    Object res;
     if (reader != null) {
-      return reader.read(record.getValue());
+      res = reader.read(record.getValue());
+      log.info("read using {}", reader.getClass().getSimpleName());
+      return res;
     } else {
       try {
         if (DataReader.mayContainAvroSchema(record.getValue())) {
-          return DataReader.WORN_AVRO.read(record.getValue());
+          res = DataReader.WORN_AVRO.read(record.getValue());
+          log.info("read using worn_avro reader");
         } else {
-          return DataReader.WORN_JSON.read(record.getValue());
+          res = DataReader.WORN_JSON.read(record.getValue());
+          log.info("read using worn_json reader");
         }
+        return res;
       } catch (Exception ex) {
-        log.error(ex.getMessage(), ex);
-        return new String(record.getValue(), StandardCharsets.UTF_8);
+        log.warn(ex.getMessage(), ex);
+        res = new String(record.getValue(), StandardCharsets.UTF_8);
+        log.info("converted to string");
+        return res;
       }
     }
   }

@@ -44,7 +44,7 @@ public class GenSchema {
   }
 
   public static GenStruct convert(JsonNode node) {
-    return (GenStruct) adjustValue(node);
+    return (GenStruct) adjustJsonValue(node);
   }
 
   private static Object adjustValue(Object o) {
@@ -72,7 +72,7 @@ public class GenSchema {
     } else return o;
   }
 
-  private static Object adjustValue(JsonNode o) {
+  private static Object adjustJsonValue(JsonNode o) {
     if (o == null || o.isNull()) return null;
     if (o.isBinary()) {
       try {
@@ -88,7 +88,7 @@ public class GenSchema {
     else if (o.isBoolean()) return o.booleanValue();
     else if (o.isArray())
       return StreamSupport.stream(o.spliterator(), false)
-          .map(GenSchema::adjustValue)
+          .map(GenSchema::adjustJsonValue)
           .collect(Collectors.toList());
     else if (o.isObject()) {
       StructGenSchema schema = (StructGenSchema) inferSchema(o);
@@ -96,7 +96,7 @@ public class GenSchema {
           schema
               .fieldNames()
               .stream()
-              .map(f -> Tuple2.of(f, adjustValue(o.get(f))))
+              .map(f -> Tuple2.of(f, adjustJsonValue(o.get(f))))
               .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
       return new GenStruct(values, schema);
     } else return o;

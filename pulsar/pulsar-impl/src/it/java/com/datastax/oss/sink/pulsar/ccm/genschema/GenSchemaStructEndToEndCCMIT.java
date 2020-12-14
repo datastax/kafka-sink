@@ -19,9 +19,17 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.sink.pulsar.GenSchemaGenericRecordSink;
 import com.datastax.oss.sink.pulsar.ccm.GenericRecordStructEndToEndCCM;
+import java.text.ParseException;
+import org.junit.jupiter.api.Disabled;
 
 public class GenSchemaStructEndToEndCCMIT extends GenericRecordStructEndToEndCCM {
   protected GenSchemaStructEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session, new GenSchemaGenericRecordSink());
+  }
+
+  @Override
+  @Disabled
+  protected void struct_value_only() throws ParseException {
+    super.struct_value_only();
   }
 }

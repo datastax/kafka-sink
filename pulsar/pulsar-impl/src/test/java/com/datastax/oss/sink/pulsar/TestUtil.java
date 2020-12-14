@@ -78,12 +78,16 @@ public class TestUtil {
 
   public static Schema<GenericRecord> pulsarSchema(
       org.apache.avro.generic.GenericRecord avroRecord) {
-    return Schema.generic(
-        new SchemaInfo(
-            avroRecord.getSchema().getName(),
-            avroRecord.getSchema().toString().getBytes(),
-            SchemaType.AVRO,
-            Collections.emptyMap()));
+    return Schema.generic(schemaInfo(avroRecord, SchemaType.AVRO));
+  }
+
+  public static SchemaInfo schemaInfo(
+      org.apache.avro.generic.GenericRecord record, SchemaType type) {
+    return new SchemaInfo(
+        record.getSchema().getName(),
+        record.getSchema().toString().getBytes(),
+        type,
+        Collections.emptyMap());
   }
 
   public static Schema<GenericRecord> pulsarSchema(JsonNode jsonNode) {
@@ -111,10 +115,18 @@ public class TestUtil {
     if (value instanceof GenericAvroRecord) {
       org.apache.avro.generic.GenericRecord arec = ((GenericAvroRecord) value).getAvroRecord();
       when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(arec));
-    }
-    if (value instanceof GenericJsonRecord) {
+    } else if (value instanceof GenericJsonRecord) {
       GenericJsonRecord jrec = (GenericJsonRecord) value;
       when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(jrec.getJsonNode()));
+    } else if (value instanceof byte[]) {
+      try {
+        org.apache.avro.generic.GenericRecord gc =
+            (org.apache.avro.generic.GenericRecord) readWorn((byte[]) value);
+        when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(gc));
+        byte[] naked = nakedBytes(gc);
+        when(rec.getValue()).thenReturn((T) naked);
+      } catch (Exception ignore) {
+      }
     }
     when(rec.getEventTime()).thenReturn(Optional.ofNullable(timestamp));
     //    Map<String, String> props =

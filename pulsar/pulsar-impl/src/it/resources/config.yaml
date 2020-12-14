@@ -1,5 +1,5 @@
 name: ds-cassandra-sink
-connector.class: com.datastax.oss.sink.pulsar.PulsarSinkConnector
+#connector.class: com.datastax.oss.sink.pulsar.PulsarSinkConnector
 tasks.max: 1
 topics: mytopic
 contactPoints: cass

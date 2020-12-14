@@ -68,7 +68,7 @@ public abstract class GenericRecordStructEndToEndCCM
   }
 
   @Test
-  void struct_value_only() throws ParseException {
+  protected void struct_value_only() throws ParseException {
     // We skip testing the following datatypes, since in Kafka messages, values for these
     // types would simply be strings or numbers, and we'd just pass these right through to
     // the ExtendedCodecRegistry for encoding:

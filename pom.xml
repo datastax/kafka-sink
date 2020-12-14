@@ -35,7 +35,6 @@
     <module>common</module>
     <module>kafka</module>
     <module>pulsar</module>
-    <module>scheck</module>
   </modules>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -72,6 +71,7 @@
     <jackson-databind.version>2.11.1</jackson-databind.version>
     <pulsar.version>2.6.2</pulsar.version>
     <failsafe.version>2.4.0</failsafe.version>
+    <testcontainers.version>1.15.0</testcontainers.version>
   </properties>
   <dependencyManagement>
     <dependencies>
