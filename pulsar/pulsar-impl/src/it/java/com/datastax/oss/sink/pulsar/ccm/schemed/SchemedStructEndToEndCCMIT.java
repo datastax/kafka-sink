@@ -24,5 +24,4 @@ public class SchemedStructEndToEndCCMIT extends GenericRecordStructEndToEndCCM {
   protected SchemedStructEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
     super(ccm, session, new SchemedGenericRecordSink());
   }
-
 }

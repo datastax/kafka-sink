@@ -15,6 +15,10 @@
  */
 package com.datastax.oss.sink.pulsar.ccm;
 
+import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.*;
+import static com.datastax.oss.sink.pulsar.TestUtil.*;
+import static org.assertj.core.api.Assertions.*;
+
 import com.datastax.dse.driver.api.core.data.geometry.LineString;
 import com.datastax.dse.driver.api.core.data.geometry.Point;
 import com.datastax.dse.driver.api.core.data.geometry.Polygon;
@@ -34,15 +38,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
-import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.pulsar.functions.api.Record;
-import org.apache.pulsar.io.core.Sink;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
-
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Duration;
@@ -52,10 +47,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.*;
-import static com.datastax.oss.sink.pulsar.TestUtil.*;
-import static org.assertj.core.api.Assertions.*;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.pulsar.functions.api.Record;
+import org.apache.pulsar.io.core.Sink;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 @Tag("medium")
 public abstract class GenericRecordStructEndToEndCCM
