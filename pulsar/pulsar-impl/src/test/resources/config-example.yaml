@@ -1,5 +1,7 @@
-name: ds-cassandra-sink
-connector.class: com.datastax.oss.sink.pulsar.PulsarSinkConnector
+tenant: public
+namespace: default
+name: csink
+connector.class: com.datastax.oss.sink.pulsar.SimpleGenericRecordSink
 tasks.max: 1
 topics: mytopic
 contactPoints: 192.168.1.103
@@ -38,7 +40,7 @@ topic:
   mytopic:
     testks:
       testtbl:
-        mapping: part=value.part, id=value.id, num=value.number, fact=value.isfact, added=now()
+        mapping: 'part=value.part, id=value.id, num=value.number, fact=value.isfact, added=now()'
         consistencyLevel: LOCAL_ONE
         ttl: -1
         ttlTimeUnit : SECONDS

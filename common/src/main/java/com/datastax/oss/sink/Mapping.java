@@ -31,17 +31,20 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Modeled after the DefaultMapping class in DSBulk. A few key diffs: 1. "variable" in dsbulk =&gt;
  * "column" here 2. the mapping in dsbulk is 1:1, whereas here we support many (columns) to 1 field.
  */
 public class Mapping {
+  private static final Logger log = LoggerFactory.getLogger(Mapping.class);
 
   private final Map<CqlIdentifier, CqlIdentifier> columnsToKafkaFields;
   private final Multimap<CqlIdentifier, CqlIdentifier> kafkaFieldsToDseColumns;
   private final ConvertingCodecFactory codecFactory;
-  private final Cache<CqlIdentifier, TypeCodec<?>> columnsToCodecs;
+  private final Cache<String, TypeCodec<?>> columnsToCodecs;
   private final List<CqlIdentifier> functions;
 
   public Mapping(
@@ -84,7 +87,10 @@ public class Mapping {
     TypeCodec<T> codec =
         (TypeCodec<T>)
             columnsToCodecs.get(
-                column, n -> codecFactory.createConvertingCodec(cqlType, javaType, true));
+                // the same column may appear with different
+                // types in case we see a null and then we see a non null-value
+                // in PulsarSink
+                column + "/" + javaType, n -> codecFactory.createConvertingCodec(cqlType, javaType, true));
     assert codec != null;
     return codec;
   }

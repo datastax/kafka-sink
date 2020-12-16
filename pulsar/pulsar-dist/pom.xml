@@ -91,6 +91,12 @@
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>
+              <relocations>
+                <relocation>
+                  <pattern>com.codahale.metrics</pattern>
+                  <shadedPattern>pulsarsink.com.codahale.metrics</shadedPattern>
+                </relocation>
+              </relocations>
             </configuration>
           </execution>
         </executions>
