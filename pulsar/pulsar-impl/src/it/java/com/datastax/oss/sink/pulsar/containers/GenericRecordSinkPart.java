@@ -20,12 +20,16 @@ import static com.datastax.oss.sink.pulsar.TestUtil.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.datastax.driver.core.Row;
-import com.datastax.oss.sink.pulsar.GenericRecordSink;
+import com.datastax.oss.sink.pulsar.BytesSink;
 import com.datastax.oss.sink.pulsar.util.ConfigUtil;
+import com.datastax.oss.sink.util.Tuple2;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Producer;
@@ -57,27 +61,13 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     releaseClients();
   }
 
-  protected abstract String basicName();
-
-  protected abstract Class<? extends GenericRecordSink> sinkClass();
-
-  protected String name(String string) {
-    return String.format("%s-%s", basicName(), string);
-  }
-
   @BeforeEach
   void before() {
     cassandraSession.execute("truncate testtbl");
   }
 
   private void regSink(String name) throws PulsarAdminException {
-    registerSink(
-        ImmutableMap.<String, Object>builder()
-            .put("topics", name)
-            .put("topic." + name, ConfigUtil.value(defaultSinkConfig, "topic.mytopic"))
-            .build(),
-        name,
-        sinkClass());
+    regSink(name, null, null);
   }
 
   @Test
@@ -86,7 +76,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     regSink(name);
     Producer<GenericRecord> producer =
         pulsarClient.newProducer(pulsarSchema(statrec)).topic(name).create();
-    waitForReadySink(name);
     producer.newMessage().value(pulsarGenericAvroRecord(statrec)).send();
     waitForProcessedMessages(name, 1);
 
@@ -100,7 +89,7 @@ abstract class GenericRecordSinkPart extends ContainersBase {
 
     producer.close();
 
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -111,7 +100,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     Producer<GenericRecord> producer =
         pulsarClient.newProducer(pulsarSchema(statNode)).topic(name).create();
 
-    waitForReadySink(name);
     GenericRecord rec = pulsarGenericJsonRecord(statNode);
     producer.newMessage().value(rec).send();
 
@@ -127,7 +115,7 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     assertTrue(r.getBool("fact"));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -142,7 +130,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     Producer<GenericRecord> producer =
         pulsarClient.newProducer(pulsarSchema(statrec)).topic(name).create();
 
-    waitForReadySink(name);
     producer.newMessage().value(pulsarGenericAvroRecord(statrec)).send();
 
     waitForProcessedMessages(name, 1);
@@ -157,7 +144,7 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     assertTrue(r.getBool("fact"));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -173,7 +160,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
 
     Producer<GenericRecord> producer = pulsarClient.newProducer(schema).topic(name).create();
 
-    waitForReadySink(name);
     producer.newMessage().value(pulsarGenericJsonRecord(statNode)).send();
 
     waitForProcessedMessages(name, 1);
@@ -188,7 +174,7 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     assertTrue(r.getBool("fact"));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -201,7 +187,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     regSink(name);
 
     Producer<byte[]> producer = pulsarClient.newProducer().topic(name).create();
-    waitForReadySink(name);
     Pojo pojo = new Pojo();
     pojo.setPart("pojo1");
     pojo.setId(UUID.randomUUID().toString());
@@ -233,7 +218,7 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     assertTrue(r.getBool("fact"));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -250,7 +235,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     pojo.setIsfact(false);
     Schema<Pojo> schema = JSONSchema.of(Pojo.class);
 
-    waitForReadySink(name);
     producer.newMessage(schema).value(pojo).send();
 
     waitForProcessedMessages(name, 1);
@@ -289,6 +273,6 @@ abstract class GenericRecordSinkPart extends ContainersBase {
     assertTrue(r.getBool("fact"));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 }

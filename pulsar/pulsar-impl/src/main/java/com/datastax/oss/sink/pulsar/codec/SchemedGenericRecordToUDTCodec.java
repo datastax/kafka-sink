@@ -25,13 +25,12 @@ import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
 import com.datastax.oss.sink.record.StructDataMetadata;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.util.Utf8;
-
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 
 /** Codec to convert a Pulsar {@link GenericRecord} to a UDT. */
 public class SchemedGenericRecordToUDTCodec

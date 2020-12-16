@@ -16,6 +16,7 @@
 package com.datastax.oss.sink.pulsar.util;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Strings;
+import com.datastax.oss.sink.util.Tuple2;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,6 +31,44 @@ public class ConfigUtil {
     Map<String, Object> flatInitial = flat(initial);
     flatInitial.putAll(flat(update));
     return tree(flatInitial);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static Map<String, Object> copy(Map<String, Object> source) {
+    return source
+        .entrySet()
+        .stream()
+        .map(
+            et -> {
+              Object val = et.getValue();
+              if (et.getValue() instanceof Map) val = copy((Map<String, Object>) et.getValue());
+              return Tuple2.of(et.getKey(), val);
+            })
+        .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static void rename(Map<String, Object> config, String from, String to) {
+    copy(config, from, to, true);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void copy(Map<String, Object> config, String from, String to, boolean removeFrom) {
+    Map<String, Object> parent = config;
+    String from0 = from;
+    int lastIdx = from.lastIndexOf('.');
+    if (lastIdx != -1) {
+      parent = (Map<String, Object>) value(config, from.substring(0, lastIdx));
+      from0 = from.substring(lastIdx + 1);
+    }
+    Object node = parent.get(from0);
+    if (node == null) throw new IllegalArgumentException("cannot find node on path [" + from + "]");
+    if (removeFrom) parent.remove(from0);
+    parent.put(to, node instanceof Map ? copy((Map<String, Object>) node) : node);
+  }
+
+  public static void copy(Map<String, Object> config, String from, String to) {
+    copy(config, from, to, false);
   }
 
   public static void printMap(Map<String, ?> map) {

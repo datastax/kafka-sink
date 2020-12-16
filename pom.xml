@@ -590,7 +590,7 @@ limitations under the License.]]></inlineHeader>
               <goal>verify</goal>
             </goals>
             <configuration>
-              <excludedGroups>medium,long</excludedGroups>
+              <excludedGroups>medium,long,containers</excludedGroups>
               <reportNameSuffix>short</reportNameSuffix>
               <forkCount>${max.simulacron.clusters}</forkCount>
             </configuration>
@@ -616,6 +616,7 @@ limitations under the License.]]></inlineHeader>
                 </goals>
                 <configuration>
                   <groups>medium</groups>
+                  <excludedGroups>containers</excludedGroups>
                   <reportNameSuffix>medium</reportNameSuffix>
                   <forkCount>${max.ccm.clusters}</forkCount>
                 </configuration>

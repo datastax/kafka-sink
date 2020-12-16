@@ -13,36 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.sink.pulsar.ccm;
+package com.datastax.oss.sink.pulsar.containers.bytes;
 
-import static com.datastax.oss.dsbulk.tests.ccm.CCMCluster.Type.*;
 import static com.datastax.oss.sink.pulsar.TestUtil.*;
 import static org.assertj.core.api.Assertions.*;
 
-import com.datastax.dse.driver.api.core.data.geometry.LineString;
-import com.datastax.dse.driver.api.core.data.geometry.Point;
-import com.datastax.dse.driver.api.core.data.geometry.Polygon;
-import com.datastax.dse.driver.api.core.data.time.DateRange;
-import com.datastax.dse.driver.internal.core.data.geometry.DefaultLineString;
-import com.datastax.dse.driver.internal.core.data.geometry.DefaultPoint;
-import com.datastax.dse.driver.internal.core.data.geometry.DefaultPolygon;
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.core.type.DataTypes;
-import com.datastax.oss.driver.api.core.type.UserDefinedType;
-import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import com.datastax.oss.driver.internal.core.type.DefaultTupleType;
-import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TupleValue;
+import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.UserType;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
+import com.datastax.oss.sink.pulsar.BytesSink;
+import com.datastax.oss.sink.pulsar.util.ConfigUtil;
+import com.datastax.oss.sink.util.Tuple2;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,24 +41,33 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.pulsar.functions.api.Record;
-import org.apache.pulsar.io.core.Sink;
+import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.Producer;
+import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.common.schema.SchemaInfo;
+import org.apache.pulsar.common.schema.SchemaType;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-@Tag("medium")
-public abstract class GenericRecordStructEndToEndCCM
-    extends EndToEndCCMITBase<org.apache.pulsar.client.api.schema.GenericRecord> {
+@Tag("containers")
+public class BytesStructEndToEndPart extends BytesPart {
 
-  protected GenericRecordStructEndToEndCCM(
-      CCMCluster ccm,
-      CqlSession session,
-      Sink<org.apache.pulsar.client.api.schema.GenericRecord> sink) {
-    super(ccm, session, sink);
+  @Override
+  protected String basicName() {
+    return "bytes-struct";
+  }
+
+  @AfterEach
+  void teardown() {
+    cassandraSession.execute("truncate types");
+    cassandraSession.execute("truncate small_simple");
   }
 
   @Test
-  void struct_value_only() throws ParseException {
+  void struct_value_only() throws ParseException, PulsarAdminException, PulsarClientException {
+    String name = name("svo");
     // We skip testing the following datatypes, since in Kafka messages, values for these
     // types would simply be strings or numbers, and we'd just pass these right through to
     // the ExtendedCodecRegistry for encoding:
@@ -84,36 +83,28 @@ public abstract class GenericRecordStructEndToEndCCM
     // uuid
     // varint
 
-    String withDateRange = hasDateRange ? "daterangecol=value.daterange, " : "";
-    String withGeotypes =
-        ccm.getClusterType() == DSE
-            ? "pointcol=value.point, linestringcol=value.linestring, polygoncol=value.polygon, "
-            : "";
-
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, "
-                + "booleancol=value.boolean, "
-                + "doublecol=value.double, "
-                + "floatcol=value.float, "
-                + "intcol=value.int, "
-                + "smallintcol=value.smallint, "
-                + "textcol=value.text, "
-                + "tinyintcol=value.tinyint, "
-                + "mapcol=value.map, "
-                + "mapnestedcol=value.mapnested, "
-                + "listcol=value.list, "
-                + "listnestedcol=value.listnested, "
-                + "setcol=value.set, "
-                + "setnestedcol=value.setnested, "
-                + "tuplecol=value.tuple, "
-                + "udtcol=value.udt, "
-                + "udtfromlistcol=value.udtfromlist, "
-                + "booleanudtcol=value.booleanudt, "
-                + "booleanudtfromlistcol=value.booleanudtfromlist, "
-                + withGeotypes
-                + withDateRange
-                + "blobcol=value.blob"));
+    String mapping =
+        "bigintcol=value.bigint, "
+            + "booleancol=value.boolean, "
+            + "doublecol=value.double, "
+            + "floatcol=value.float, "
+            + "intcol=value.int, "
+            + "smallintcol=value.smallint, "
+            + "textcol=value.text, "
+            + "tinyintcol=value.tinyint, "
+            + "mapcol=value.map, "
+            + "mapnestedcol=value.mapnested, "
+            + "listcol=value.list, "
+            + "listnestedcol=value.listnested, "
+            + "setcol=value.set, "
+            + "setnestedcol=value.setnested, "
+            + "tuplecol=value.tuple, "
+            + "udtcol=value.udt, "
+            + "udtfromlistcol=value.udtfromlist, "
+            + "booleanudtcol=value.booleanudt, "
+            + "booleanudtfromlistcol=value.booleanudtfromlist, "
+            + "blobcol=value.blob";
+    regSink(name, "types", mapping);
 
     Schema schema =
         SchemaBuilder.record("pulsar")
@@ -255,14 +246,15 @@ public abstract class GenericRecordStructEndToEndCCM
     value.put("polygon", "POLYGON ((0.0 0.0, 20.0 0.0, 25.0 25.0, 0.0 25.0, 0.0 0.0))");
     value.put("daterange", "[* TO 2014-12-01]");
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
+    send(name, null, wornBytes(value));
+    unregisterSink(name);
 
     // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT * FROM types").all();
+    List<Row> results = cassandraSession.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
-    assertThat(row.getBoolean("booleancol")).isEqualTo((baseValue.intValue() & 1) == 1);
+    assertThat(row.getBool("booleancol")).isEqualTo((baseValue.intValue() & 1) == 1);
     assertThat(row.getDouble("doublecol")).isEqualTo((double) baseValue + 0.123);
     assertThat(row.getFloat("floatcol")).isEqualTo(baseValue.floatValue() + 0.987f);
     assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
@@ -270,70 +262,47 @@ public abstract class GenericRecordStructEndToEndCCM
     assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
     assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
     assertThat(row.getMap("mapcol", String.class, Integer.class)).isEqualTo(mapValue);
-    assertThat(row.getMap("mapnestedcol", String.class, Map.class)).isEqualTo(nestedMapValue);
+    assertThat(row.getObject("mapnestedcol")).isEqualTo(nestedMapValue);
     assertThat(row.getList("listcol", Integer.class)).isEqualTo(listValue);
-    assertThat(row.getList("listnestedcol", Set.class))
+    assertThat(row.getObject("listnestedcol"))
         .isEqualTo(
             new ArrayList<Set>(Arrays.asList(new HashSet<>(listValue), new HashSet<>(list2))));
-    assertThat(row.getSet("setcol", Integer.class)).isEqualTo(new HashSet<>(listValue));
-    assertThat(row.getSet("setnestedcol", List.class)).isEqualTo(new HashSet<>(nestedListValue));
+    assertThat(row.getObject("setcol")).isEqualTo(new HashSet<>(listValue));
+    assertThat(row.getObject("setnestedcol")).isEqualTo(new HashSet<>(nestedListValue));
 
-    DefaultTupleType tupleType =
-        new DefaultTupleType(
-            ImmutableList.of(DataTypes.SMALLINT, DataTypes.INT, DataTypes.INT),
-            session.getContext());
-    assertThat(row.getTupleValue("tuplecol")).isEqualTo(tupleType.newValue((short) 37, 96, 90));
+    TupleValue tv = row.getTupleValue("tuplecol");
+    assertThat(tv.getShort(0)).isEqualTo((short) 37);
+    assertThat(tv.getInt(1)).isEqualTo(96);
+    assertThat(tv.getInt(2)).isEqualTo(90);
+    UDTValue udt = row.getUDTValue("udtcol");
+    assertThat(udt.getInt("udtmem1")).isEqualTo(47);
+    assertThat(udt.getString("udtmem2")).isEqualTo("90");
+    udt = row.getUDTValue("udtfromlistcol");
+    assertThat(udt.getInt("udtmem1")).isEqualTo(47);
+    assertThat(udt.getString("udtmem2")).isEqualTo("90");
 
-    UserDefinedType udt =
-        new UserDefinedTypeBuilder(keyspaceName, "myudt")
-            .withField("udtmem1", DataTypes.INT)
-            .withField("udtmem2", DataTypes.TEXT)
-            .build();
-    udt.attach(session.getContext());
-    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(47, "90"));
-    assertThat(row.getUdtValue("udtfromlistcol")).isEqualTo(udt.newValue(47, "90"));
+    UserType type =
+        cassandraSession
+            .getCluster()
+            .getMetadata()
+            .getKeyspace("testks")
+            .getUserType("mybooleanudt");
+    assertThat(row.getUDTValue("booleanudtcol"))
+        .isEqualTo(type.newValue().setBool("udtmem1", true).setString("udtmem2", "false"));
+    assertThat(row.getUDTValue("booleanudtfromlistcol"))
+        .isEqualTo(type.newValue().setBool("udtmem1", true).setString("udtmem2", "false"));
 
-    UserDefinedType booleanUdt =
-        new UserDefinedTypeBuilder(keyspaceName, "mybooleanudt")
-            .withField("udtmem1", DataTypes.BOOLEAN)
-            .withField("udtmem2", DataTypes.TEXT)
-            .build();
-    booleanUdt.attach(session.getContext());
-    assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "false"));
-    assertThat(row.getUdtValue("booleanudtfromlistcol"))
-        .isEqualTo(booleanUdt.newValue(true, "false"));
-
-    ByteBuffer blobcol = row.getByteBuffer("blobcol");
+    ByteBuffer blobcol = row.getBytes("blobcol");
     assertThat(blobcol).isNotNull();
     assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
-    if (ccm.getClusterType() == DSE) {
-      assertThat(row.get("pointcol", GenericType.of(Point.class)))
-          .isEqualTo(new DefaultPoint(32.0, 64.0));
-      assertThat(row.get("linestringcol", GenericType.of(LineString.class)))
-          .isEqualTo(
-              new DefaultLineString(new DefaultPoint(32.0, 64.0), new DefaultPoint(48.5, 96.5)));
-      assertThat(row.get("polygoncol", GenericType.of(Polygon.class)))
-          .isEqualTo(
-              new DefaultPolygon(
-                  new DefaultPoint(0, 0),
-                  new DefaultPoint(20, 0),
-                  new DefaultPoint(25, 25),
-                  new DefaultPoint(0, 25),
-                  new DefaultPoint(0, 0)));
-    }
-    if (hasDateRange) {
-      assertThat(row.get("daterangecol", GenericType.of(DateRange.class)))
-          .isEqualTo(DateRange.parse("[* TO 2014-12-01]"));
-    }
   }
 
   @Test
-  void struct_value_struct_field() {
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, "
-                + "udtcol=value.struct, "
-                + "booleanudtcol=value.booleanstruct"));
+  void struct_value_struct_field() throws PulsarAdminException, PulsarClientException {
+    String name = name("svsf");
+    String mapping =
+        "bigintcol=value.bigint, " + "udtcol=value.struct, " + "booleanudtcol=value.booleanstruct";
+    regSink(name, "types", mapping);
 
     Schema fieldSchema =
         SchemaBuilder.record("fieldSchema")
@@ -372,36 +341,28 @@ public abstract class GenericRecordStructEndToEndCCM
     value.put("struct", fieldValue);
     value.put("booleanstruct", booleanFieldValue);
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
+    send(name, null, wornBytes(value));
+    unregisterSink(name);
 
     // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT * FROM types").all();
+    List<Row> results = cassandraSession.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
 
-    UserDefinedType udt =
-        new UserDefinedTypeBuilder(keyspaceName, "myudt")
-            .withField("udtmem1", DataTypes.INT)
-            .withField("udtmem2", DataTypes.TEXT)
-            .build();
-    udt.attach(session.getContext());
-    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+    UDTValue udt = row.getUDTValue("udtcol");
+    assertThat(udt.getInt("udtmem1")).isEqualTo(42);
+    assertThat(udt.getString("udtmem2")).isEqualTo("the answer");
 
-    UserDefinedType booleanUdt =
-        new UserDefinedTypeBuilder(keyspaceName, "mybooleanudt")
-            .withField("udtmem1", DataTypes.BOOLEAN)
-            .withField("udtmem2", DataTypes.TEXT)
-            .build();
-    booleanUdt.attach(session.getContext());
-    assertThat(row.getUdtValue("booleanudtcol")).isEqualTo(booleanUdt.newValue(true, "the answer"));
+    udt = row.getUDTValue("booleanudtcol");
+    assertThat(udt.getBool("udtmem1")).isTrue();
+    assertThat(udt.getString("udtmem2")).isEqualTo("the answer");
   }
 
   @Test
-  void struct_optional_fields_missing() {
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, intcol=value.int, smallintcol=value.smallint"));
+  void struct_optional_fields_missing() throws PulsarAdminException, PulsarClientException {
+    String name = name("sofm");
+    regSink(name, "types", "bigintcol=value.bigint, intcol=value.int, smallintcol=value.smallint");
 
     Schema schema =
         SchemaBuilder.record("pulsar")
@@ -422,10 +383,11 @@ public abstract class GenericRecordStructEndToEndCCM
     value.put("bigint", baseValue);
     value.put("int", baseValue.intValue());
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
+    send(name, null, wornBytes(value));
+    unregisterSink(name);
 
     // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT * FROM types").all();
+    List<Row> results = cassandraSession.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
@@ -433,18 +395,19 @@ public abstract class GenericRecordStructEndToEndCCM
   }
 
   @Test
-  void struct_optional_fields_with_values() {
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, "
-                + "booleancol=value.boolean, "
-                + "doublecol=value.double, "
-                + "floatcol=value.float, "
-                + "intcol=value.int, "
-                + "smallintcol=value.smallint, "
-                + "textcol=value.text, "
-                + "tinyintcol=value.tinyint, "
-                + "blobcol=value.blob"));
+  void struct_optional_fields_with_values() throws PulsarAdminException, PulsarClientException {
+    String name = name("sofwv");
+    String mapping =
+        "bigintcol=value.bigint, "
+            + "booleancol=value.boolean, "
+            + "doublecol=value.double, "
+            + "floatcol=value.float, "
+            + "intcol=value.int, "
+            + "smallintcol=value.smallint, "
+            + "textcol=value.text, "
+            + "tinyintcol=value.tinyint, "
+            + "blobcol=value.blob";
+    regSink(name, "types", mapping);
 
     Schema schema =
         SchemaBuilder.record("pulsar")
@@ -474,102 +437,142 @@ public abstract class GenericRecordStructEndToEndCCM
     value.put("tinyint", (int) baseValue.byteValue());
     value.put("blob", ByteBuffer.wrap(blobValue));
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
+    send(name, null, wornBytes(value));
+    unregisterSink(name);
 
     // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT * FROM types").all();
+    List<Row> results = cassandraSession.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
-    assertThat(row.getBoolean("booleancol")).isEqualTo((baseValue.intValue() & 1) == 1);
+    assertThat(row.getBool("booleancol")).isEqualTo((baseValue.intValue() & 1) == 1);
     assertThat(row.getDouble("doublecol")).isEqualTo((double) baseValue + 0.123);
     assertThat(row.getFloat("floatcol")).isEqualTo(baseValue.floatValue() + 0.987f);
     assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
     assertThat(row.getShort("smallintcol")).isEqualTo(baseValue.shortValue());
     assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
     assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
-    ByteBuffer blobcol = row.getByteBuffer("blobcol");
+    ByteBuffer blobcol = row.getBytes("blobcol");
     assertThat(blobcol).isNotNull();
     assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
   }
 
   @Test
-  void raw_udt_value_from_struct() {
-    initConnectorAndTask(makeConnectorProperties("bigintcol=key, udtcol=value"));
+  @Disabled
+  // schema evolution is not supported yet
+  void struct_optional_field_with_default_value()
+      throws PulsarAdminException, PulsarClientException {
+    String name = name("sofwdv");
 
-    Schema schema =
+    // serialize data on old schema
+    Schema schema = SchemaBuilder.record("pulsar").fields().optionalLong("bigint").endRecord();
+    Long baseValue = 98761234L;
+    GenericRecord value = new GenericData.Record(schema);
+    value.put("bigint", baseValue);
+    byte[] valueBytes = nakedBytes(value);
+
+    Schema readSchema =
         SchemaBuilder.record("pulsar")
             .fields()
-            .requiredInt("udtmem1")
-            .requiredString("udtmem2")
+            .optionalLong("bigint")
+            .nullableInt("int", 42)
             .endRecord();
-    GenericRecord value = new GenericData.Record(schema);
-    value.put("udtmem1", 42);
-    value.put("udtmem2", "the answer");
 
-    Record<org.apache.pulsar.client.api.schema.GenericRecord> record =
-        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericAvroRecord(value), 1234);
-    sendRecord(record);
+    // evolve schema
+    pulsarAdmin.topics().createNonPartitionedTopic(name);
+    // set old schema
+    pulsarAdmin
+        .schemas()
+        .createSchema(
+            name,
+            new SchemaInfo(
+                "test", readSchema.toString().getBytes(), SchemaType.AVRO, Collections.emptyMap()));
+    regSink(name, "types", "bigintcol=value.bigint, intcol=value.int");
+
+    // set data on old schema
+    send(name, null, valueBytes);
+    unregisterSink(name);
 
     // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT bigintcol, udtcol FROM types").all();
+    List<Row> results = cassandraSession.execute("SELECT * FROM types").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
-
-    UserDefinedType udt =
-        new UserDefinedTypeBuilder(keyspaceName, "myudt")
-            .withField("udtmem1", DataTypes.INT)
-            .withField("udtmem2", DataTypes.TEXT)
-            .build();
-    udt.attach(session.getContext());
-    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
-  }
-
-  @Test
-  void raw_udt_value_and_cherry_pick_from_struct() {
-    initConnectorAndTask(
-        makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1"));
-
-    Schema schema =
-        SchemaBuilder.record("pulsar")
-            .fields()
-            .requiredInt("udtmem1")
-            .requiredString("udtmem2")
-            .endRecord();
-    GenericRecord value = new GenericData.Record(schema);
-    value.put("udtmem1", 42);
-    value.put("udtmem2", "the answer");
-
-    sendRecord(
-        mockRecord("mytopic", String.valueOf(98761234L), pulsarGenericAvroRecord(value), 1234));
-
-    // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
-    assertThat(results.size()).isEqualTo(1);
-    Row row = results.get(0);
-    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
-
-    UserDefinedType udt =
-        new UserDefinedTypeBuilder(keyspaceName, "myudt")
-            .withField("udtmem1", DataTypes.INT)
-            .withField("udtmem2", DataTypes.TEXT)
-            .build();
-    udt.attach(session.getContext());
-    assertThat(row.getUdtValue("udtcol")).isEqualTo(udt.newValue(42, "the answer"));
+    assertThat(row.getLong("bigintcol")).isEqualTo(baseValue);
     assertThat(row.getInt("intcol")).isEqualTo(42);
   }
 
   @Test
-  void multiple_records_multiple_topics() {
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, doublecol=value.double",
-            ImmutableMap.of(
-                String.format("topic.yourtopic.%s.types.mapping", keyspaceName),
-                "bigintcol=value.key, intcol=value.value")));
+  void raw_udt_value_from_struct() throws PulsarAdminException, PulsarClientException {
+    String name = name("ruvfs");
+    regSink(name, "types", "bigintcol=key, udtcol=value");
 
-    // Set up records for "mytopic"
+    Schema schema =
+        SchemaBuilder.record("pulsar")
+            .fields()
+            .requiredInt("udtmem1")
+            .requiredString("udtmem2")
+            .endRecord();
+    GenericRecord value = new GenericData.Record(schema);
+    value.put("udtmem1", 42);
+    value.put("udtmem2", "the answer");
+
+    send(name, String.valueOf(98761234L), wornBytes(value));
+    unregisterSink(name);
+
+    // Verify that the record was inserted properly in the database.
+    List<Row> results = cassandraSession.execute("SELECT bigintcol, udtcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+
+    UDTValue udt = row.getUDTValue("udtcol");
+    assertThat(udt.getInt("udtmem1")).isEqualTo(42);
+    assertThat(udt.getString("udtmem2")).isEqualTo("the answer");
+  }
+
+  @Test
+  void raw_udt_value_and_cherry_pick_from_struct()
+      throws PulsarAdminException, PulsarClientException {
+    String name = name("ruvacpfs");
+    regSink(name, "types", "bigintcol=key, udtcol=value, intcol=value.udtmem1");
+
+    Schema schema =
+        SchemaBuilder.record("pulsar")
+            .fields()
+            .requiredInt("udtmem1")
+            .requiredString("udtmem2")
+            .endRecord();
+    GenericRecord value = new GenericData.Record(schema);
+    value.put("udtmem1", 42);
+    value.put("udtmem2", "the answer");
+
+    send(name, String.valueOf(98761234L), wornBytes(value));
+
+    // Verify that the record was inserted properly in the database.
+    List<Row> results =
+        cassandraSession.execute("SELECT bigintcol, udtcol, intcol FROM types").all();
+    assertThat(results.size()).isEqualTo(1);
+    Row row = results.get(0);
+    assertThat(row.getLong("bigintcol")).isEqualTo(98761234L);
+    assertThat(row.getInt("intcol")).isEqualTo(42);
+    UDTValue udt = row.getUDTValue("udtcol");
+    assertThat(udt.getInt("udtmem1")).isEqualTo(42);
+    assertThat(udt.getString("udtmem2")).isEqualTo("the answer");
+  }
+
+  @Test
+  void multiple_records_multiple_topics() throws PulsarAdminException, PulsarClientException {
+    String name = name("mrmt");
+    Map<String, Object> config = defaultSinkConfig();
+    config.put("topics", "mytopic, yourtopic");
+    ConfigUtil.rename(config, "topic.mytopic.testks.testtbl", "types");
+    ConfigUtil.copy(config, "topic.mytopic", "yourtopic");
+    Map<String, Object> ext = new HashMap<>();
+    ext.put("topic.mytopic.testks.types.mapping", "bigintcol=value.bigint, doublecol=value.double");
+    ext.put("topic.yourtopic.testks.types.mapping", "bigintcol=key, intcol=value");
+    registerSink(ConfigUtil.extend(config, ext), name, "mytopic,yourtopic", BytesSink.class);
+    waitForReadySink(name);
+
     Schema schema =
         SchemaBuilder.record("pulsar")
             .fields()
@@ -583,20 +586,22 @@ public abstract class GenericRecordStructEndToEndCCM
     value2.put("bigint", 9876543L);
     value2.put("double", 21.0);
 
-    schema =
-        SchemaBuilder.record("third").fields().requiredLong("key").requiredInt("value").endRecord();
-    GenericRecord value3 = new GenericData.Record(schema);
-    value3.put("key", 5555L);
-    value3.put("value", 3333);
+    Producer<byte[]> myprod = pulsarClient.newProducer().topic("mytopic").create();
+    Producer<byte[]> yourprod = pulsarClient.newProducer().topic("yourtopic").create();
 
-    // Set up a record for "yourtopic"
+    myprod.newMessage().value(wornBytes(value1)).send();
+    myprod.newMessage().value(wornBytes(value2)).send();
+    yourprod.newMessage().key("5555").value(intBytes(3333)).send();
 
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value1), 1234));
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value2), 1234));
-    sendRecord(mockRecord("yourtopic", null, pulsarGenericAvroRecord(value3), 1235));
+    myprod.close();
+    yourprod.close();
+
+    waitForProcessedMessages(name, lastMessageNum(name) + 3);
+    unregisterSink(name);
 
     // Verify that the record was inserted properly in the database.
-    List<Row> results = session.execute("SELECT bigintcol, doublecol, intcol FROM types").all();
+    List<Row> results =
+        cassandraSession.execute("SELECT bigintcol, doublecol, intcol FROM types").all();
     assertThat(results.size()).isEqualTo(3);
     for (Row row : results) {
       if (row.getLong("bigintcol") == 1234567L) {
@@ -613,13 +618,15 @@ public abstract class GenericRecordStructEndToEndCCM
   }
 
   @Test
-  void single_record_multiple_tables() {
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
-            ImmutableMap.of(
-                String.format("topic.mytopic.%s.small_simple.mapping", keyspaceName),
-                "bigintcol=value.bigint, intcol=value.int")));
+  void single_record_multiple_tables() throws PulsarAdminException, PulsarClientException {
+    String name = name("srmt");
+    regSink(
+        name,
+        "types",
+        "bigintcol=value.bigint, booleancol=value.boolean, intcol=value.int",
+        Tuple2.of(
+            "topic." + name + ".testks.small_simple.mapping",
+            "bigintcol=value.bigint, intcol=value.int"));
 
     // Set up records for "mytopic"
     Schema schema =
@@ -633,50 +640,48 @@ public abstract class GenericRecordStructEndToEndCCM
     value.put("bigint", 1234567L);
     value.put("boolean", true);
     value.put("int", 5725);
-
-    sendRecord(mockRecord("mytopic", null, pulsarGenericAvroRecord(value), 1234));
+    send(name, null, wornBytes(value));
+    unregisterSink(name);
 
     // Verify that a record was inserted in each of small_simple and types tables.
     {
-      List<Row> results = session.execute("SELECT * FROM small_simple").all();
+      List<Row> results = cassandraSession.execute("SELECT * FROM small_simple").all();
       assertThat(results.size()).isEqualTo(1);
       Row row = results.get(0);
       assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-      assertThat(row.get("booleancol", GenericType.BOOLEAN)).isNull();
+      assertThat(row.get("booleancol", Boolean.class)).isNull();
       assertThat(row.getInt("intcol")).isEqualTo(5725);
     }
     {
-      List<Row> results = session.execute("SELECT * FROM types").all();
+      List<Row> results = cassandraSession.execute("SELECT * FROM types").all();
       assertThat(results.size()).isEqualTo(1);
       Row row = results.get(0);
       assertThat(row.getLong("bigintcol")).isEqualTo(1234567L);
-      assertThat(row.getBoolean("booleancol")).isTrue();
+      assertThat(row.getBool("booleancol")).isTrue();
       assertThat(row.getInt("intcol")).isEqualTo(5725);
     }
   }
 
   /** Test for KAF-83 (case-sensitive fields and columns). */
   @Test
-  void single_map_quoted_fields_to_quoted_columns() {
-    session.execute(
-        SimpleStatement.builder(
-                "CREATE TABLE \"CASE_SENSITIVE\" ("
-                    + "\"bigint col\" bigint, "
-                    + "\"boolean-col\" boolean, "
-                    + "\"INT COL\" int,"
-                    + "\"TEXT.COL\" text,"
-                    + "PRIMARY KEY (\"bigint col\", \"boolean-col\")"
-                    + ")")
-            .setTimeout(Duration.ofSeconds(10))
-            .build());
-    initConnectorAndTask(
-        makeConnectorProperties(
-            "\"bigint col\" = \"key.bigint_field\", "
-                + "\"boolean-col\" = \"key.boolean-field\", "
-                + "\"INT COL\" = \"value.INT_FIELD\", "
-                + "\"TEXT.COL\" = \"value.TEXT_FIELD\"",
-            "CASE_SENSITIVE",
-            null));
+  void single_map_quoted_fields_to_quoted_columns()
+      throws PulsarAdminException, PulsarClientException {
+    String name = name("smqftqc");
+    cassandraSession.execute(
+        "CREATE TABLE \"CASE_SENSITIVE\" ("
+            + "\"bigint col\" bigint, "
+            + "\"boolean-col\" boolean, "
+            + "\"INT COL\" int,"
+            + "\"TEXT.COL\" text,"
+            + "PRIMARY KEY (\"bigint col\", \"boolean-col\")"
+            + ")");
+    regSink(
+        name,
+        "CASE_SENSITIVE",
+        "\"bigint col\" = \"key.bigint_field\", "
+            + "\"boolean-col\" = \"key.boolean-field\", "
+            + "\"INT COL\" = \"value.INT_FIELD\", "
+            + "\"TEXT.COL\" = \"value.TEXT_FIELD\"");
 
     // Set up records for "mytopic"
     String key = "{\"bigint_field\":1234567,\"boolean-field\":true}";
@@ -693,14 +698,15 @@ public abstract class GenericRecordStructEndToEndCCM
     // Note: with the current mapping grammar, it is not possible to distinguish f1.f2 (i.e. a field
     // "f1" containing a nested field "f2") from a field named "f1.f2".
 
-    sendRecord(mockRecord("mytopic", key, pulsarGenericAvroRecord(value), 1234));
+    send(name, key, wornBytes(value));
+    unregisterSink(name);
 
     // Verify that a record was inserted
-    List<Row> results = session.execute("SELECT * FROM \"CASE_SENSITIVE\"").all();
+    List<Row> results = cassandraSession.execute("SELECT * FROM \"CASE_SENSITIVE\"").all();
     assertThat(results.size()).isEqualTo(1);
     Row row = results.get(0);
     assertThat(row.getLong("\"bigint col\"")).isEqualTo(1234567L);
-    assertThat(row.getBoolean("\"boolean-col\"")).isTrue();
+    assertThat(row.getBool("\"boolean-col\"")).isTrue();
     assertThat(row.getInt("\"INT COL\"")).isEqualTo(5725);
     assertThat(row.getString("\"TEXT.COL\"")).isEqualTo("foo");
   }

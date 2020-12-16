@@ -15,20 +15,12 @@
  */
 package com.datastax.oss.sink.pulsar.containers;
 
-import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
-import static com.datastax.oss.sink.pulsar.TestUtil.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.datastax.driver.core.Row;
+import com.datastax.oss.sink.pulsar.BaseSink;
 import com.datastax.oss.sink.pulsar.BytesSink;
-import com.datastax.oss.sink.pulsar.util.ConfigUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -43,7 +35,25 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+import static com.datastax.driver.core.querybuilder.QueryBuilder.*;
+import static com.datastax.oss.sink.pulsar.TestUtil.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 class BytesSinkPart extends ContainersBase {
+
+  @Override
+  protected String basicName() {
+    return "bytes";
+  }
+
+  @Override
+  protected Class<? extends BaseSink> sinkClass() {
+    return BytesSink.class;
+  }
 
   @BeforeAll
   static void init() throws Exception {
@@ -51,14 +61,7 @@ class BytesSinkPart extends ContainersBase {
   }
 
   private void regSink(String name) throws PulsarAdminException {
-    registerSink(
-        ImmutableMap.<String, Object>builder()
-            .put("topics", name)
-            .put("topic." + name, ConfigUtil.value(defaultSinkConfig, "topic.mytopic"))
-            .build(),
-        name,
-        BytesSink.class);
-    waitForReadySink(name);
+    regSink(name, null, null);
   }
 
   @AfterAll
@@ -99,7 +102,7 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(node, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   private void assertEqualsRec(GenericRecord rec, Row r) {
@@ -164,7 +167,10 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(rec, rows.get(0));
     genericRecordProducer.close();
 
-    deleteSink(name);
+    bytesProducer.close();
+    bytesProducer.close();
+    genericRecordProducer.close();
+    unregisterSink(name);
   }
 
   @Test
@@ -216,7 +222,7 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(rec, rows.get(0));
     genericRecordProducer.close();
 
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -241,7 +247,7 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(rec, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -268,7 +274,7 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(pojo, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -297,7 +303,7 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(pojo, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -327,24 +333,13 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(rec, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
   void unstructured_value() throws PulsarAdminException, PulsarClientException {
     String name = "unstructured";
-
-    registerSink(
-        ImmutableMap.<String, Object>builder()
-            .put("topics", "unstructured")
-            .put("topic.unstructured", ConfigUtil.value(defaultSinkConfig, "topic.mytopic"))
-            .put(
-                "topic.unstructured.testks.testtbl.mapping",
-                "part=value,id=key,num=header.number,fact=header.isfact")
-            .build(),
-        name,
-        BytesSink.class);
-    waitForReadySink(name);
+    regSink(name, null, "part=value,id=key,num=header.number,fact=header.isfact");
 
     Producer<byte[]> producer = pulsarClient.newProducer().topic(name).create();
     UUID id = UUID.randomUUID();
@@ -366,7 +361,7 @@ class BytesSinkPart extends ContainersBase {
     assertTrue(r.getBool("fact"));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   private ObjectMapper mapper = new ObjectMapper();
@@ -401,7 +396,7 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(rec, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 
   @Test
@@ -431,6 +426,6 @@ class BytesSinkPart extends ContainersBase {
     assertEqualsRec(rec, rows.get(0));
 
     producer.close();
-    deleteSink(name);
+    unregisterSink(name);
   }
 }

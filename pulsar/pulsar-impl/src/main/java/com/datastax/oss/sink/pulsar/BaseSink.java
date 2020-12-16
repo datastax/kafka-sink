@@ -89,7 +89,12 @@ public abstract class BaseSink<Input, Payload> implements Sink<Input> {
                             .orElse(null),
                         property.getValue());
               }
-              return new Header(property.getKey(), val);
+              String key = property.getKey();
+              if (key.endsWith(">null")) {
+                key = key.substring(0, key.length() - 5);
+                val = null;
+              }
+              return new Header(key, val);
             })
         .collect(Collectors.toSet());
   }

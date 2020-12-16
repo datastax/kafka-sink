@@ -16,7 +16,6 @@
 package com.datastax.oss.sink.pulsar.gen;
 
 import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;

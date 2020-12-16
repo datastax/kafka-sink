@@ -118,15 +118,6 @@ public class TestUtil {
     } else if (value instanceof GenericJsonRecord) {
       GenericJsonRecord jrec = (GenericJsonRecord) value;
       when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(jrec.getJsonNode()));
-    } else if (value instanceof byte[]) {
-      try {
-        org.apache.avro.generic.GenericRecord gc =
-            (org.apache.avro.generic.GenericRecord) readWorn((byte[]) value);
-        when(rec.getSchema()).thenReturn((Schema<T>) pulsarSchema(gc));
-        byte[] naked = nakedBytes(gc);
-        when(rec.getValue()).thenReturn((T) naked);
-      } catch (Exception ignore) {
-      }
     }
     when(rec.getEventTime()).thenReturn(Optional.ofNullable(timestamp));
     //    Map<String, String> props =

@@ -22,11 +22,10 @@ import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.sink.pulsar.AvroAPIAdapter;
 import com.datastax.oss.sink.pulsar.SchemedGenericRecord;
 import com.datastax.oss.sink.record.StructDataMetadataSupport;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericRecord;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericRecord;
 
 /** Codec to convert an avro {@link GenericRecord} to a Map. */
 public class SchemedGenericRecordToMapCodec extends ConvertingCodec<SchemedGenericRecord, Map> {

@@ -18,12 +18,11 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.sink.RetriableException;
 import com.datastax.oss.sink.config.ConfigException;
 import com.datastax.oss.sink.record.SchemaSupport;
+import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Set;
 
 public class SchemedGenericRecordAPIAdapter
     implements APIAdapter<

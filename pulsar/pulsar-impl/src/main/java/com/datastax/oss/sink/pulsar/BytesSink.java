@@ -139,23 +139,10 @@ public class BytesSink extends BaseSink<byte[], Object> {
     return reader;
   }
 
-  private DataReader getReader(Record<byte[]> record) {
-    String topic = LocalRecord.shortTopic(record);
-    DataReader reader = valueReaders.get(topic);
-    if (reader != null) return reader;
-    if (record.getSchema() == null) return null;
-    reader = readerFromSchema(record.getSchema().getSchemaInfo());
-    if (reader != null) {
-      valueReaders.put(topic, reader);
-      log.info("chosen {} for topic {}", reader.getClass().getSimpleName(), topic);
-    }
-    return reader;
-  }
-
   @Override
   protected Object readValue(Record<byte[]> record) throws IOException {
-    if (record.getValue() == null) return null;
-    DataReader reader = getReader(record);
+    if (record.getValue().length == 0) return null;
+    DataReader reader = valueReaders.get(LocalRecord.shortTopic(record));
     Object res;
     if (reader != null) {
       res = reader.read(record.getValue());

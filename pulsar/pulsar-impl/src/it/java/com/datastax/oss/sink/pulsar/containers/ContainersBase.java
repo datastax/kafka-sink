@@ -19,7 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.datastax.driver.core.Session;
 import com.datastax.oss.sink.pulsar.BaseSink;
+import com.datastax.oss.sink.pulsar.BytesSink;
 import com.datastax.oss.sink.pulsar.util.ConfigUtil;
+import com.datastax.oss.sink.util.Tuple2;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -30,7 +32,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.time.Duration;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -52,7 +54,7 @@ import org.testcontainers.images.PullPolicy;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
-public class ContainersBase {
+public abstract class ContainersBase {
 
   private static Network network = Network.newNetwork();
 
@@ -83,7 +85,7 @@ public class ContainersBase {
     cassandraSession.close();
   }
 
-  protected static Map<String, Object> defaultSinkConfig;
+  private static Map<String, Object> defaultSinkConfig;
 
   static {
     InputStream is =
@@ -129,10 +131,28 @@ public class ContainersBase {
     }
   }
 
-  static void registerSink(
-      Map<String, Object> configExtension, String name, Class<? extends BaseSink> sinkClass)
+  protected static Map<String, Object> defaultSinkConfig() {
+    return ConfigUtil.copy(defaultSinkConfig);
+  }
+
+  protected abstract String basicName();
+
+  protected abstract Class<? extends BaseSink> sinkClass();
+
+  protected String name(String string) {
+    return String.format("%s-%s", basicName(), string);
+  }
+
+  protected static void registerSink(
+      Map<String, Object> config, String name, Class<? extends BaseSink> sinkClass)
       throws PulsarAdminException {
-    Map<String, Object> config = ConfigUtil.extend(defaultSinkConfig, configExtension);
+    registerSink(config, name, name, sinkClass);
+  }
+
+  protected static void registerSink(
+      Map<String, Object> config, String name, String topics, Class<? extends BaseSink> sinkClass)
+      throws PulsarAdminException {
+    ConfigUtil.printMap(config);
     pulsarAdmin
         .sinks()
         .createSinkWithUrl(
@@ -141,17 +161,37 @@ public class ContainersBase {
                 .tenant("public")
                 .namespace("default")
                 .className(sinkClass.getName())
-                .inputs(Collections.singleton(name))
+                .inputs(Arrays.asList(topics.split("\\s*,\\s*")))
                 .configs(config)
                 .build(),
             sinkPkgUrl);
   }
 
-  static void deleteSink(String name) throws PulsarAdminException {
+  protected static void unregisterSink(String name) throws PulsarAdminException {
     pulsarAdmin.sinks().deleteSink("public", "default", name);
   }
 
-  void waitForReadySink(String sinkName) {
+  protected void regSink(
+          String name, String table, String mapping, Tuple2<String, Object>... configExt)
+          throws PulsarAdminException {
+    Map<String, Object> config = defaultSinkConfig();
+    config.put("topics", name);
+    if (table != null)
+      ConfigUtil.rename(config, "topic.mytopic.testks.testtbl", table);
+    else
+      table = "testtbl";
+    ConfigUtil.rename(config, "topic.mytopic", name);
+    Map<String, Object> ext =
+            Arrays.stream(configExt)
+                    .collect(HashMap::new, (m, t) -> m.put(t._1, t._2), HashMap::putAll);
+    if (mapping != null)
+      ext.put("topic." + name + ".testks." + table + ".mapping", mapping);
+    registerSink(ConfigUtil.extend(config, ext), name, sinkClass());
+    waitForReadySink(name);
+  }
+
+
+  protected void waitForReadySink(String sinkName) {
     Failsafe.with(checkPolicy)
         .run(
             () -> {
@@ -166,7 +206,7 @@ public class ContainersBase {
     return lastMessageNum.computeIfAbsent(sinkName, k -> 0);
   }
 
-  void waitForProcessedMessages(String sinkName, int messageNum) {
+  protected void waitForProcessedMessages(String sinkName, int messageNum) {
     Failsafe.with(checkPolicy)
         .run(
             () -> {
@@ -179,14 +219,14 @@ public class ContainersBase {
             });
   }
 
-  protected RetryPolicy<?> checkPolicy =
+  protected static final RetryPolicy<?> checkPolicy =
       new RetryPolicy<>().withDelay(Duration.ofSeconds(3)).withMaxRetries(5);
 
   protected String topic(String shortName) {
     return "persistent://public/default/" + shortName;
   }
 
-  org.apache.avro.generic.GenericRecord statrec;
+  protected org.apache.avro.generic.GenericRecord statrec;
 
   {
     statrec =
@@ -204,9 +244,9 @@ public class ContainersBase {
     statrec.put("isfact", true);
   }
 
-  ObjectMapper mapper = new ObjectMapper();
+  protected static final ObjectMapper mapper = new ObjectMapper();
 
-  JsonNode statNode =
+  protected static final JsonNode statNode =
       mapper
           .createObjectNode()
           .put("part", "P1")
@@ -214,7 +254,7 @@ public class ContainersBase {
           .put("number", 345)
           .put("isfact", true);
 
-  static void runScript(String script, Session session) throws IOException {
+  protected static void runScript(String script, Session session) throws IOException {
     URL url = ContainersBase.class.getResource(script);
     if (url == null) throw new IllegalArgumentException(script);
     String cql = Resources.toString(url, Charset.forName("UTF-8"));
