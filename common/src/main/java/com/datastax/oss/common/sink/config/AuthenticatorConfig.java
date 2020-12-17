@@ -27,6 +27,8 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +42,49 @@ public class AuthenticatorConfig extends AbstractConfig {
   static final String SERVICE_OPT = "auth.gssapi.service";
 
   private static final Logger log = LoggerFactory.getLogger(AuthenticatorConfig.class);
+  private static final ConfigDef CONFIG_DEF =
+      new ConfigDef()
+          .define(
+              PROVIDER_OPT,
+              ConfigDef.Type.STRING,
+              "None",
+              ConfigDef.Importance.HIGH,
+              "None | PLAIN | GSSAPI")
+          .define(
+              USERNAME_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "Username for PLAIN (username/password) provider authentication")
+          .define(
+              PASSWORD_OPT,
+              ConfigDef.Type.PASSWORD,
+              "",
+              ConfigDef.Importance.HIGH,
+              "Password for PLAIN (username/password) provider authentication")
+          .define(
+              KEYTAB_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "Kerberos keytab file for GSSAPI provider authentication")
+          .define(
+              PRINCIPAL_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "Kerberos principal for GSSAPI provider authentication")
+          .define(
+              SERVICE_OPT,
+              ConfigDef.Type.STRING,
+              "dse",
+              ConfigDef.Importance.HIGH,
+              "SASL service name to use for GSSAPI provider authentication");
 
   @Nullable private final Path keyTabPath;
 
   AuthenticatorConfig(Map<String, String> authSettings) {
-    super(sanitizeAuthSettings(authSettings));
+    super(CONFIG_DEF, sanitizeAuthSettings(authSettings), false);
 
     // Verify that the provider value is valid.
     Provider provider = getProvider();
@@ -58,7 +98,7 @@ public class AuthenticatorConfig extends AbstractConfig {
     keyTabPath = getFilePath(getString(KEYTAB_OPT));
     if (provider == Provider.GSSAPI) {
       if (getService().isEmpty()) {
-        throw new ConfigException(SERVICE_OPT + " is required");
+        throw new ConfigException(SERVICE_OPT, "<empty>", "is required");
       }
 
       assertAccessibleFile(keyTabPath, KEYTAB_OPT);
@@ -150,15 +190,12 @@ public class AuthenticatorConfig extends AbstractConfig {
       return Provider.valueOf(providerString);
     } catch (IllegalArgumentException e) {
       throw new ConfigException(
-          PROVIDER_OPT
-              + "="
-              + providerString
-              + " is not valid, valid values are None, PLAIN, GSSAPI");
+          PROVIDER_OPT, providerString, "valid values are None, PLAIN, GSSAPI");
     }
   }
 
   public String getPassword() {
-    return getString(PASSWORD_OPT);
+    return getPassword(PASSWORD_OPT).value();
   }
 
   public String getUsername() {

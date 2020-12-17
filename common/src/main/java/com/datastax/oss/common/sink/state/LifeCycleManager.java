@@ -90,8 +90,6 @@ public class LifeCycleManager {
       new ConcurrentHashMap<>();
   private static MetricRegistry metricRegistry = new MetricRegistry();
 
-  public static final String KAFKA_CONNECTOR_APPLICATION_NAME = "DataStax Apache Kafka Connector";
-
   /** This is a utility class that no one should instantiate. */
   private LifeCycleManager() {}
 
@@ -155,12 +153,11 @@ public class LifeCycleManager {
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentCols)) {
       throw new ConfigException(
+          tableConfig.getSettingPath(MAPPING_OPT),
+          tableConfig.getMappingString(),
           String.format(
-              "The following columns do not exist in table %s: %s," + "check configuration %s = %s",
-              tableConfig.getTable().asInternal(),
-              nonExistentCols,
-              tableConfig.getSettingPath(MAPPING_OPT),
-              tableConfig.getMappingString()));
+              "The following columns do not exist in table %s: %s",
+              tableConfig.getTable().asInternal(), nonExistentCols));
     }
 
     // Now verify that each column that makes up the primary key in the table has a
@@ -174,12 +171,11 @@ public class LifeCycleManager {
             .collect(Collectors.joining(", "));
     if (!StringUtil.isEmpty(nonExistentKeyCols)) {
       throw new ConfigException(
+          tableConfig.getSettingPath(MAPPING_OPT),
+          tableConfig.getMappingString(),
           String.format(
-              "The following columns are part of the primary key but are not mapped: %s,"
-                  + " check configuration parameter %s = %s",
-              nonExistentKeyCols,
-              tableConfig.getSettingPath(MAPPING_OPT),
-              tableConfig.getMappingString()));
+              "The following columns are part of the primary key but are not mapped: %s",
+              nonExistentKeyCols));
     }
 
     return mapping.keySet().size() == table.getColumns().size();

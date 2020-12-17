@@ -66,9 +66,9 @@ class MappingInspector extends MappingBaseVisitor<CqlIdentifier> {
               String msg,
               RecognitionException e) {
             throw new ConfigException(
-                String.format(
-                    "Could not be parsed at line %d:%d: %s  parameter is %s=%s",
-                    line, col, msg, settingName, StringUtil.singleQuote(mapping)));
+                settingName,
+                StringUtil.singleQuote(mapping),
+                String.format("Could not be parsed at line %d:%d: %s", line, col, msg));
           }
         };
     lexer.removeErrorListeners();

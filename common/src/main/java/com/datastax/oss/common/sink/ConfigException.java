@@ -33,6 +33,6 @@ public class ConfigException extends RuntimeException {
   }
 
   public ConfigException(String settingName, Object value, String error) {
-    super("Value " + value + " for " + settingName + " is not valid: " + error);
+    super("Invalid value " + value + " for configuration " + settingName + ": " + error);
   }
 }

@@ -30,6 +30,7 @@ import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,6 +107,91 @@ public class CassandraSinkConfig {
           withDriverPrefix(METRICS_NODE_ENABLED),
           withDriverPrefix(SSL_CIPHER_SUITES));
 
+  public static final ConfigDef GLOBAL_CONFIG_DEF =
+      new ConfigDef()
+          .define(
+              CONTACT_POINTS_OPT,
+              ConfigDef.Type.LIST,
+              Collections.EMPTY_LIST,
+              ConfigDef.Importance.HIGH,
+              "Initial contact points")
+          .define(
+              PORT_OPT,
+              ConfigDef.Type.INT,
+              9042,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "Port to connect to nodes")
+          .define(
+              DC_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The datacenter name (commonly dc1, dc2, etc.) local to the machine on which the connector is running")
+          .define(
+              CONCURRENT_REQUESTS_OPT,
+              ConfigDef.Type.INT,
+              500,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "The maximum number of requests to send at once")
+          .define(
+              JMX_OPT,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              ConfigDef.Importance.HIGH,
+              "Whether to enable JMX reporting")
+          .define(
+              COMPRESSION_OPT,
+              ConfigDef.Type.STRING,
+              "None",
+              ConfigDef.Importance.HIGH,
+              "None | LZ4 | Snappy")
+          .define(
+              QUERY_EXECUTION_TIMEOUT_OPT,
+              ConfigDef.Type.INT,
+              30,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "CQL statement execution timeout, in seconds")
+          .define(
+              METRICS_HIGHEST_LATENCY_OPT,
+              ConfigDef.Type.INT,
+              35,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "This is used to scale internal data structures for gathering metrics. "
+                  + "It should be higher than queryExecutionTimeout. This parameter should be expressed in seconds.")
+          .define(
+              MAX_NUMBER_OF_RECORDS_IN_BATCH,
+              ConfigDef.Type.INT,
+              32,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "Maximum number of records that could be send in one batch request")
+          .define(
+              CONNECTION_POOL_LOCAL_SIZE,
+              ConfigDef.Type.INT,
+              4,
+              ConfigDef.Range.atLeast(1),
+              ConfigDef.Importance.HIGH,
+              "Number of connections that driver maintains within a connection pool to each node in local dc")
+          .define(
+              IGNORE_ERRORS,
+              ConfigDef.Type.STRING,
+              "None",
+              ConfigDef.Importance.HIGH,
+              "Specifies which errors the connector should ignore when processing the record. "
+                  + "Valid values are: "
+                  + "None (never ignore errors), "
+                  + "All (ignore all errors), "
+                  + "Driver (ignore driver errors only, i.e. errors when writing to the database).")
+          .define(
+              SECURE_CONNECT_BUNDLE_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The location of the cloud secure bundle used to connect to Datastax Apache Cassandra as a service.");
   private static final Function<String, String> TO_SECONDS_CONVERTER =
       v -> String.format("%s seconds", v);
 
@@ -119,80 +207,85 @@ public class CassandraSinkConfig {
   private final AuthenticatorConfig authConfig;
 
   public CassandraSinkConfig(Map<String, String> settings) {
-    log.debug("create CassandraSinkConfig for settings:{} ", settings);
-    instanceName = settings.get(SinkUtil.NAME_OPT);
-    // Walk through the settings and separate out "globals" from "topics", "ssl", and "auth".
-    Map<String, String> globalSettings = new HashMap<>();
-    Map<String, String> sslSettings = new HashMap<>();
-    Map<String, String> authSettings = new HashMap<>();
-    Map<String, Map<String, String>> topicSettings = new HashMap<>();
-    javaDriverSettings = new HashMap<>();
-    for (Map.Entry<String, String> entry : settings.entrySet()) {
-      String name = entry.getKey();
-      if (name.startsWith("topic.")) {
-        String topicName = tryMatchTopicName(name);
-        Map<String, String> topicMap =
-            topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
-        topicMap.put(name, entry.getValue());
-      } else if (name.startsWith(SSL_OPT_PREFIX)) {
-        sslSettings.put(name, entry.getValue());
-      } else if (name.startsWith(AUTH_OPT_PREFIX)) {
-        authSettings.put(name, entry.getValue());
-      } else if (name.startsWith(DRIVER_CONFIG_PREFIX)) {
-        addJavaDriverSetting(entry);
-      } else {
-        globalSettings.put(name, entry.getValue());
-      }
-    }
-
-    // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
-    // topic settings map.
-    globalConfig = new AbstractConfig(globalSettings);
-
-    populateDriverSettingsWithConnectorSettings(globalSettings);
-    boolean cloud = isCloud();
-
-    if (!cloud) {
-      sslConfig = new SslConfig(sslSettings);
-    }
-    authConfig = new AuthenticatorConfig(authSettings);
-    topicConfigs = new HashMap<>();
-    topicSettings.forEach(
-        (name, topicConfigMap) ->
-            topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
-
-    validateCompressionType();
-
-    // Verify that we have a topic section for every topic we're subscribing to, if 'topics'
-    // was provided. A user may use topics.regex to subscribe by pattern, in which case,
-    // they're on their own.
-    String topicsString = globalSettings.get("topics");
-    if (topicsString != null) {
-      List<String> topics = Splitter.on(",").trimResults().splitToList(topicsString);
-      for (String topic : topics) {
-        if (!topicConfigs.containsKey(topic)) {
-          throw new ConfigException(
-              "topics",
-              topicsString,
-              String.format("Missing topic settings (topic.%s.*) for topic %s", topic, topic));
+    try {
+      log.debug("create CassandraSinkConfig for settings:{} ", settings);
+      instanceName = settings.get(SinkUtil.NAME_OPT);
+      // Walk through the settings and separate out "globals" from "topics", "ssl", and "auth".
+      Map<String, String> globalSettings = new HashMap<>();
+      Map<String, String> sslSettings = new HashMap<>();
+      Map<String, String> authSettings = new HashMap<>();
+      Map<String, Map<String, String>> topicSettings = new HashMap<>();
+      javaDriverSettings = new HashMap<>();
+      for (Map.Entry<String, String> entry : settings.entrySet()) {
+        String name = entry.getKey();
+        if (name.startsWith("topic.")) {
+          String topicName = tryMatchTopicName(name);
+          Map<String, String> topicMap =
+              topicSettings.computeIfAbsent(topicName, t -> new HashMap<>());
+          topicMap.put(name, entry.getValue());
+        } else if (name.startsWith(SSL_OPT_PREFIX)) {
+          sslSettings.put(name, entry.getValue());
+        } else if (name.startsWith(AUTH_OPT_PREFIX)) {
+          authSettings.put(name, entry.getValue());
+        } else if (name.startsWith(DRIVER_CONFIG_PREFIX)) {
+          addJavaDriverSetting(entry);
+        } else {
+          globalSettings.put(name, entry.getValue());
         }
       }
-    }
 
-    if (cloud) {
-      // Verify that if cloudSecureBundle specified the
-      // other clashing properties (contactPoints, dc, ssl) are not set.
-      validateCloudSettings(sslSettings);
-    }
+      // Put the global settings in an AbstractConfig and make/store a TopicConfig for every
+      // topic settings map.
+      globalConfig = new AbstractConfig(GLOBAL_CONFIG_DEF, globalSettings, false);
 
-    // Verify that if contact-points are provided, local dc is also specified.
-    List<String> contactPoints = getContactPoints();
-    log.debug("contactPoints: {}", contactPoints);
-    if (!contactPoints.isEmpty() && !getLocalDc().isPresent()) {
-      throw new ConfigException(
-          CONTACT_POINTS_OPT,
-          contactPoints,
-          String.format("When contact points is provided, %s must also be specified", DC_OPT));
+      populateDriverSettingsWithConnectorSettings(globalSettings);
+      boolean cloud = isCloud();
+
+      if (!cloud) {
+        sslConfig = new SslConfig(sslSettings);
+      }
+      authConfig = new AuthenticatorConfig(authSettings);
+      topicConfigs = new HashMap<>();
+      topicSettings.forEach(
+          (name, topicConfigMap) ->
+              topicConfigs.put(name, new TopicConfig(name, topicConfigMap, cloud)));
+
+      validateCompressionType();
+
+      // Verify that we have a topic section for every topic we're subscribing to, if 'topics'
+      // was provided. A user may use topics.regex to subscribe by pattern, in which case,
+      // they're on their own.
+      String topicsString = globalSettings.get("topics");
+      if (topicsString != null) {
+        List<String> topics = Splitter.on(",").trimResults().splitToList(topicsString);
+        for (String topic : topics) {
+          if (!topicConfigs.containsKey(topic)) {
+            throw new ConfigException(
+                "topics",
+                topicsString,
+                String.format("Missing topic settings (topic.%s.*) for topic %s", topic, topic));
+          }
+        }
+      }
+
+      if (cloud) {
+        // Verify that if cloudSecureBundle specified the
+        // other clashing properties (contactPoints, dc, ssl) are not set.
+        validateCloudSettings(sslSettings);
+      }
+
+      // Verify that if contact-points are provided, local dc is also specified.
+      List<String> contactPoints = getContactPoints();
+      log.debug("contactPoints: {}", contactPoints);
+      if (!contactPoints.isEmpty() && !getLocalDc().isPresent()) {
+        throw new ConfigException(
+            CONTACT_POINTS_OPT,
+            contactPoints,
+            String.format("When contact points is provided, %s must also be specified", DC_OPT));
+      }
+    } catch (org.apache.kafka.common.config.ConfigException err) {
+      // convert Kafka config framework exception into our exception
+      throw new ConfigException(err.getMessage(), err);
     }
   }
 

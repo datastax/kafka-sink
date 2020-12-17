@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +72,7 @@ public class TableConfig extends AbstractConfig {
       @NonNull String table,
       @NonNull Map<String, String> settings,
       boolean cloud) {
-    super(settings);
+    super(makeTableConfigDef(topicName, keyspace, table), settings, false);
 
     this.topicName = topicName;
     this.keyspace = parseLoosely(keyspace);
@@ -269,6 +271,69 @@ public class TableConfig extends AbstractConfig {
             .collect(Collectors.joining("\n")));
   }
 
+  /**
+   * Build up a {@link ConfigDef} for the given table specification.
+   *
+   * @param topicName name of topic
+   * @param keyspace name of keyspace
+   * @param table name of table
+   * @return a ConfigDef of table-settings, where each setting name is the full setting path (e.g.
+   *     topic.[topicname].[keyspace].[table].[setting]).
+   */
+  @NonNull
+  private static ConfigDef makeTableConfigDef(
+      @NonNull String topicName, @NonNull String keyspace, @NonNull String table) {
+    return new ConfigDef()
+        .define(
+            getTableSettingPath(topicName, keyspace, table, MAPPING_OPT),
+            ConfigDef.Type.STRING,
+            ConfigDef.Importance.HIGH,
+            "Mapping of record fields to dse columns, in the form of 'col1=value.f1, col2=key.f1'")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, DELETES_ENABLED_OPT),
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.HIGH,
+            "Whether to delete rows where only the primary key is non-null")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, CL_OPT),
+            ConfigDef.Type.STRING,
+            "LOCAL_ONE",
+            ConfigDef.Importance.HIGH,
+            "Query consistency level")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, TTL_OPT),
+            ConfigDef.Type.INT,
+            -1,
+            ConfigDef.Range.atLeast(-1),
+            ConfigDef.Importance.HIGH,
+            "TTL of rows inserted in the database")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, NULL_TO_UNSET_OPT),
+            ConfigDef.Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.HIGH,
+            "Whether nulls in Kafka should be treated as UNSET in the database")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, TTL_TIME_UNIT_OPT),
+            ConfigDef.Type.STRING,
+            "SECONDS",
+            ConfigDef.Importance.HIGH,
+            "TimeUnit of provided ttl mapping field.")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, TIMESTAMP_TIME_UNIT_OPT),
+            ConfigDef.Type.STRING,
+            "MICROSECONDS",
+            ConfigDef.Importance.HIGH,
+            "TimeUnit of provided timestamp mapping field.")
+        .define(
+            getTableSettingPath(topicName, keyspace, table, QUERY_OPT),
+            ConfigDef.Type.STRING,
+            null,
+            ConfigDef.Importance.HIGH,
+            "Custom query to use as a Prepared Statement for insert to this table.");
+  }
+
   @NonNull
   private static CqlIdentifier parseLoosely(@NonNull String value) {
     // If the value is unquoted, treat it as a literal (no real parsing).
@@ -323,7 +388,12 @@ public class TableConfig extends AbstractConfig {
     }
 
     public TableConfig build() {
-      return new TableConfig(topic, keyspace, table, settings, cloud);
+      try {
+        return new TableConfig(topic, keyspace, table, settings, cloud);
+      } catch (org.apache.kafka.common.config.ConfigException err) {
+        // convert Kafka config framework exception into our exception
+        throw new ConfigException(err.getMessage(), err);
+      }
     }
   }
 }

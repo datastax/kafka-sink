@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.AbstractConfig;
 
 /** Helper methods useful for performing common tasks in *Config classes. */
 class ConfigUtil {

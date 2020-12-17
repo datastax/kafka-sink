@@ -25,7 +25,7 @@ public class KeyValueRecordMetadata implements RecordMetadata {
 
   private final RecordMetadata keyMetadata;
   private final RecordMetadata valueMetadata;
-  private RecordMetadata headersMetadata;
+  private final RecordMetadata headersMetadata;
 
   public KeyValueRecordMetadata(
       @Nullable RecordMetadata keyMetadata,

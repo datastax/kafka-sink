@@ -30,10 +30,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManagerFactory;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 
 /** SSL configuration */
 public class SslConfig extends AbstractConfig {
@@ -47,6 +50,63 @@ public class SslConfig extends AbstractConfig {
   public static final String TRUSTSTORE_PATH_OPT = "ssl.truststore.path";
   static final String CIPHER_SUITES_OPT = "ssl.cipherSuites";
 
+  private static final ConfigDef CONFIG_DEF =
+      new ConfigDef()
+          .define(
+              PROVIDER_OPT,
+              ConfigDef.Type.STRING,
+              "None",
+              ConfigDef.Importance.HIGH,
+              "None | JDK | OpenSSL")
+          .define(
+              CIPHER_SUITES_OPT,
+              ConfigDef.Type.LIST,
+              Collections.EMPTY_LIST,
+              ConfigDef.Importance.HIGH,
+              "The cipher suites to enable")
+          .define(
+              HOSTNAME_VALIDATION_OPT,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              ConfigDef.Importance.HIGH,
+              "Whether or not to validate node hostnames when using SSL")
+          .define(
+              KEYSTORE_PASSWORD_OPT,
+              ConfigDef.Type.PASSWORD,
+              "",
+              ConfigDef.Importance.HIGH,
+              "Keystore password")
+          .define(
+              KEYSTORE_PATH_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The path to the keystore file")
+          .define(
+              OPENSSL_KEY_CERT_CHAIN_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The path to the certificate chain file")
+          .define(
+              OPENSSL_PRIVATE_KEY_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The path to the private key file")
+          .define(
+              TRUSTSTORE_PASSWORD_OPT,
+              ConfigDef.Type.PASSWORD,
+              "",
+              ConfigDef.Importance.HIGH,
+              "Truststore password")
+          .define(
+              TRUSTSTORE_PATH_OPT,
+              ConfigDef.Type.STRING,
+              "",
+              ConfigDef.Importance.HIGH,
+              "The path to the truststore file");
+
   private final @Nullable Path keystorePath;
   private final @Nullable Path truststorePath;
   private final @Nullable Path certFilePath;
@@ -54,7 +114,7 @@ public class SslConfig extends AbstractConfig {
   private final @Nullable SslContext sslContext;
 
   SslConfig(Map<String, String> sslSettings) {
-    super(sslSettings);
+    super(CONFIG_DEF, sslSettings, false);
 
     keystorePath = getFilePath(getString(KEYSTORE_PATH_OPT));
     truststorePath = getFilePath(getString(TRUSTSTORE_PATH_OPT));
@@ -151,7 +211,7 @@ public class SslConfig extends AbstractConfig {
   }
 
   public String getKeystorePassword() {
-    return getPassword(KEYSTORE_PASSWORD_OPT);
+    return getPassword(KEYSTORE_PASSWORD_OPT).value();
   }
 
   @Nullable
@@ -160,7 +220,7 @@ public class SslConfig extends AbstractConfig {
   }
 
   public String getTruststorePassword() {
-    return getPassword(TRUSTSTORE_PASSWORD_OPT);
+    return getPassword(TRUSTSTORE_PASSWORD_OPT).value();
   }
 
   @Nullable

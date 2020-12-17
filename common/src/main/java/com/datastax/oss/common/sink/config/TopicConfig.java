@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.AbstractConfig;
+import org.apache.kafka.common.config.ConfigDef;
 
 /** Topic-specific connector configuration. */
 public class TopicConfig extends AbstractConfig {
@@ -53,7 +55,7 @@ public class TopicConfig extends AbstractConfig {
   }
 
   public TopicConfig(String topicName, Map<String, String> settings, boolean cloud) {
-    super(settings);
+    super(makeTopicConfigDef(topicName), settings, false);
 
     Map<String, TableConfig.Builder> tableConfigBuilders = new LinkedHashMap<>();
 
@@ -149,5 +151,53 @@ public class TopicConfig extends AbstractConfig {
             .setTimeUnit(
                 TimeUnit.valueOf(getString(getTopicSettingPath(topicName, TIME_UNIT_OPT))));
     return new ConvertingCodecFactory(context);
+  }
+
+  /**
+   * Build up a {@link ConfigDef} for the given topic specification.
+   *
+   * @param topicName name of topic
+   * @return a ConfigDef of topic settings, where each setting name is the full setting path (e.g.
+   *     topic.[topicname]).
+   */
+  @NonNull
+  private static ConfigDef makeTopicConfigDef(String topicName) {
+    return new ConfigDef()
+        .define(
+            getTopicSettingPath(topicName, LOCALE_OPT),
+            ConfigDef.Type.STRING,
+            "en_US",
+            ConfigDef.Importance.HIGH,
+            "The locale to use for locale-sensitive conversions.")
+        .define(
+            getTopicSettingPath(topicName, TIMEZONE_OPT),
+            ConfigDef.Type.STRING,
+            "UTC",
+            ConfigDef.Importance.HIGH,
+            "The time zone to use for temporal conversions that do not convey any explicit time zone information")
+        .define(
+            getTopicSettingPath(topicName, TIMESTAMP_PAT_OPT),
+            ConfigDef.Type.STRING,
+            "CQL_TIMESTAMP",
+            ConfigDef.Importance.HIGH,
+            "The temporal pattern to use for `String` to CQL `timestamp` conversion")
+        .define(
+            getTopicSettingPath(topicName, DATE_PAT_OPT),
+            ConfigDef.Type.STRING,
+            "ISO_LOCAL_DATE",
+            ConfigDef.Importance.HIGH,
+            "The temporal pattern to use for `String` to CQL `date` conversion")
+        .define(
+            getTopicSettingPath(topicName, TIME_PAT_OPT),
+            ConfigDef.Type.STRING,
+            "ISO_LOCAL_TIME",
+            ConfigDef.Importance.HIGH,
+            "The temporal pattern to use for `String` to CQL `time` conversion")
+        .define(
+            getTopicSettingPath(topicName, TIME_UNIT_OPT),
+            ConfigDef.Type.STRING,
+            "MILLISECONDS",
+            ConfigDef.Importance.HIGH,
+            "If the input is a string containing only digits that cannot be parsed using the `codec.timestamp` format, the specified time unit is applied to the parsed value. All `TimeUnit` enum constants are valid choices.");
   }
 }
