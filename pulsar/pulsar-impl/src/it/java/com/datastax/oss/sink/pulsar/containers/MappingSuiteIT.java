@@ -23,7 +23,6 @@ import com.datastax.oss.sink.pulsar.containers.bytes.BytesProvidedQueryPart;
 import com.datastax.oss.sink.pulsar.containers.bytes.BytesRawDataEndToEndPart;
 import com.datastax.oss.sink.pulsar.containers.bytes.BytesStructEndToEndPart;
 import com.datastax.oss.sink.pulsar.containers.bytes.BytesWriteTimestampAndTtlPart;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 
@@ -54,7 +53,6 @@ class MappingSuiteIT {
     class StructEndToEnd extends BytesStructEndToEndPart {}
 
     @Nested
-    @Disabled
     class WriteTimestampAndTtl extends BytesWriteTimestampAndTtlPart {}
   }
 }

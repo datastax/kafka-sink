@@ -15,14 +15,8 @@
  */
 package com.datastax.oss.sink.pulsar.containers.bytes;
 
-import static com.datastax.oss.sink.pulsar.TestUtil.*;
-import static org.assertj.core.api.Assertions.*;
-
 import com.datastax.driver.core.Row;
 import com.datastax.oss.sink.util.Tuple2;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
@@ -35,6 +29,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+import static com.datastax.oss.sink.pulsar.TestUtil.*;
+import static org.assertj.core.api.Assertions.*;
 
 @Tag("containers")
 public class BytesWriteTimestampAndTtlPart extends BytesPart {
@@ -123,7 +124,7 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         name,
         "types",
         "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
-        Tuple2.of("topic.mytopic.testks.types.ttlTimeUnit", "MILLISECONDS"));
+        Tuple2.of("topic." + name + ".testks.types.ttlTimeUnit", "MILLISECONDS"));
 
     GenericRecord value = new GenericData.Record(schema);
     value.put("bigint", 1234567L);
@@ -165,7 +166,7 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         name,
         "types",
         "bigintcol=value.bigint, doublecol=value.double, __ttl = value.ttlcol",
-        Tuple2.of("topic.mytopic.testks.types.ttlTimeUnit", "MILLISECONDS"));
+        Tuple2.of("topic." + name + ".testks.types.ttlTimeUnit", "MILLISECONDS"));
 
     // when
     String json = "{\"bigint\": 1234567, \"double\": 42.0, \"ttlcol\": 1000000}";
@@ -191,8 +192,8 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         "types",
         "bigintcol=value.bigint, doublecol=value.double, "
             + "__ttl = value.ttlcol, __timestamp = value.timestampcol",
-        Tuple2.of("topic.mytopic.testks.types.ttlTimeUnit", "MILLISECONDS"),
-        Tuple2.of("topic.mytopic.testks.types.timestampTimeUnit", "MICROSECONDS"));
+        Tuple2.of("topic." + name + ".testks.types.ttlTimeUnit", "MILLISECONDS"),
+        Tuple2.of("topic." + name + ".testks.types.timestampTimeUnit", "MICROSECONDS"));
 
     // when
     String json =
@@ -221,7 +222,7 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         name,
         "types",
         "bigintcol=value.bigint, doublecol=value.double, __ttl = value.double",
-        Tuple2.of("topic.mytopic.testks.types.ttlTimeUnit", "MILLISECONDS"));
+        Tuple2.of("topic." + name + ".testks.types.ttlTimeUnit", "MILLISECONDS"));
 
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000000.0}";
@@ -246,7 +247,7 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         name,
         "types",
         "bigintcol=value.bigint, doublecol=value.double",
-        Tuple2.of("topic.mytopic.testks.types.ttl", "100"));
+        Tuple2.of("topic." + name + ".testks.types.ttl", "100"));
 
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
@@ -272,8 +273,8 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         name,
         "types",
         "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.double",
-        Tuple2.of("topic.mytopic.testks.types.ttlTimeUnit", "MILLISECONDS"),
-        Tuple2.of("topic.mytopic.testks.types.timestampTimeUnit", "MILLISECONDS"));
+        Tuple2.of("topic." + name + ".testks.types.ttlTimeUnit", "MILLISECONDS"),
+        Tuple2.of("topic." + name + ".testks.types.timestampTimeUnit", "MILLISECONDS"));
 
     // when
     String json = "{\"bigint\": 1234567, \"double\": 1000.0}";
@@ -366,7 +367,7 @@ public class BytesWriteTimestampAndTtlPart extends BytesPart {
         name,
         "types",
         "bigintcol=value.bigint, doublecol=value.double, __timestamp = value.timestampcol",
-        Tuple2.of("topic.mytopic.testks.types.timestampTimeUnit", "MILLISECONDS"));
+        Tuple2.of("topic." + name + ".testks.types.timestampTimeUnit", "MILLISECONDS"));
 
     GenericRecord value = new GenericData.Record(schema);
     value.put("bigint", 1234567L);
