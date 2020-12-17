@@ -26,8 +26,40 @@ import org.apache.kafka.connect.data.Schema;
 /** Schema. */
 public class KafkaSchema implements AbstractSchema {
 
+  private static final KafkaSchema INT8 = new KafkaSchema(Schema.INT8_SCHEMA);
+
+  private static final KafkaSchema INT16 = new KafkaSchema(Schema.INT16_SCHEMA);
+  private static final KafkaSchema INT32 = new KafkaSchema(Schema.INT32_SCHEMA);
+  private static final KafkaSchema INT64 = new KafkaSchema(Schema.INT64_SCHEMA);
+  private static final KafkaSchema FLOAT32 = new KafkaSchema(Schema.FLOAT32_SCHEMA);
+  private static final KafkaSchema FLOAT64 = new KafkaSchema(Schema.FLOAT64_SCHEMA);
+  private static final KafkaSchema BOOLEAN = new KafkaSchema(Schema.BOOLEAN_SCHEMA);
+  private static final KafkaSchema STRING = new KafkaSchema(Schema.STRING_SCHEMA);
+  private static final KafkaSchema BYTES = new KafkaSchema(Schema.BYTES_SCHEMA);
+
   public static KafkaSchema of(Schema schema) {
-    return new KafkaSchema(schema);
+    switch (schema.type()) {
+      case INT8:
+        return INT8;
+      case INT16:
+        return INT16;
+      case INT32:
+        return INT32;
+      case INT64:
+        return INT64;
+      case FLOAT32:
+        return FLOAT32;
+      case FLOAT64:
+        return FLOAT64;
+      case BOOLEAN:
+        return BOOLEAN;
+      case STRING:
+        return STRING;
+      case BYTES:
+        return BYTES;
+      default:
+        return new KafkaSchema(schema);
+    }
   }
 
   private final Schema schema;
@@ -44,7 +76,7 @@ public class KafkaSchema implements AbstractSchema {
       final List<Field> schemaFields = schema.fields();
       fields = new ArrayList(schemaFields.size());
       for (Field f : schemaFields) {
-        fields.add(new FieldImpl(f));
+        fields.add(new KafkaField(f));
       }
     }
   }

@@ -49,7 +49,7 @@ public class KafkaSinkRecordAdapter implements AbstractSinkRecord {
     List<AbstractSinkRecordHeader> wrapped = new ArrayList<>(headers.size());
     headers.forEach(
         h -> {
-          wrapped.add(new HeaderAdapter(h));
+          wrapped.add(new KafkaHeader(h));
         });
     return wrapped;
   }

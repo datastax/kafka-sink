@@ -20,11 +20,11 @@ import com.datastax.oss.common.sink.AbstractSinkRecordHeader;
 import org.apache.kafka.connect.header.Header;
 
 /** Wrapper of a Kafka Message Header */
-public class HeaderAdapter implements AbstractSinkRecordHeader {
+public class KafkaHeader implements AbstractSinkRecordHeader {
 
   private final Header header;
 
-  public HeaderAdapter(Header header) {
+  public KafkaHeader(Header header) {
     this.header = header;
   }
 

@@ -20,10 +20,10 @@ import com.datastax.oss.common.sink.AbstractSchema;
 import org.apache.kafka.connect.data.Field;
 
 /** Implementation of Field. */
-public class FieldImpl implements AbstractField {
+public class KafkaField implements AbstractField {
   private final Field field;
 
-  public FieldImpl(Field field) {
+  public KafkaField(Field field) {
     this.field = field;
   }
 
