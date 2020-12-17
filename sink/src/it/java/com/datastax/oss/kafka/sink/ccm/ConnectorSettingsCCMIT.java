@@ -15,15 +15,15 @@
  */
 package com.datastax.oss.kafka.sink.ccm;
 
-import static com.datastax.oss.kafka.sink.config.CassandraSinkConfig.withDriverPrefix;
+import static com.datastax.oss.common.sink.config.CassandraSinkConfig.withDriverPrefix;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.dse.driver.api.core.config.DseDriverOption;
+import com.datastax.oss.common.sink.state.InstanceState;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DefaultDriverOption;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
-import com.datastax.oss.kafka.sink.state.InstanceState;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.List;

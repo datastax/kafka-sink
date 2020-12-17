@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.datastax.oss.common.sink.codecs;
+package com.datastax.oss.kafka.sink.codecs;
 
-import com.datastax.oss.common.sink.AbstractStruct;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodec;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecProvider;
+import com.datastax.oss.kafka.sink.KafkaStruct;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Optional;
+import org.apache.kafka.connect.data.Struct;
 
 /** Converting codec registry that handles processing Kafka {@link Struct} objects. */
 public class KafkaCodecProvider implements ConvertingCodecProvider {
@@ -36,7 +37,7 @@ public class KafkaCodecProvider implements ConvertingCodecProvider {
       @NonNull ConvertingCodecFactory codecFactory,
       boolean rootCodec) {
     if (cqlType instanceof UserDefinedType
-        && externalJavaType.equals(GenericType.of(AbstractStruct.class))) {
+        && externalJavaType.equals(GenericType.of(KafkaStruct.class))) {
       return Optional.of(new StructToUDTCodec(codecFactory, (UserDefinedType) cqlType));
     }
     return Optional.empty();

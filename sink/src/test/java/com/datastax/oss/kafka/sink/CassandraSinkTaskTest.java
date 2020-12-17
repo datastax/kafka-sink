@@ -21,13 +21,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.datastax.oss.common.sink.RecordMapper;
+import com.datastax.oss.common.sink.config.TableConfig;
+import com.datastax.oss.common.sink.config.TopicConfig;
+import com.datastax.oss.common.sink.record.RecordAndStatement;
+import com.datastax.oss.common.sink.state.InstanceState;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
-import com.datastax.oss.kafka.sink.config.TableConfig;
-import com.datastax.oss.kafka.sink.config.TopicConfig;
-import com.datastax.oss.kafka.sink.record.RecordAndStatement;
-import com.datastax.oss.kafka.sink.state.InstanceState;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,7 +49,7 @@ class CassandraSinkTaskTest {
   void setUp() {
     sinkTask = new CassandraSinkTask();
     instanceState = mock(InstanceState.class);
-    ReflectionUtils.setInternalState(sinkTask, "instanceState", instanceState);
+    ReflectionUtils.setInternalState(sinkTask.getProcessor(), "instanceState", instanceState);
     record = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);
   }
 
@@ -82,7 +83,7 @@ class CassandraSinkTaskTest {
     when(bs1.setConsistencyLevel(any())).thenReturn(bs1);
     when(bs2.setConsistencyLevel(any())).thenReturn(bs2);
 
-    sinkTask.mapAndQueueRecord(queue, record);
+    sinkTask.getProcessor().mapAndQueueRecord(queue, new KafkaSinkRecordAdapter(record));
     assertThat(queue.size()).isEqualTo(2);
     assertThat(Objects.requireNonNull(queue.poll()).getStatement()).isSameAs(bs1);
     assertThat(Objects.requireNonNull(queue.poll()).getStatement()).isSameAs(bs2);

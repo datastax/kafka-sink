@@ -72,7 +72,7 @@ public abstract class AbstractSinkTask {
    *
    * @param sinkRecords collection of {@link SinkRecord}s to process
    */
-  public void put(Collection<AbstractSinkRecord> sinkRecords) {
+  public final void put(Collection<AbstractSinkRecord> sinkRecords) {
     if (sinkRecords.isEmpty()) {
       // Nothing to process.
       return;
@@ -156,7 +156,7 @@ public abstract class AbstractSinkTask {
         });
   }
 
-  public void stop() {
+  public final void stop() {
     taskStateManager.toStopTransitionLogic(
         NO_OP, () -> LifeCycleManager.stopTask(this.instanceState, this));
   }
@@ -174,7 +174,7 @@ public abstract class AbstractSinkTask {
    * @param record the {@link SinkRecord} to map
    */
   @VisibleForTesting
-  final void mapAndQueueRecord(
+  public final void mapAndQueueRecord(
       BlockingQueue<RecordAndStatement> boundStatementsQueue, AbstractSinkRecord record) {
     try {
       String topicName = record.topic();
@@ -243,7 +243,7 @@ public abstract class AbstractSinkTask {
    * @param cql the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered
    */
-  abstract void handleFailure(
+  protected abstract void handleFailure(
       AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter);
 
   /**

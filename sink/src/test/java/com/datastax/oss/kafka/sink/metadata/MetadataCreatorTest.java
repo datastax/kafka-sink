@@ -17,8 +17,11 @@ package com.datastax.oss.kafka.sink.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.common.sink.metadata.InnerDataAndMetadata;
+import com.datastax.oss.common.sink.metadata.MetadataCreator;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.PrimitiveType;
+import com.datastax.oss.kafka.sink.KafkaStruct;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -50,7 +53,7 @@ class MetadataCreatorTest {
     Struct object = new Struct(schema).put("name", "Bobby McGee").put("age", 21);
 
     // when
-    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(object);
+    InnerDataAndMetadata innerDataAndMetadata = MetadataCreator.makeMeta(KafkaStruct.wrap(object));
 
     // then
     assertThat(innerDataAndMetadata.getInnerData().getFieldValue("name")).isEqualTo("Bobby McGee");

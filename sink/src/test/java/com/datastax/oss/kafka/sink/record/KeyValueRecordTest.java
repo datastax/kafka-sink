@@ -15,9 +15,12 @@
  */
 package com.datastax.oss.kafka.sink.record;
 
+import static com.datastax.oss.kafka.sink.KafkaSinkRecordAdapter.wrapHeaders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.datastax.oss.common.sink.record.KeyOrValue;
+import com.datastax.oss.common.sink.record.KeyValueRecord;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Set;
@@ -73,7 +76,7 @@ class KeyValueRecordTest {
 
   @Test
   void should_qualify_field_names_and_headers() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    KeyValueRecord record = new KeyValueRecord(key, value, null, wrapHeaders(headers));
     assertThat(record.fields())
         .containsOnly("key.kf1", "key.kf2", "value.vf1", "value.vf2", "header.h1", "header.h2");
   }
@@ -92,13 +95,13 @@ class KeyValueRecordTest {
 
   @Test
   void should_qualify_field_names_headers_only() {
-    KeyValueRecord record = new KeyValueRecord(null, null, null, headers);
+    KeyValueRecord record = new KeyValueRecord(null, null, null, wrapHeaders(headers));
     assertThat(record.fields()).containsOnly("header.h1", "header.h2");
   }
 
   @Test
   void should_get_field_values() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    KeyValueRecord record = new KeyValueRecord(key, value, null, wrapHeaders(headers));
     assertThat(record.getFieldValue("key.kf1")).isEqualTo("kv1");
     assertThat(record.getFieldValue("value.vf2")).isEqualTo("vv2");
     assertThat(record.getFieldValue("value.not_exist")).isNull();
@@ -108,7 +111,7 @@ class KeyValueRecordTest {
 
   @Test
   void should_throw_if_get_field_value_with_not_known_prefix() {
-    KeyValueRecord record = new KeyValueRecord(key, value, null, headers);
+    KeyValueRecord record = new KeyValueRecord(key, value, null, wrapHeaders(headers));
     assertThatThrownBy(() -> record.getFieldValue("non_existing_prefix"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("field name must start with 'key.', 'value.' or 'header.'.");

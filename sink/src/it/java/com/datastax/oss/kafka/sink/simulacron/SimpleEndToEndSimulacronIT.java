@@ -28,6 +28,8 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 import com.codahale.metrics.Histogram;
+import com.datastax.oss.common.sink.state.InstanceState;
+import com.datastax.oss.common.sink.state.LifeCycleManager;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.logging.LogCapture;
@@ -44,8 +46,6 @@ import com.datastax.oss.dsbulk.tests.simulacron.annotations.SimulacronConfig;
 import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import com.datastax.oss.kafka.sink.CassandraSinkConnector;
 import com.datastax.oss.kafka.sink.CassandraSinkTask;
-import com.datastax.oss.kafka.sink.state.InstanceState;
-import com.datastax.oss.kafka.sink.state.LifeCycleManager;
 import com.datastax.oss.protocol.internal.request.Batch;
 import com.datastax.oss.protocol.internal.request.Execute;
 import com.datastax.oss.simulacron.common.cluster.QueryLog;

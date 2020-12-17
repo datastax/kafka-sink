@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.UserDefinedTypeBuilder;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.dsbulk.codecs.text.TextConversionContext;
+import com.datastax.oss.kafka.sink.KafkaStruct;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -41,7 +42,8 @@ class StructToUDTCodecTest {
   private final StructToUDTCodec udtCodec1 =
       (StructToUDTCodec)
           new ConvertingCodecFactory(new TextConversionContext())
-              .<Struct, UdtValue>createConvertingCodec(udt1, GenericType.of(Struct.class), true);
+              .<KafkaStruct, UdtValue>createConvertingCodec(
+                  udt1, GenericType.of(KafkaStruct.class), true);
 
   private final Schema schema =
       SchemaBuilder.struct()
@@ -54,7 +56,7 @@ class StructToUDTCodecTest {
   @Test
   void should_convert_from_valid_external() {
     assertThat(udtCodec1)
-        .convertsFromExternal(struct)
+        .convertsFromExternal(new KafkaStruct(struct))
         .toInternal(udt1Value)
         .convertsFromExternal(null)
         .toInternal(null);
@@ -72,6 +74,8 @@ class StructToUDTCodecTest {
                     .build())
             .put("a1", 32)
             .put("a2", 40);
-    assertThat(udtCodec1).cannotConvertFromExternal(other).cannotConvertFromExternal(other2);
+    assertThat(udtCodec1)
+        .cannotConvertFromExternal(new KafkaStruct(other))
+        .cannotConvertFromExternal(new KafkaStruct(other2));
   }
 }

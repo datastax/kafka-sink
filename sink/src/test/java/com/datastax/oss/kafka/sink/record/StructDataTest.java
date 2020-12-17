@@ -17,6 +17,9 @@ package com.datastax.oss.kafka.sink.record;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.common.sink.record.RawData;
+import com.datastax.oss.common.sink.record.StructData;
+import com.datastax.oss.kafka.sink.KafkaStruct;
 import java.nio.ByteBuffer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -34,7 +37,7 @@ class StructDataTest {
   private final byte[] bytesArray = {3, 2, 1};
   private final Struct struct =
       new Struct(schema).put("bigint", 1234L).put("boolean", false).put("bytes", bytesArray);
-  private final StructData structData = new StructData(struct);
+  private final StructData structData = new StructData(new KafkaStruct(struct));
 
   @Test
   void should_parse_field_names_from_struct() {
