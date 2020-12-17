@@ -52,6 +52,7 @@ public class CassandraSinkTask extends SinkTask {
   public void start(Map<String, String> props) {
     log.debug("CassandraSinkTask starting with props: {}", props);
     failureOffsets = new ConcurrentHashMap<>();
+    processor.start(props);
   }
 
   /**

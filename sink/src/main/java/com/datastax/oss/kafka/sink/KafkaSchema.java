@@ -37,10 +37,11 @@ public class KafkaSchema implements AbstractSchema {
   private KafkaSchema(Schema schema) {
     this.schema = schema;
     this.type = convertType(schema.type());
-    final List<Field> schemaFields = schema.fields();
-    if (schemaFields.isEmpty()) {
+
+    if (schema.type() != Schema.Type.STRUCT) {
       fields = Collections.emptyList();
     } else {
+      final List<Field> schemaFields = schema.fields();
       fields = new ArrayList(schemaFields.size());
       for (Field f : schemaFields) {
         fields.add(new FieldImpl(f));
@@ -55,7 +56,7 @@ public class KafkaSchema implements AbstractSchema {
 
   @Override
   public AbstractSchema keySchema() {
-    return of(schema.valueSchema());
+    return of(schema.keySchema());
   }
 
   @Override
@@ -102,5 +103,10 @@ public class KafkaSchema implements AbstractSchema {
       default:
         throw new IllegalArgumentException("Unsupported type " + type);
     }
+  }
+
+  @Override
+  public String toString() {
+    return "KafkaSchema{" + "schema=" + schema + ", type=" + type + ", fields=" + fields + '}';
   }
 }

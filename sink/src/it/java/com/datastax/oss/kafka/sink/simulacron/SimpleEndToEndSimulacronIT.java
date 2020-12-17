@@ -43,7 +43,6 @@ import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils;
 import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Column;
 import com.datastax.oss.dsbulk.tests.simulacron.SimulacronUtils.Table;
 import com.datastax.oss.dsbulk.tests.simulacron.annotations.SimulacronConfig;
-import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import com.datastax.oss.kafka.sink.CassandraSinkConnector;
 import com.datastax.oss.kafka.sink.CassandraSinkTask;
 import com.datastax.oss.protocol.internal.request.Batch;
@@ -432,8 +431,7 @@ class SimpleEndToEndSimulacronIT {
         .contains("Could not parse 'bad key'")
         .contains(
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
-    InstanceState instanceState =
-        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    InstanceState instanceState = task.getInstanceState();
     assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
         .isEqualTo(3);
     assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(4);
@@ -471,8 +469,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(logs.getAllMessagesAsString())
         .contains("Error decoding/mapping Kafka record SinkRecord{kafkaOffset=1235")
         .contains("Could not parse 'bad key'");
-    InstanceState instanceState =
-        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    InstanceState instanceState = task.getInstanceState();
     assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
         .isEqualTo(1);
     assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(2);
@@ -528,8 +525,7 @@ class SimpleEndToEndSimulacronIT {
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1238")
         .contains(
             "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
-    InstanceState instanceState =
-        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    InstanceState instanceState = task.getInstanceState();
     assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
         .isEqualTo(3);
     assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(5);
@@ -647,8 +643,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(queryList.get(2).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
     assertThat(queryList.get(3).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
 
-    InstanceState instanceState =
-        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    InstanceState instanceState = task.getInstanceState();
     assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(2);
     assertThat(instanceState.getRecordCounter("mytopic_with_ttl", "ks1.table1_with_ttl").getCount())
         .isEqualTo(2);
@@ -827,8 +822,7 @@ class SimpleEndToEndSimulacronIT {
     assertThat(queryInfo)
         .containsOnly(entry(ConsistencyLevel.LOCAL_ONE, 2), entry(ConsistencyLevel.QUORUM, 3));
 
-    InstanceState instanceState =
-        (InstanceState) ReflectionUtils.getInternalState(task, "instanceState");
+    InstanceState instanceState = task.getInstanceState();
 
     // verify that was one batch with 2 statements for mytopic
     verifyOneBatchWithNStatements(instanceState.getBatchSizeHistogram("mytopic", "ks1.table1"), 2);
