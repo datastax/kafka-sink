@@ -49,8 +49,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * CassandraSinkTask does the heavy lifting of processing {@link SinkRecord}s and writing them to
- * DSE.
+ * CassandraSinkTask does the heavy lifting of processing {@link AbstractSinkRecord}s and writing
+ * them to DSE.
  */
 public abstract class AbstractSinkTask {
   private static final Runnable NO_OP = () -> {};
@@ -70,7 +70,7 @@ public abstract class AbstractSinkTask {
   /**
    * Entry point for record processing.
    *
-   * @param sinkRecords collection of {@link SinkRecord}s to process
+   * @param sinkRecords collection of {@link AbstractSinkRecord}s to process
    */
   public final void put(Collection<AbstractSinkRecord> sinkRecords) {
     if (sinkRecords.isEmpty()) {
@@ -171,7 +171,7 @@ public abstract class AbstractSinkTask {
    * BoundStatement}'s to the given queue for further processing.
    *
    * @param boundStatementsQueue the queue that processes {@link RecordAndStatement}'s
-   * @param record the {@link SinkRecord} to map
+   * @param record the {@link AbstractSinkRecord} to map
    */
   @VisibleForTesting
   public final void mapAndQueueRecord(
@@ -238,7 +238,7 @@ public abstract class AbstractSinkTask {
   /**
    * Handle a failed record.
    *
-   * @param record the {@link SinkRecord} that failed to process
+   * @param record the {@link AbstractSinkRecord} that failed to process
    * @param e the exception
    * @param cql the cql statement that failed to execute
    * @param failCounter the metric that keeps track of number of failures encountered

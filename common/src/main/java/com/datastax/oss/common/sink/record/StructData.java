@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** The key or value of a {@link SinkRecord} when it is a {@link Struct}. */
+/** The key or value of a {@link AbstractSinkRecord} when it is a {@link AbstractStruct}. */
 public class StructData implements KeyOrValue {
 
   private final AbstractStruct struct;
