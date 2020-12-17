@@ -17,8 +17,9 @@ package com.datastax.oss.common.sink;
 
 import java.util.List;
 import java.util.Locale;
+import org.apache.kafka.common.protocol.types.Struct;
 
-/** Generic data type. */
+/** Generic data type. The available types are the same as in Kafka Connect 2.4.x */
 public interface AbstractSchema {
 
   public AbstractSchema valueSchema();
@@ -54,8 +55,8 @@ public interface AbstractSchema {
     /**
      * 64-bit signed integer
      *
-     * <p>Note that if you have an unsigned 64-bit data source, the {@link Decimal} logical type
-     * (encoded as {@link Type#BYTES}) will be required to safely capture all valid values
+     * <p>Note that if you have an unsigned 64-bit data source, the Decimal logical type (encoded as
+     * {@link Type#BYTES}) will be required to safely capture all valid values
      */
     INT64,
     /** 32-bit IEEE 754 floating point number */

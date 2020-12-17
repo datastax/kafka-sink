@@ -18,9 +18,24 @@ package com.datastax.oss.common.sink;
 /** An header */
 public interface AbstractSinkRecordHeader {
 
+  /**
+   * Key of the header
+   *
+   * @return the key
+   */
   public String key();
 
+  /**
+   * Value of the header.
+   *
+   * @return the value
+   */
   public Object value();
 
+  /**
+   * Schema (data type) of the value
+   *
+   * @return the schema
+   */
   public AbstractSchema schema();
 }

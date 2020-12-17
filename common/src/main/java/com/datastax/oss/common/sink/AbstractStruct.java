@@ -18,7 +18,18 @@ package com.datastax.oss.common.sink;
 /** A data structure. */
 public interface AbstractStruct {
 
+  /**
+   * Access a field
+   *
+   * @param field
+   * @return the value of the field, or null
+   */
   public Object get(String field);
 
+  /**
+   * The data type of the field
+   *
+   * @return the schema
+   */
   public AbstractSchema schema();
 }

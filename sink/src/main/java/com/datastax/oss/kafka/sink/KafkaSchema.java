@@ -37,6 +37,13 @@ public class KafkaSchema implements AbstractSchema {
   private static final KafkaSchema STRING = new KafkaSchema(Schema.STRING_SCHEMA);
   private static final KafkaSchema BYTES = new KafkaSchema(Schema.BYTES_SCHEMA);
 
+  /**
+   * Build a wrapper around a given Kafka Connect Schema. Wrappers for common types are cached using
+   * constants.
+   *
+   * @param schema
+   * @return the wrapped schema
+   */
   public static KafkaSchema of(Schema schema) {
     switch (schema.type()) {
       case INT8:
@@ -58,6 +65,7 @@ public class KafkaSchema implements AbstractSchema {
       case BYTES:
         return BYTES;
       default:
+        // structs and other non primitive types
         return new KafkaSchema(schema);
     }
   }

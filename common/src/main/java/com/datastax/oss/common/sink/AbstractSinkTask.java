@@ -151,7 +151,7 @@ public abstract class AbstractSinkTask {
                   }
                 });
 
-            throw new RetryableException("Interrupted while issuing queries");
+            throw new RuntimeException("Interrupted while issuing queries", e);
           }
         });
   }

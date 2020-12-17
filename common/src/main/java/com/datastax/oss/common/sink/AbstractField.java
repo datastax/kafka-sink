@@ -17,7 +17,17 @@ package com.datastax.oss.common.sink;
 
 /** Field metadata */
 public interface AbstractField {
+  /**
+   * Name of the field, case sensitive.
+   *
+   * @return the name
+   */
   String name();
 
+  /**
+   * The schema (data type) for the field.
+   *
+   * @return the schema
+   */
   AbstractSchema schema();
 }
