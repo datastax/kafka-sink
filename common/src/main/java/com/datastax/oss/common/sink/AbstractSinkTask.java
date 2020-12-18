@@ -252,6 +252,13 @@ public abstract class AbstractSinkTask {
       AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter);
 
   /**
+   * Acknowledge success in processing a record.
+   *
+   * @param record
+   */
+  protected void handleSuccess(AbstractSinkRecord record) {}
+
+  /**
    * Called by the framework before processing a batch of record, but inside the taskManager
    * context/execution flow.
    */

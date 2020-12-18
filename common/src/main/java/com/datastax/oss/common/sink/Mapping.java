@@ -41,7 +41,7 @@ public class Mapping {
   private final Map<CqlIdentifier, CqlIdentifier> columnsToKafkaFields;
   private final Multimap<CqlIdentifier, CqlIdentifier> kafkaFieldsToDseColumns;
   private final ConvertingCodecFactory codecFactory;
-  private final Cache<CqlIdentifier, TypeCodec<?>> columnsToCodecs;
+  private final Cache<String, TypeCodec<?>> columnsToCodecs;
   private final List<CqlIdentifier> functions;
 
   public Mapping(
@@ -84,7 +84,8 @@ public class Mapping {
     TypeCodec<T> codec =
         (TypeCodec<T>)
             columnsToCodecs.get(
-                column, n -> codecFactory.createConvertingCodec(cqlType, javaType, true));
+                column + "/" + cqlType + "/" + javaType,
+                n -> codecFactory.createConvertingCodec(cqlType, javaType, true));
     assert codec != null;
     return codec;
   }

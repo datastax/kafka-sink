@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright DataStax, Inc.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>cassandra-sink-pulsar-parent</artifactId>
+    <groupId>com.datastax.oss</groupId>
+    <version>1.4.1-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>cassandra-sink-pulsar-distribution</artifactId>
+  <name>DataStax Apache Cassandra (R) Pulsar Sink Connector - Distribution</name>
+  <description>Binary distribution of the DataStax Apache Pulsar Sink Connector.</description>
+  <dependencies>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>cassandra-sink-pulsar</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <finalName>cassandra-sink-pulsar-${project.version}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <!--<phase>prepare-package</phase>-->
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <excludes>
+                  <exclude>org.apache.pulsar:*</exclude>
+                  <exclude>org.slf4j:*</exclude>
+                  <exclude>ch.qos.logback:*</exclude>
+                </excludes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/DEPENDENCIES</exclude>
+                    <exclude>META-INF/NOTICE*</exclude>
+                    <exclude>META-INF/LICENSE*</exclude>
+                    <exclude>META-INF/maven/**</exclude>
+                    <exclude>META-INF/ASL*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>reference.conf</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/io.netty.versions.properties</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+              <relocations>
+                <relocation>
+                  <pattern>com.codahale.metrics</pattern>
+                  <shadedPattern>pulsarsink.com.codahale.metrics</shadedPattern>
+                </relocation>
+              </relocations>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <configuration>
+              <excludedScopes>test</excludedScopes>
+              <licenseMerges>
+                <licenseMerge>Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache Public License 2.0|Apache License 2.0|Apache 2.0|Apache 2</licenseMerge>
+                <licenseMerge>BSD License|The BSD License|BSD|BSD-2-Clause</licenseMerge>
+                <licenseMerge>MIT License|The MIT License|MIT license</licenseMerge>
+                <licenseMerge>Creative Commons CC0|Public Domain, per Creative Commons CC0|CC0</licenseMerge>
+                <licenseMerge>Eclipse Public License, Version 1.0|Eclipse Public License - v 1.0|Common Public License - v 1.0</licenseMerge>
+              </licenseMerges>
+              <failOnMissing>true</failOnMissing>
+            </configuration>
+            <executions>
+              <execution>
+                <id>add-third-party</id>
+                <goals>
+                  <goal>add-third-party</goal>
+                </goals>
+                <phase>process-sources</phase>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>assemble-binary-distro</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <appendAssemblyId>false</appendAssemblyId>
+              <descriptors>
+                <descriptor>src/assembly/binary-distro.xml</descriptor>
+              </descriptors>
+              <tarLongFileMode>posix</tarLongFileMode>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-install-plugin</artifactId>
+            <configuration>
+              <skip>false</skip>
+            </configuration>
+          </plugin>
+          <plugin>
+            <artifactId>maven-deploy-plugin</artifactId>
+            <configuration>
+              <skip>false</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package test;
+
+option java_package = "com.datastax.oss.sink.pulsar.containers";
+option java_outer_classname = "PojoV3";
+
+message Pojo {
+    optional string part = 1;
+    optional string id = 2;
+    int32 number = 3;
+    bool isfact = 4;
+}
+

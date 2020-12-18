@@ -1,0 +1,58 @@
+tenant: public
+namespace: default
+name: csink
+connector.class: com.datastax.oss.sink.pulsar.SimpleGenericRecordSink
+tasks.max: 1
+topics: mytopic
+contactPoints: 192.168.1.103
+loadBalancing.localDc: datacenter1
+port: 9042
+cloud.secureConnectBundle:
+ignoreErrors: None
+maxConcurrentRequests: 500
+maxNumberOfRecordsInBatch: 32
+queryExecutionTimeout: 30
+connectionPoolLocalSize: 4
+jmx: true
+compression: None
+auth:
+  provider: None
+  username:
+  password:
+  gssapi:
+    keyTab:
+    principal:
+    service: dse
+ssl:
+  provider: None
+  hostnameValidation: true
+  keystore:
+    password:
+    path:
+  openssl:
+    keyCertChain:
+    privateKey:
+  truststore:
+    password:
+    path:
+  cipherSuites:
+topic:
+  mytopic:
+    testks:
+      testtbl:
+        mapping: 'part=value.part, id=value.id, num=value.number, fact=value.isfact, added=now()'
+        consistencyLevel: LOCAL_ONE
+        ttl: -1
+        ttlTimeUnit : SECONDS
+        timestampTimeUnit : MICROSECONDS
+        nullToUnset: true
+        deletesEnabled: true
+    codec:
+      locale: en_US
+      timeZone: UTC
+      timestamp: CQL_TIMESTAMP
+      date: ISO_LOCAL_DATE
+      time: ISO_LOCAL_TIME
+      unit: MILLISECONDS
+pulsarAdminService:
+  url: http://localhost:8080
