@@ -184,7 +184,9 @@ public abstract class AbstractSinkTask {
     try {
       String topicName = record.topic();
       TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
-
+      if (topicConfig == null) {
+        throw new ConfigException("Topic " + topicName + " is not configured");
+      }
       for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
         Runnable failedRecordIncrement =
             () ->

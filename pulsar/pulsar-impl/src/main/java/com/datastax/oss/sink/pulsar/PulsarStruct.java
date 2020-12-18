@@ -23,11 +23,6 @@ import org.apache.pulsar.functions.api.Record;
 /** Wrapper for Pulsar GenericRecord. */
 public class PulsarStruct implements AbstractStruct {
 
-  static Object wrap(GenericRecord value, LocalSchemaRegistry schemaRegistry) {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // To change body of generated methods, choose Tools | Templates.
-  }
-
   private final Record<GenericRecord> record;
   private final PulsarSchema schema;
   private final LocalSchemaRegistry schemaRegistry;

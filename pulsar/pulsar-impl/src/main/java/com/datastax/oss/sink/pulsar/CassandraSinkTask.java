@@ -39,15 +39,15 @@ import org.slf4j.LoggerFactory;
   help = "DataStax Pulsar Sink is used for moving messages from Pulsar to Cassandra",
   configClass = PulsarSinkConfig.class
 )
-public class SimpleGenericRecordSink implements Sink<GenericRecord> {
+public class CassandraSinkTask implements Sink<GenericRecord> {
 
   private static final String APPLICATION_NAME = "DataStax Pulsar Connector";
-  private static final Logger log = LoggerFactory.getLogger(SimpleGenericRecordSink.class);
+  private static final Logger log = LoggerFactory.getLogger(CassandraSinkTask.class);
   protected AbstractSinkTask processor;
   private String version;
   private final LocalSchemaRegistry schemaRegistry = new LocalSchemaRegistry();
 
-  public SimpleGenericRecordSink() {
+  public CassandraSinkTask() {
     processor =
         new AbstractSinkTask() {
           @Override
@@ -100,10 +100,17 @@ public class SimpleGenericRecordSink implements Sink<GenericRecord> {
       log.debug("write {}", record);
     }
     log.info("write {}", record);
+    PulsarSinkRecordImpl pulsarSinkRecordImpl = buildRecordImpl(record);
+    processor.put(Collections.singleton(pulsarSinkRecordImpl));
+  }
+
+  PulsarSinkRecordImpl buildRecordImpl(Record<GenericRecord> record) {
     // TODO: batch records, in Kafka the system sends batches, here we
     // are procesing only one record at a time
     PulsarSchema schema = schemaRegistry.ensureAndUpdateSchema(record);
-    processor.put(Collections.singleton(new PulsarSinkRecordImpl(record, schema, schemaRegistry)));
+    PulsarSinkRecordImpl pulsarSinkRecordImpl =
+        new PulsarSinkRecordImpl(record, schema, schemaRegistry);
+    return pulsarSinkRecordImpl;
   }
 
   @Override
@@ -125,7 +132,7 @@ public class SimpleGenericRecordSink implements Sink<GenericRecord> {
       // Get the version from version.txt.
       version = "UNKNOWN";
       try (InputStream versionStream =
-          SimpleGenericRecordSink.class.getResourceAsStream(
+          CassandraSinkTask.class.getResourceAsStream(
               "/com/datastax/oss/pulsar/sink/version.txt")) {
         if (versionStream != null) {
           BufferedReader reader =
@@ -137,5 +144,9 @@ public class SimpleGenericRecordSink implements Sink<GenericRecord> {
       }
       return version;
     }
+  }
+
+  public AbstractSinkTask getProcessor() {
+    return processor;
   }
 }

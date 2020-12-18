@@ -2,4 +2,4 @@ name: dssc-simple
 description: >
   A DataStax Pulsar Sink to load records from Pulsar topics to
   Apache Cassandra(R) or DataStax Enterprise(DSE)
-sinkClass: com.datastax.oss.sink.pulsar.SimpleGenericRecordSink
+sinkClass: com.datastax.oss.sink.pulsar.CassandraSinkTask

@@ -17,6 +17,7 @@ package com.datastax.oss.common.sink.record;
 
 import static com.datastax.oss.common.sink.record.StructDataMetadataSupport.getGenericType;
 
+import com.datastax.oss.common.sink.AbstractField;
 import com.datastax.oss.common.sink.AbstractSchema;
 import com.datastax.oss.common.sink.AbstractStruct;
 import com.datastax.oss.driver.api.core.type.DataType;
@@ -36,7 +37,11 @@ public class StructDataMetadata implements RecordMetadata {
     if (field.equals(RawData.FIELD_NAME)) {
       return GenericType.of(AbstractStruct.class);
     }
-    AbstractSchema fieldType = schema.field(field).schema();
+    AbstractField fieldMetadata = schema.field(field);
+    if (fieldMetadata == null) {
+      throw new RuntimeException("Field " + field + " is not defined in schema");
+    }
+    AbstractSchema fieldType = fieldMetadata.schema();
     return getGenericType(fieldType);
   }
 }
