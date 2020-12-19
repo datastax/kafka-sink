@@ -73,4 +73,9 @@ public class KafkaSinkRecordAdapter implements AbstractSinkRecord {
   public String topic() {
     return record.topic();
   }
+
+  @Override
+  public String toString() {
+    return "KafkaSinkRecordAdapter{" + "record=" + record + '}';
+  }
 }

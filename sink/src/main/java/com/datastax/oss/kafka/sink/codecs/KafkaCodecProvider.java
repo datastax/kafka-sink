@@ -15,6 +15,7 @@
  */
 package com.datastax.oss.kafka.sink.codecs;
 
+import com.datastax.oss.common.sink.AbstractStruct;
 import com.datastax.oss.driver.api.core.type.DataType;
 import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
@@ -37,7 +38,8 @@ public class KafkaCodecProvider implements ConvertingCodecProvider {
       @NonNull ConvertingCodecFactory codecFactory,
       boolean rootCodec) {
     if (cqlType instanceof UserDefinedType
-        && externalJavaType.equals(GenericType.of(KafkaStruct.class))) {
+        && (externalJavaType.equals(GenericType.of(KafkaStruct.class))
+            || externalJavaType.equals(GenericType.of(AbstractStruct.class)))) {
       return Optional.of(new StructToUDTCodec(codecFactory, (UserDefinedType) cqlType));
     }
     return Optional.empty();
