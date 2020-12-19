@@ -28,7 +28,6 @@ import com.datastax.oss.common.sink.record.RecordAndStatement;
 import com.datastax.oss.common.sink.state.InstanceState;
 import com.datastax.oss.driver.api.core.DefaultConsistencyLevel;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import com.datastax.oss.dsbulk.tests.utils.ReflectionUtils;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,7 +48,7 @@ class CassandraSinkTaskTest {
   void setUp() {
     sinkTask = new CassandraSinkTask();
     instanceState = mock(InstanceState.class);
-    ReflectionUtils.setInternalState(sinkTask.getProcessor(), "instanceState", instanceState);
+    sinkTask.getProcessor().setInstanceState(instanceState);
     record = new SinkRecord("mytopic", 0, null, null, null, "value", 1234L);
   }
 

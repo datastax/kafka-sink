@@ -166,6 +166,11 @@ public abstract class AbstractSinkTask {
     return instanceState;
   }
 
+  @VisibleForTesting
+  public void setInstanceState(InstanceState instanceState) {
+    this.instanceState = instanceState;
+  }
+
   /**
    * Map the given Kafka record based on its topic and the table mappings. Add result {@link
    * BoundStatement}'s to the given queue for further processing.
