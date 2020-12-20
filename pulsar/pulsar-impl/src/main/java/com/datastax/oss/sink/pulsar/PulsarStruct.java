@@ -30,10 +30,15 @@ public class PulsarStruct implements AbstractStruct {
   public static Object wrap(Object o, LocalSchemaRegistry schemaRegistry) {
     if (o instanceof Record) {
       Record<GenericRecord> record = (Record<GenericRecord>) o;
-      PulsarSchema schema = schemaRegistry.ensureAndUpdateSchema(record);
-      return new PulsarStruct(record, schema, schemaRegistry);
+      return ofRecord(record, schemaRegistry);
     }
     return o;
+  }
+
+  public static PulsarStruct ofRecord(
+      Record<GenericRecord> record, LocalSchemaRegistry schemaRegistry) {
+    PulsarSchema schema = schemaRegistry.ensureAndUpdateSchema(record);
+    return new PulsarStruct(record, schema, schemaRegistry);
   }
 
   public PulsarStruct(

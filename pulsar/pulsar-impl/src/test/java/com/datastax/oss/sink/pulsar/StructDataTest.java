@@ -62,20 +62,9 @@ class StructDataTest {
   private final byte[] bytesArray = {3, 2, 1};
   private final GenericRecordImpl struct =
       new GenericRecordImpl().put("bigint", 1234L).put("bool", false).put("bytes", bytesArray);
-  private final Record<GenericRecord> record =
-      new Record<GenericRecord>() {
-        @Override
-        public Schema<GenericRecord> getSchema() {
-          return schema;
-        }
-
-        @Override
-        public GenericRecord getValue() {
-          return struct;
-        }
-      };
+  private final Record<GenericRecord> record = new PulsarRecordImpl(null, null, struct, schema);
   private final StructData structData =
-      new StructData((PulsarStruct) PulsarStruct.wrap(record, new LocalSchemaRegistry()));
+      new StructData(PulsarStruct.ofRecord(record, new LocalSchemaRegistry()));
 
   @Test
   void should_parse_field_names_from_struct() {

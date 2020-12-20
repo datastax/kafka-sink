@@ -34,7 +34,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.pulsar.client.api.Schema;
@@ -53,14 +52,12 @@ class CassandraSinkTaskTest {
     sinkTask = new CassandraSinkTask();
     instanceState = mock(InstanceState.class);
     ReflectionUtils.setInternalState(sinkTask.getProcessor(), "instanceState", instanceState);
-    record = mock(Record.class);
-    when(record.getTopicName())
-        .thenReturn(Optional.<String>of("persistent://tenant/namespace/mytopic"));
-    when(record.getEventTime()).thenReturn(Optional.<Long>of(System.currentTimeMillis()));
-    when(record.getKey()).thenReturn(Optional.empty());
-    GenericRecord genericRecord = new GenericRecordImpl();
-    when(record.getValue()).thenReturn(genericRecord);
-    when(record.getSchema()).thenReturn((Schema) Schema.AVRO(MyPojo.class));
+    record =
+        new PulsarRecordImpl(
+            "persistent://tenant/namespace/mytopic",
+            null,
+            new GenericRecordImpl(),
+            Schema.AVRO(MyPojo.class));
   }
 
   public static class MyPojo {}

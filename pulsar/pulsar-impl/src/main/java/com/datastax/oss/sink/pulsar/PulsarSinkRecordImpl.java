@@ -46,7 +46,7 @@ public class PulsarSinkRecordImpl implements AbstractSinkRecord {
 
   @Override
   public Object value() {
-    return PulsarStruct.wrap(record, schemaRegistry);
+    return PulsarStruct.ofRecord(record, schemaRegistry);
   }
 
   @Override

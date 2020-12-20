@@ -16,8 +16,6 @@
 package com.datastax.oss.sink.pulsar;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.datastax.oss.common.sink.metadata.InnerDataAndMetadata;
 import com.datastax.oss.common.sink.metadata.MetadataCreator;
@@ -25,7 +23,6 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.driver.internal.core.type.PrimitiveType;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
-import java.util.Optional;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.functions.api.Record;
@@ -64,13 +61,8 @@ class MetadataCreatorTest {
     // given
     Schema schema = Schema.JSON(MyPojo.class);
     GenericRecord object = new GenericRecordImpl().put("name", "Bobby McGee").put("age", 21);
-    Record<GenericRecord> record = mock(Record.class);
-    when(record.getTopicName())
-        .thenReturn(Optional.<String>of("persistent://tenant/namespace/mytopic"));
-    when(record.getEventTime()).thenReturn(Optional.<Long>of(System.currentTimeMillis()));
-    when(record.getKey()).thenReturn(Optional.empty());
-    when(record.getSchema()).thenReturn(schema);
-    when(record.getValue()).thenReturn(object);
+    Record<GenericRecord> record =
+        new PulsarRecordImpl("persistent://tenant/namespace/mytopic", null, object, schema);
 
     LocalSchemaRegistry localSchemaRegistry = new LocalSchemaRegistry();
     PulsarSinkRecordImpl pulsarSinkRecordImpl =

@@ -54,18 +54,7 @@ class StructDataMetadataTest {
             .put("int", 1)
             .put("text", "tt")
             .put("blob", new byte[10]);
-    record =
-        new Record<GenericRecord>() {
-          @Override
-          public GenericRecord getValue() {
-            return struct;
-          }
-
-          @Override
-          public Schema<GenericRecord> getSchema() {
-            return schema;
-          }
-        };
+    record = new PulsarRecordImpl(null, null, struct, schema);
   }
 
   private final LocalSchemaRegistry registry = new LocalSchemaRegistry();
