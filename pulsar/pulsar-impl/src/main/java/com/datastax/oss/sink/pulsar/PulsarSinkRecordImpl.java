@@ -66,4 +66,9 @@ public class PulsarSinkRecordImpl implements AbstractSinkRecord {
   public static String shortTopic(Record<?> record) {
     return record.getTopicName().map(s -> s.substring(s.lastIndexOf("/") + 1)).orElse(null);
   }
+
+  @Override
+  public String toString() {
+    return "PulsarSinkRecord{" + record + '}';
+  }
 }

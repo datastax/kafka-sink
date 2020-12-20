@@ -17,6 +17,7 @@ package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.common.sink.AbstractSinkRecord;
 import com.datastax.oss.common.sink.AbstractSinkTask;
+import com.datastax.oss.common.sink.state.InstanceState;
 import com.datastax.oss.common.sink.util.SinkUtil;
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -55,7 +56,7 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
               AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter) {
             failCounter.run();
             PulsarSinkRecordImpl impl = (PulsarSinkRecordImpl) record;
-            log.error("Error while processing record {}, cql {} ", impl, cql, e);
+            log.error("Error while processing record {}, Statement: {} ", impl, cql, e);
             impl.getRecord().fail();
           }
 
@@ -79,7 +80,7 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
   }
 
   @Override
-  public void open(Map<String, Object> cfg, SinkContext sc) throws Exception {
+  public void open(Map<String, Object> cfg, SinkContext sc) {
     log.info("start {}, config {}", getClass().getName(), cfg);
     try {
       // TODO
@@ -114,7 +115,7 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() {
     if (processor != null) {
       processor.stop();
     }
@@ -148,5 +149,9 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
 
   public AbstractSinkTask getProcessor() {
     return processor;
+  }
+
+  public InstanceState getInstanceState() {
+    return processor.getInstanceState();
   }
 }

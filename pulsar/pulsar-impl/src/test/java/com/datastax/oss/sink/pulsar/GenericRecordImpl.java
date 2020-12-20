@@ -16,7 +16,7 @@
 package com.datastax.oss.sink.pulsar;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.pulsar.client.api.schema.Field;
@@ -28,7 +28,7 @@ public class GenericRecordImpl implements GenericRecord {
   private final List<Field> fields;
 
   public GenericRecordImpl() {
-    this.values = new HashMap<>();
+    this.values = new LinkedHashMap<>(); // we want predictable output for integration tests
     this.fields = new ArrayList<>();
   }
 
@@ -52,5 +52,10 @@ public class GenericRecordImpl implements GenericRecord {
   @Override
   public Object getField(String fieldName) {
     return values.get(fieldName);
+  }
+
+  @Override
+  public String toString() {
+    return "GenericRecordImpl{" + "values=" + values + '}';
   }
 }

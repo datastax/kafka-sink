@@ -27,13 +27,30 @@ public class PulsarRecordImpl implements Record<GenericRecord> {
   private final Schema<GenericRecord> schema;
   private final String key;
   private final long eventTime;
+  private String partitionId;
+  private Long recordSequence;
 
   public PulsarRecordImpl(String topic, String key, GenericRecord value, Schema schema) {
+    this(topic, key, value, schema, System.currentTimeMillis());
+  }
+
+  public PulsarRecordImpl(
+      String topic, String key, GenericRecord value, Schema schema, long eventTime) {
     this.value = value;
     this.schema = schema;
     this.topic = topic;
     this.key = key;
-    this.eventTime = System.currentTimeMillis();
+    this.eventTime = eventTime;
+  }
+
+  @Override
+  public Optional<String> getPartitionId() {
+    return Optional.ofNullable(partitionId);
+  }
+
+  @Override
+  public Optional<Long> getRecordSequence() {
+    return Optional.ofNullable(recordSequence);
   }
 
   @Override
@@ -59,5 +76,33 @@ public class PulsarRecordImpl implements Record<GenericRecord> {
   @Override
   public GenericRecord getValue() {
     return value;
+  }
+
+  public void setPartitionId(String partitionId) {
+    this.partitionId = partitionId;
+  }
+
+  public void setRecordSequence(Long recordSequence) {
+    this.recordSequence = recordSequence;
+  }
+
+  @Override
+  public String toString() {
+    return "PulsarRecordImpl{"
+        + "topic="
+        + topic
+        + ", value="
+        + value
+        + ", schema="
+        + schema
+        + ", key="
+        + key
+        + ", eventTime="
+        + eventTime
+        + ", partitionId="
+        + partitionId
+        + ", recordSequence="
+        + recordSequence
+        + '}';
   }
 }
