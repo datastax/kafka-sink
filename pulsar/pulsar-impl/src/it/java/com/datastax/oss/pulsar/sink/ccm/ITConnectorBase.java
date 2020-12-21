@@ -78,6 +78,8 @@ public class ITConnectorBase {
     builder.field("my_value").type(SchemaType.STRING);
     builder.field("udtmem1").type(SchemaType.INT32);
     builder.field("udtmem2").type(SchemaType.STRING);
+    builder.field("ttl").type(SchemaType.INT64);
+    builder.field("timestamp").type(SchemaType.INT64);
 
     this.recordType = org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.AVRO));
     this.recordTypeJson =

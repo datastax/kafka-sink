@@ -111,4 +111,32 @@ class DeleteCCMIT extends EndToEndCCMITBase {
     results = session.execute("SELECT * FROM small_compound").all();
     assertThat(results.size()).isEqualTo(0);
   }
+
+  @Test
+  void delete_compound_decode_key_json() {
+    // First insert a row...
+    session.execute(
+        "INSERT INTO small_compound (bigintcol, booleancol, intcol) VALUES (1234567, true, 42)");
+    List<Row> results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(1);
+
+    taskConfigs.add(
+        makeConnectorProperties(
+            "bigintcol=key.bigint, booleancol=key.boolean, intcol=key.int",
+            "small_compound",
+            null));
+
+    // Set up records for "mytopic", the key contains a json value
+    String json = "{\"bigint\": 1234567, \"boolean\": true, \"int\": null}";
+
+    PulsarRecordImpl record =
+        new PulsarRecordImpl(
+            "persistent://tenant/namespace/mytopic", json, new GenericRecordImpl(), recordType);
+
+    runTaskWithRecords(record);
+
+    // Verify that the record was deleted from the database.
+    results = session.execute("SELECT * FROM small_compound").all();
+    assertThat(results.size()).isEqualTo(0);
+  }
 }
