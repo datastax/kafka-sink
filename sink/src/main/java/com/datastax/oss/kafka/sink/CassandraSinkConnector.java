@@ -15,7 +15,7 @@
  */
 package com.datastax.oss.kafka.sink;
 
-import com.datastax.oss.kafka.sink.config.CassandraSinkConfig;
+import com.datastax.oss.common.sink.config.CassandraSinkConfig;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;

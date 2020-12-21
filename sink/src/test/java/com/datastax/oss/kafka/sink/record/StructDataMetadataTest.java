@@ -17,8 +17,10 @@ package com.datastax.oss.kafka.sink.record;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.common.sink.record.StructDataMetadata;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.kafka.sink.KafkaSchema;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -49,7 +51,7 @@ class StructDataMetadataTest {
               "listnested",
               SchemaBuilder.array(SchemaBuilder.array(Schema.INT32_SCHEMA).build()).build())
           .build();
-  private final StructDataMetadata metadata = new StructDataMetadata(schema);
+  private final StructDataMetadata metadata = new StructDataMetadata(KafkaSchema.of(schema));
 
   @Test
   void should_translate_field_types() {

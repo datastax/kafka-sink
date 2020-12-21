@@ -15,6 +15,9 @@
  */
 package com.datastax.oss.kafka.sink.codecs;
 
+import com.datastax.oss.common.sink.AbstractField;
+import com.datastax.oss.common.sink.AbstractSchema;
+import com.datastax.oss.common.sink.record.StructDataMetadata;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.data.UdtValue;
 import com.datastax.oss.driver.api.core.type.DataType;
@@ -22,37 +25,35 @@ import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodec;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
-import com.datastax.oss.kafka.sink.record.StructDataMetadata;
+import com.datastax.oss.kafka.sink.KafkaStruct;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 /** Codec to convert a Kafka {@link Struct} to a UDT. */
-public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
+public class StructToUDTCodec extends ConvertingCodec<KafkaStruct, UdtValue> {
 
   private final ConvertingCodecFactory codecFactory;
   private final UserDefinedType definition;
 
   StructToUDTCodec(ConvertingCodecFactory codecFactory, UserDefinedType cqlType) {
-    super(codecFactory.getCodecRegistry().codecFor(cqlType), Struct.class);
+    super(codecFactory.getCodecRegistry().codecFor(cqlType), KafkaStruct.class);
     this.codecFactory = codecFactory;
     definition = cqlType;
   }
 
   @Override
-  public UdtValue externalToInternal(Struct external) {
+  public UdtValue externalToInternal(KafkaStruct external) {
     if (external == null) {
       return null;
     }
 
     int size = definition.getFieldNames().size();
-    Schema schema = external.schema();
+    AbstractSchema schema = external.schema();
     StructDataMetadata structMetadata = new StructDataMetadata(schema);
     Set<String> structFieldNames =
-        schema.fields().stream().map(Field::name).collect(Collectors.toSet());
+        schema.fields().stream().map(AbstractField::name).collect(Collectors.toSet());
     if (structFieldNames.size() != size) {
       throw new IllegalArgumentException(
           String.format("Expecting %d fields, got %d", size, structFieldNames.size()));
@@ -86,7 +87,7 @@ public class StructToUDTCodec extends ConvertingCodec<Struct, UdtValue> {
   }
 
   @Override
-  public Struct internalToExternal(UdtValue internal) {
+  public KafkaStruct internalToExternal(UdtValue internal) {
     if (internal == null) {
       return null;
     }

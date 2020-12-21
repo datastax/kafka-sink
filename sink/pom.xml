@@ -28,6 +28,11 @@
   <description>A Kafka Connect Sink to load records from Kafka topics to Apache Cassandra (R) or DataStax Enterprise (DSE).</description>
   <dependencies>
     <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>kafka-connect-cassandra-sink-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>connect-api</artifactId>
     </dependency>
@@ -204,12 +209,6 @@
     </dependency>
   </dependencies>
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.antlr</groupId>
-        <artifactId>antlr4-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
     <resources>
       <resource>
         <directory>src/main/resources</directory>

@@ -15,18 +15,18 @@
  */
 package com.datastax.oss.kafka.sink.ccm.auth;
 
+import static com.datastax.oss.common.sink.config.SslConfig.KEYSTORE_PASSWORD_OPT;
+import static com.datastax.oss.common.sink.config.SslConfig.KEYSTORE_PATH_OPT;
+import static com.datastax.oss.common.sink.config.SslConfig.OPENSSL_KEY_CERT_CHAIN_OPT;
+import static com.datastax.oss.common.sink.config.SslConfig.OPENSSL_PRIVATE_KEY_OPT;
+import static com.datastax.oss.common.sink.config.SslConfig.PROVIDER_OPT;
+import static com.datastax.oss.common.sink.config.SslConfig.TRUSTSTORE_PASSWORD_OPT;
+import static com.datastax.oss.common.sink.config.SslConfig.TRUSTSTORE_PATH_OPT;
 import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_CERT_CHAIN_FILE;
 import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_KEYSTORE_FILE;
 import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_PRIVATE_KEY_FILE;
 import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_FILE;
 import static com.datastax.oss.driver.api.testinfra.ccm.CcmBridge.DEFAULT_CLIENT_TRUSTSTORE_PASSWORD;
-import static com.datastax.oss.kafka.sink.config.SslConfig.KEYSTORE_PASSWORD_OPT;
-import static com.datastax.oss.kafka.sink.config.SslConfig.KEYSTORE_PATH_OPT;
-import static com.datastax.oss.kafka.sink.config.SslConfig.OPENSSL_KEY_CERT_CHAIN_OPT;
-import static com.datastax.oss.kafka.sink.config.SslConfig.OPENSSL_PRIVATE_KEY_OPT;
-import static com.datastax.oss.kafka.sink.config.SslConfig.PROVIDER_OPT;
-import static com.datastax.oss.kafka.sink.config.SslConfig.TRUSTSTORE_PASSWORD_OPT;
-import static com.datastax.oss.kafka.sink.config.SslConfig.TRUSTSTORE_PATH_OPT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
