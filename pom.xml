@@ -456,6 +456,7 @@ limitations under the License.]]></inlineHeader>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${surefire.version}</version>
           <configuration>
+            <trimStackTrace>false</trimStackTrace>
             <systemPropertyVariables>
               <logback.configurationFile>${project.basedir}/src/test/resources/logback-test.xml</logback.configurationFile>
             </systemPropertyVariables>
