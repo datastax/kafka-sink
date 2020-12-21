@@ -17,6 +17,7 @@ package com.datastax.oss.sink.pulsar;
 
 import com.datastax.oss.common.sink.AbstractSchema;
 import com.datastax.oss.common.sink.AbstractStruct;
+import com.datastax.oss.common.sink.util.SinkUtil;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.functions.api.Record;
 
@@ -50,6 +51,9 @@ public class PulsarStruct implements AbstractStruct {
 
   @Override
   public Object get(String field) {
+    if (SinkUtil.TIMESTAMP_VARNAME.equals(field)) {
+      return record.getEventTime().orElse(null);
+    }
     return wrap(record.getValue().getField(field), schemaRegistry);
   }
 

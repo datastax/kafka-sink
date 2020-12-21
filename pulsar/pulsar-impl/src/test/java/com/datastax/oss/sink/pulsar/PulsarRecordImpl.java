@@ -26,7 +26,7 @@ public class PulsarRecordImpl implements Record<GenericRecord> {
   private final GenericRecord value;
   private final Schema<GenericRecord> schema;
   private final String key;
-  private final long eventTime;
+  private Long eventTime;
   private String partitionId;
   private Long recordSequence;
 
@@ -35,7 +35,7 @@ public class PulsarRecordImpl implements Record<GenericRecord> {
   }
 
   public PulsarRecordImpl(
-      String topic, String key, GenericRecord value, Schema schema, long eventTime) {
+      String topic, String key, GenericRecord value, Schema schema, Long eventTime) {
     this.value = value;
     this.schema = schema;
     this.topic = topic;
@@ -65,7 +65,7 @@ public class PulsarRecordImpl implements Record<GenericRecord> {
 
   @Override
   public Optional<Long> getEventTime() {
-    return Optional.of(eventTime);
+    return Optional.ofNullable(eventTime);
   }
 
   @Override

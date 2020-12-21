@@ -50,6 +50,7 @@ public class ITConnectorBase {
   protected SinkContext taskContext = mock(SinkContext.class);
   protected List<Map<String, Object>> taskConfigs = new ArrayList<>();
   protected final GenericSchema<GenericRecord> recordType;
+  protected final GenericSchema<GenericRecord> recordTypeJson;
 
   public ITConnectorBase(
       List<EndPoint> contactPoints,
@@ -66,12 +67,21 @@ public class ITConnectorBase {
         org.apache.pulsar.client.api.schema.SchemaBuilder.record("MyBean");
     builder.field("field1").type(SchemaType.STRING);
     builder.field("double").type(SchemaType.DOUBLE);
+    builder.field("float").type(SchemaType.FLOAT);
+    builder.field("smallint").type(SchemaType.INT32); // INT16 is not supported in Pulsar 2.7.x
+    builder.field("tinyint").type(SchemaType.INT32); // INT8 is not supported in Pulsar 2.7.x
+
     builder.field("bigint").type(SchemaType.INT64);
     builder.field("boolean").type(SchemaType.BOOLEAN);
     builder.field("int").type(SchemaType.INT32);
+    builder.field("text").type(SchemaType.STRING);
     builder.field("my_value").type(SchemaType.STRING);
+    builder.field("udtmem1").type(SchemaType.INT32);
+    builder.field("udtmem2").type(SchemaType.STRING);
 
     this.recordType = org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.AVRO));
+    this.recordTypeJson =
+        org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.JSON));
   }
 
   @AfterEach

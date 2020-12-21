@@ -187,7 +187,7 @@ class SimpleEndToEndSimulacronIT {
         key + "",
         new GenericRecordImpl().put("field1", value),
         recordType,
-        0);
+        null);
   }
 
   private Record<GenericRecord> makeRecord(

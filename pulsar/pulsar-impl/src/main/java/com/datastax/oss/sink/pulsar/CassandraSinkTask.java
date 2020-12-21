@@ -91,6 +91,7 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
             } else {
               log.warn("Error decoding/mapping Pulsar record {}: {}", impl, e.getMessage());
             }
+            e.printStackTrace();
             if (!ignore) {
               impl.getRecord().fail();
             }
