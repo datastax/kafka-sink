@@ -17,10 +17,7 @@ package com.datastax.oss.common.sink.record;
 
 import static com.datastax.oss.common.sink.record.StructDataMetadataSupport.getGenericType;
 
-<<<<<<< HEAD:common/src/main/java/com/datastax/oss/common/sink/record/StructDataMetadata.java
 import com.datastax.oss.common.sink.AbstractField;
-=======
->>>>>>> 1.x:sink/src/main/java/com/datastax/oss/kafka/sink/record/StructDataMetadata.java
 import com.datastax.oss.common.sink.AbstractSchema;
 import com.datastax.oss.common.sink.AbstractStruct;
 import com.datastax.oss.driver.api.core.type.DataType;

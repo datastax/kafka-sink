@@ -182,19 +182,11 @@ public abstract class AbstractSinkTask {
   public final void mapAndQueueRecord(
       BlockingQueue<RecordAndStatement> boundStatementsQueue, AbstractSinkRecord record) {
     try {
-<<<<<<< HEAD
-      log.info("mapAndQueueRecord {}", record);
       String topicName = record.topic();
-      log.info("topicName {}", topicName);
       TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
       if (topicConfig == null) {
         throw new ConfigException("Topic " + topicName + " is not configured");
       }
-=======
-      String topicName = record.topic();
-      TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
-
->>>>>>> 1.x
       for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
         Runnable failedRecordIncrement =
             () ->
@@ -262,18 +254,15 @@ public abstract class AbstractSinkTask {
       AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter);
 
   /**
-<<<<<<< HEAD
-   * Acknowledge success in processing a record.
+   * <<<<<<< HEAD Acknowledge success in processing a record.
    *
    * @param record
    */
   protected void handleSuccess(AbstractSinkRecord record) {}
 
   /**
-=======
->>>>>>> 1.x
-   * Called by the framework before processing a batch of record, but inside the taskManager
-   * context/execution flow.
+   * ======= >>>>>>> 1.x Called by the framework before processing a batch of record, but inside the
+   * taskManager context/execution flow.
    */
   protected void beforeProcessingBatch() {
     // in Kafka connector here we are resetting failure offsets

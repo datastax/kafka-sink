@@ -87,11 +87,7 @@ public interface AbstractSchema {
      */
     STRUCT;
 
-<<<<<<< HEAD
     private final String name;
-=======
-    private String name;
->>>>>>> 1.x
 
     Type() {
       this.name = this.name().toLowerCase(Locale.ROOT);
@@ -113,14 +109,9 @@ public interface AbstractSchema {
         case STRING:
         case BYTES:
           return true;
-<<<<<<< HEAD
         default:
           return false;
       }
-=======
-      }
-      return false;
->>>>>>> 1.x
     }
   }
 
