@@ -182,7 +182,9 @@ public abstract class AbstractSinkTask {
   public final void mapAndQueueRecord(
       BlockingQueue<RecordAndStatement> boundStatementsQueue, AbstractSinkRecord record) {
     try {
+      log.info("mapAndQueueRecord {}", record);
       String topicName = record.topic();
+      log.info("topicName {}", topicName);
       TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
       if (topicConfig == null) {
         throw new ConfigException("Topic " + topicName + " is not configured");

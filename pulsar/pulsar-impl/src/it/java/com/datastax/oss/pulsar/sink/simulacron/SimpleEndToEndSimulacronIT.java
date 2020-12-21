@@ -368,7 +368,7 @@ class SimpleEndToEndSimulacronIT {
     }
     assertThat(logs.getAllMessagesAsString())
         .contains(
-            "Error while processing record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={bigint=37, text=delete}}")
+            "Error inserting/updating row for Pulsar record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={bigint=37, text=delete}}")
         .contains("statement: DELETE FROM ks1.mycounter WHERE a = :a AND b = :b");
   }
 
@@ -401,20 +401,16 @@ class SimpleEndToEndSimulacronIT {
     // bad record in the wrong topic. THis is probably not realistic but allows us to test the outer
     // try-catch block in mapAndQueueRecord().
     Record<GenericRecord> record6 =
-        new PulsarRecordImpl("persistent://tenant/namespace/wrongtopic", null, null, null);
+        new PulsarRecordImpl(
+            "persistent://tenant/namespace/wrongtopic", "", new GenericRecordImpl(), recordType);
 
     runTaskWithRecords(record1, record2, record3, record4, record5, record6);
-    //
-    //    assertThat(currentOffsets)
-    //        .containsOnly(
-    //            entry(new TopicPartition("mytopic", 0), new OffsetAndMetadata(1235L)),
-    //            entry(new TopicPartition("mytopic", 1), new OffsetAndMetadata(1238L)),
-    //            entry(new TopicPartition("wrongtopic", 1), new OffsetAndMetadata(1L)));
 
     assertThat(logs.getAllMessagesAsString())
-        .contains("Error inserting/updating row for Kafka record " + record4.toString())
         .contains(
-            "Error while processing record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={field1=will fail}}")
+            "Error inserting/updating row for Pulsar record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={field1=fail2}}")
+        .contains(
+            "Error decoding/mapping Pulsar record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={field1=fail3}}")
         .contains("Connector has no configuration for record topic 'wrongtopic'")
         .contains("Could not parse 'bad key'")
         .contains(
@@ -452,7 +448,7 @@ class SimpleEndToEndSimulacronIT {
 
     assertThat(logs.getAllMessagesAsString())
         .contains(
-            "Error while processing record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={field1=will fail}}")
+            "Error decoding/mapping Pulsar record PulsarSinkRecord{PulsarRecordImpl{topic=persistent://tenant/namespace/mytopic, value=GenericRecordImpl{values={field1=will fail}}")
         .contains("Could not parse 'bad key'");
     InstanceState instanceState = task.getInstanceState();
     assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
@@ -929,8 +925,9 @@ class SimpleEndToEndSimulacronIT {
     for (Record<GenericRecord> r : records) {
       try {
         task.write(r);
-      } catch (Exception ex) {
+      } catch (Throwable ex) {
         // ignore
+        ex.printStackTrace();
       }
     }
   }

@@ -141,6 +141,7 @@ public class InstanceState {
   @NonNull
   public TopicConfig getTopicConfig(String topicName) {
     TopicConfig topicConfig = this.config.getTopicConfigs().get(topicName);
+    log.info("getTopicConfig for {} is {}", topicName, topicConfig);
     if (topicConfig == null) {
       throw new ConfigException(
           String.format(

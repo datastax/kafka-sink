@@ -64,7 +64,16 @@ public class PulsarSinkRecordImpl implements AbstractSinkRecord {
   }
 
   public static String shortTopic(Record<?> record) {
-    return record.getTopicName().map(s -> s.substring(s.lastIndexOf("/") + 1)).orElse(null);
+    // persistent://tenant/namespace/topicname
+    if (!record.getTopicName().isPresent()) {
+      return null;
+    }
+    String longName = record.getTopicName().get();
+    int lastSlash = longName.lastIndexOf('/');
+    if (lastSlash > 0 && lastSlash <= longName.length()) {
+      return longName.substring(lastSlash + 1);
+    }
+    throw new IllegalArgumentException("Unexpected topic name " + longName);
   }
 
   @Override
