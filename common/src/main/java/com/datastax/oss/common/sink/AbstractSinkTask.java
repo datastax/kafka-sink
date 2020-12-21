@@ -182,6 +182,7 @@ public abstract class AbstractSinkTask {
   public final void mapAndQueueRecord(
       BlockingQueue<RecordAndStatement> boundStatementsQueue, AbstractSinkRecord record) {
     try {
+<<<<<<< HEAD
       log.info("mapAndQueueRecord {}", record);
       String topicName = record.topic();
       log.info("topicName {}", topicName);
@@ -189,6 +190,11 @@ public abstract class AbstractSinkTask {
       if (topicConfig == null) {
         throw new ConfigException("Topic " + topicName + " is not configured");
       }
+=======
+      String topicName = record.topic();
+      TopicConfig topicConfig = instanceState.getTopicConfig(topicName);
+
+>>>>>>> 1.x
       for (TableConfig tableConfig : topicConfig.getTableConfigs()) {
         Runnable failedRecordIncrement =
             () ->
@@ -256,6 +262,7 @@ public abstract class AbstractSinkTask {
       AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter);
 
   /**
+<<<<<<< HEAD
    * Acknowledge success in processing a record.
    *
    * @param record
@@ -263,6 +270,8 @@ public abstract class AbstractSinkTask {
   protected void handleSuccess(AbstractSinkRecord record) {}
 
   /**
+=======
+>>>>>>> 1.x
    * Called by the framework before processing a batch of record, but inside the taskManager
    * context/execution flow.
    */
