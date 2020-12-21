@@ -67,6 +67,9 @@ public class ITConnectorBase {
     builder.field("field1").type(SchemaType.STRING);
     builder.field("double").type(SchemaType.DOUBLE);
     builder.field("bigint").type(SchemaType.INT64);
+    builder.field("boolean").type(SchemaType.BOOLEAN);
+    builder.field("int").type(SchemaType.INT32);
+    builder.field("my_value").type(SchemaType.STRING);
 
     this.recordType = org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.AVRO));
   }
