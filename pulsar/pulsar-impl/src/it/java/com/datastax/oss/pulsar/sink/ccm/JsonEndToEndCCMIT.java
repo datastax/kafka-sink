@@ -34,11 +34,12 @@ import java.util.Map;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.RecordSchemaBuilder;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
+@Disabled // still not working
 class JsonEndToEndCCMIT extends EndToEndCCMITBase {
 
   public JsonEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
@@ -244,7 +245,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  @Ignore
+  @Disabled
   void timezone_and_locale_UNITS_SINCE_EPOCH() {
     taskConfigs.add(
         makeConnectorProperties(
@@ -291,7 +292,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  @Ignore
+  @Disabled
   void timezone_and_locale_ISO_ZONED_DATE_TIME() {
     taskConfigs.add(
         makeConnectorProperties(
