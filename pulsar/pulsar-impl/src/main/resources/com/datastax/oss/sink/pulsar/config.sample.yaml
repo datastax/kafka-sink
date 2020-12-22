@@ -38,7 +38,7 @@ configs:
     my_topic:
       my_ks:
         my_table:
-          mapping: col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1, col4=now()
+          mapping: 'col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col4=now()'
           consistencyLevel: LOCAL_ONE
           ttl: -1
           ttlTimeUnit : SECONDS

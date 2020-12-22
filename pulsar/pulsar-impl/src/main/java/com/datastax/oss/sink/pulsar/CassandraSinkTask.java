@@ -57,17 +57,6 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
               AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter) {
             PulsarSinkRecordImpl impl = (PulsarSinkRecordImpl) record;
 
-            // Store the topic-partition and offset that had an error. However, we want
-            // to keep track of the *lowest* offset in a topic-partition that failed. Because
-            // requests are sent in parallel and response ordering is non-deterministic,
-            // it's possible for a failure in an insert with a higher offset be detected
-            // before that of a lower offset. Thus, we only record a failure if
-            // 1. There is no entry for this topic-partition, or
-            // 2. There is an entry, but its offset is > our offset.
-            //
-            // This can happen in multiple invocations of this callback concurrently, so
-            // we perform these checks/updates in a synchronized block. Presumably failures
-            // don't occur that often, so we don't have to be very fancy here.
             IgnoreErrorsPolicy ignoreErrors =
                 processor.getInstanceState().getConfig().getIgnoreErrors();
             boolean driverFailure = cql != null;
@@ -91,7 +80,6 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
             } else {
               log.warn("Error decoding/mapping Pulsar record {}: {}", impl, e.getMessage());
             }
-            e.printStackTrace();
             if (!ignore) {
               impl.getRecord().fail();
             }
@@ -120,7 +108,6 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
   public void open(Map<String, Object> cfg, SinkContext sc) {
     log.info("start {}, config {}", getClass().getName(), cfg);
     try {
-      // TODO
       Map<String, String> processorConfig = ConfigUtil.flatString(cfg);
       processorConfig.put(SinkUtil.NAME_OPT, sc.getSinkName());
       processor.start(processorConfig);
@@ -137,9 +124,7 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
     if (log.isDebugEnabled()) {
       log.debug("write {}", record);
     }
-    log.info("write {}", record);
     PulsarSinkRecordImpl pulsarSinkRecordImpl = buildRecordImpl(record);
-    log.info("write {}", pulsarSinkRecordImpl);
     processor.put(Collections.singleton(pulsarSinkRecordImpl));
   }
 
