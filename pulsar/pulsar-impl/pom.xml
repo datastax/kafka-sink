@@ -132,4 +132,40 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <!-- license file is to be processed here
+                otherwise the package won't be valid for Pulsar IO
+                NAR emulation due to the THIRD-PARTY.txt file -->
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>license-maven-plugin</artifactId>
+            <configuration>
+              <excludedScopes>test</excludedScopes>
+              <licenseMerges>
+                <licenseMerge>Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache Public License 2.0|Apache License 2.0|Apache 2.0|Apache 2</licenseMerge>
+                <licenseMerge>BSD License|The BSD License|BSD|BSD-2-Clause</licenseMerge>
+                <licenseMerge>MIT License|The MIT License|MIT license</licenseMerge>
+                <licenseMerge>Creative Commons CC0|Public Domain, per Creative Commons CC0|CC0</licenseMerge>
+                <licenseMerge>Eclipse Public License, Version 1.0|Eclipse Public License - v 1.0|Common Public License - v 1.0</licenseMerge>
+              </licenseMerges>
+              <failOnMissing>true</failOnMissing>
+            </configuration>
+            <executions>
+              <execution>
+                <id>add-third-party</id>
+                <goals>
+                  <goal>add-third-party</goal>
+                </goals>
+                <phase>process-sources</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
