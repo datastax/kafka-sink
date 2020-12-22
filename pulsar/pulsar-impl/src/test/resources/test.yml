@@ -1,6 +1,5 @@
 configs:
   tasks.max: 1
-  name: csink
   topics: mytopic
   contactPoints: localhost
   loadBalancing.localDc: datacenter1
@@ -37,8 +36,8 @@ configs:
   topic:
     mytopic:
       mykeyspace:
-        users:
-          mapping: 'name=value.name,age=value.age,surname=value.surname,salary=value.salary'
+        user:
+          mapping: 'name=value.name,age=value.age,surname=value.surname'
           consistencyLevel: LOCAL_ONE
           ttl: -1
           ttlTimeUnit : SECONDS
