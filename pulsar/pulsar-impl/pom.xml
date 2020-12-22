@@ -132,19 +132,4 @@
       </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>containers</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <configuration>
-              <groups>containers</groups>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 </project>
