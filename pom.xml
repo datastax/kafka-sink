@@ -47,7 +47,7 @@
     <dsbulk.version>1.6.0</dsbulk.version>
     <reactive-streams.version>1.0.3</reactive-streams.version>
     <guava.version>25.1-jre</guava.version>
-    <pulsar.version>2.8.0-SNAPSHOT</pulsar.version>
+    <pulsar.version>2.6.2</pulsar.version>
     <slf4j.version>1.7.25</slf4j.version>
     <logback.version>1.2.3</logback.version>
     <junit.version>5.4.1</junit.version>
@@ -69,8 +69,6 @@
     <snappy.version>1.1.7.2</snappy.version>
     <jackson.version>2.10.0</jackson.version>
     <jackson-databind.version>2.10.0</jackson-databind.version>
-    <failsafe.version>2.4.0</failsafe.version>
-    <testcontainers.version>1.15.0</testcontainers.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -218,11 +216,6 @@
         <groupId>org.apache.pulsar</groupId>
         <artifactId>pulsar-io-common</artifactId>
         <version>${pulsar.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>net.jodah</groupId>
-        <artifactId>failsafe</artifactId>
-        <version>${failsafe.version}</version>
       </dependency>
       <dependency>
         <groupId>com.datastax.oss.simulacron</groupId>

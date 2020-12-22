@@ -254,15 +254,15 @@ public abstract class AbstractSinkTask {
       AbstractSinkRecord record, Throwable e, String cql, Runnable failCounter);
 
   /**
-   * <<<<<<< HEAD Acknowledge success in processing a record.
+   * Called in case of successful processing.
    *
    * @param record
    */
   protected void handleSuccess(AbstractSinkRecord record) {}
 
   /**
-   * ======= >>>>>>> 1.x Called by the framework before processing a batch of record, but inside the
-   * taskManager context/execution flow.
+   * Called by the framework before processing a batch of record, but inside the taskManager
+   * context/execution flow.
    */
   protected void beforeProcessingBatch() {
     // in Kafka connector here we are resetting failure offsets
