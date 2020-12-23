@@ -158,7 +158,7 @@ public class ITConnectorBase {
   }
 
   protected Map<String, Object> makeConnectorProperties(Map<String, String> extras) {
-    return makeConnectorProperties("bigintcol=value", extras);
+    return makeConnectorProperties("bigintcol=value.bigint", extras);
   }
 
   protected Map<String, Object> makeConnectorProperties(
