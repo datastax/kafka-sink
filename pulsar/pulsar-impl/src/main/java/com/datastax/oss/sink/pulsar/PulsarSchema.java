@@ -78,6 +78,10 @@ public class PulsarSchema implements AbstractSchema {
     if (value instanceof GenericRecord) {
       return registry.ensureAndUpdateSchema(path, (GenericRecord) value);
     }
+    if (value instanceof PulsarStruct) {
+      PulsarStruct struct = (PulsarStruct) value;
+      return registry.ensureAndUpdateSchema(path, struct.getRecord());
+    }
     throw new UnsupportedOperationException("type " + value.getClass());
   }
 

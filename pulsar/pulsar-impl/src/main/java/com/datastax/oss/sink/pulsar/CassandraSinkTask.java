@@ -177,4 +177,8 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
   public InstanceState getInstanceState() {
     return processor.getInstanceState();
   }
+
+  public LocalSchemaRegistry getSchemaRegistry() {
+    return schemaRegistry;
+  }
 }

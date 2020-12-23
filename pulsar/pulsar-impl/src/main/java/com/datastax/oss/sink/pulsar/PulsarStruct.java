@@ -18,13 +18,15 @@ package com.datastax.oss.sink.pulsar;
 import com.datastax.oss.common.sink.AbstractSchema;
 import com.datastax.oss.common.sink.AbstractStruct;
 import com.datastax.oss.common.sink.util.SinkUtil;
+import java.util.Optional;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.functions.api.Record;
 
 /** Wrapper for Pulsar GenericRecord. */
 public class PulsarStruct implements AbstractStruct {
 
-  private final Record<GenericRecord> record;
+  private final GenericRecord record;
+  private final Optional<Long> eventTime;
   private final PulsarSchema schema;
   private final LocalSchemaRegistry schemaRegistry;
 
@@ -32,6 +34,13 @@ public class PulsarStruct implements AbstractStruct {
     if (o instanceof Record) {
       Record<GenericRecord> record = (Record<GenericRecord>) o;
       return ofRecord(record, schemaRegistry);
+    }
+    if (o instanceof GenericRecord) {
+      return new PulsarStruct(
+          (GenericRecord) o,
+          Optional.empty(),
+          schemaRegistry.ensureAndUpdateSchema("?", (GenericRecord) o),
+          schemaRegistry);
     }
     return o;
   }
@@ -44,7 +53,19 @@ public class PulsarStruct implements AbstractStruct {
 
   public PulsarStruct(
       Record<GenericRecord> record, PulsarSchema schema, LocalSchemaRegistry schemaRegistry) {
+    this.record = record.getValue();
+    this.eventTime = record.getEventTime();
+    this.schemaRegistry = schemaRegistry;
+    this.schema = schema;
+  }
+
+  public PulsarStruct(
+      GenericRecord record,
+      Optional<Long> eventTime,
+      PulsarSchema schema,
+      LocalSchemaRegistry schemaRegistry) {
     this.record = record;
+    this.eventTime = eventTime;
     this.schemaRegistry = schemaRegistry;
     this.schema = schema;
   }
@@ -52,13 +73,17 @@ public class PulsarStruct implements AbstractStruct {
   @Override
   public Object get(String field) {
     if (SinkUtil.TIMESTAMP_VARNAME.equals(field)) {
-      return record.getEventTime().orElse(null);
+      return eventTime.orElse(null);
     }
-    return wrap(record.getValue().getField(field), schemaRegistry);
+    return wrap(record.getField(field), schemaRegistry);
   }
 
   @Override
   public AbstractSchema schema() {
     return schema;
+  }
+
+  public GenericRecord getRecord() {
+    return record;
   }
 }
