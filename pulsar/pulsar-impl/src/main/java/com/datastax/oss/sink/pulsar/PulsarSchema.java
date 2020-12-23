@@ -72,6 +72,9 @@ public class PulsarSchema implements AbstractSchema {
     if (value instanceof Double) {
       return FLOAT64;
     }
+    if (value instanceof Short) {
+      return INT16;
+    }
     if (value instanceof GenericRecord) {
       return registry.ensureAndUpdateSchema(path, (GenericRecord) value);
     }

@@ -34,12 +34,10 @@ import java.util.Map;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.RecordSchemaBuilder;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("medium")
-@Disabled // still not working
 class JsonEndToEndCCMIT extends EndToEndCCMITBase {
 
   public JsonEndToEndCCMIT(CCMCluster ccm, CqlSession session) {
@@ -49,12 +47,19 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
   @Test
   void raw_udt_value_from_json() {
     taskConfigs.add(makeConnectorProperties("bigintcol=key, udtcol=value"));
+    RecordSchemaBuilder builder =
+        org.apache.pulsar.client.api.schema.SchemaBuilder.record("MyBean");
+    builder.field("udtmem1").type(SchemaType.INT32);
+    builder.field("udtmem2").type(SchemaType.STRING);
+    Schema recordTypeUtd =
+        org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.JSON));
+
     PulsarRecordImpl record =
         new PulsarRecordImpl(
             "persistent://tenant/namespace/mytopic",
             "98761234",
             new GenericRecordImpl().put("udtmem1", 42).put("udtmem2", "the answer"),
-            recordTypeJson);
+            recordTypeUtd);
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in the database.
@@ -76,12 +81,19 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
   void raw_udt_value_and_cherry_pick_from_json() {
     taskConfigs.add(makeConnectorProperties("bigintcol=key, udtcol=value, intcol=value.udtmem1"));
 
+    RecordSchemaBuilder builder =
+        org.apache.pulsar.client.api.schema.SchemaBuilder.record("MyBean");
+    builder.field("udtmem1").type(SchemaType.INT32);
+    builder.field("udtmem2").type(SchemaType.STRING);
+    Schema recordTypeUtd =
+        org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.JSON));
+
     PulsarRecordImpl record =
         new PulsarRecordImpl(
             "persistent://tenant/namespace/mytopic",
             "98761234",
             new GenericRecordImpl().put("udtmem1", 42).put("udtmem2", "the answer"),
-            recordTypeJson);
+            recordTypeUtd);
     runTaskWithRecords(record);
 
     // Verify that the record was inserted properly in the database.
@@ -245,7 +257,6 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  @Disabled
   void timezone_and_locale_UNITS_SINCE_EPOCH() {
     taskConfigs.add(
         makeConnectorProperties(
@@ -266,8 +277,8 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
         org.apache.pulsar.client.api.schema.SchemaBuilder.record("MyBean");
     builder.field("key").type(SchemaType.INT32);
     builder.field("vdate").type(SchemaType.STRING);
-    builder.field("vtime").type(SchemaType.INT64);
-    builder.field("vseconds").type(SchemaType.INT64);
+    builder.field("vtime").type(SchemaType.STRING);
+    builder.field("vseconds").type(SchemaType.INT32);
     Schema recordType = org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.JSON));
 
     PulsarRecordImpl record =
@@ -277,8 +288,8 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
             new GenericRecordImpl()
                 .put("key", 4376)
                 .put("vdate", "vendredi, 9 mars 2018")
-                .put("vtime", 171232584L)
-                .put("vseconds", 1520611952L),
+                .put("vtime", "171232584")
+                .put("vseconds", 1520611952),
             recordType);
     runTaskWithRecords(record);
 
@@ -292,7 +303,6 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  @Disabled
   void timezone_and_locale_ISO_ZONED_DATE_TIME() {
     taskConfigs.add(
         makeConnectorProperties(
@@ -314,7 +324,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
     builder.field("key").type(SchemaType.INT32);
     builder.field("vdate").type(SchemaType.STRING);
     builder.field("vtimestamp").type(SchemaType.STRING);
-    builder.field("vtime").type(SchemaType.INT64);
+    builder.field("vtime").type(SchemaType.STRING);
     Schema recordType = org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.JSON));
 
     PulsarRecordImpl record =
@@ -324,7 +334,7 @@ class JsonEndToEndCCMIT extends EndToEndCCMITBase {
             new GenericRecordImpl()
                 .put("key", 4376)
                 .put("vdate", "vendredi, 9 mars 2018")
-                .put("vtime", 171232584L)
+                .put("vtime", "171232584")
                 .put("vtimestamp", "2018-03-09T17:12:32.584+01:00[Europe/Paris]"),
             recordType);
     runTaskWithRecords(record);
