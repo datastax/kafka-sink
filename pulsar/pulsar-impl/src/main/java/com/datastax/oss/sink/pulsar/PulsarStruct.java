@@ -28,18 +28,20 @@ public class PulsarStruct implements AbstractStruct {
   private final GenericRecord record;
   private final Optional<Long> eventTime;
   private final PulsarSchema schema;
+  private final String path;
   private final LocalSchemaRegistry schemaRegistry;
 
-  public static Object wrap(Object o, LocalSchemaRegistry schemaRegistry) {
-    if (o instanceof Record) {
-      Record<GenericRecord> record = (Record<GenericRecord>) o;
-      return ofRecord(record, schemaRegistry);
-    }
+  public static Object wrap(
+      PulsarStruct parent, String fieldName, Object o, LocalSchemaRegistry schemaRegistry) {
+
     if (o instanceof GenericRecord) {
+      String schemaPath = parent.getPath() + "/" + fieldName;
+
       return new PulsarStruct(
           (GenericRecord) o,
-          Optional.empty(),
-          schemaRegistry.ensureAndUpdateSchema("?", (GenericRecord) o),
+          parent.eventTime,
+          schemaRegistry.ensureAndUpdateSchema(schemaPath, (GenericRecord) o),
+          schemaPath,
           schemaRegistry);
     }
     return o;
@@ -48,26 +50,33 @@ public class PulsarStruct implements AbstractStruct {
   public static PulsarStruct ofRecord(
       Record<GenericRecord> record, LocalSchemaRegistry schemaRegistry) {
     PulsarSchema schema = schemaRegistry.ensureAndUpdateSchema(record);
-    return new PulsarStruct(record, schema, schemaRegistry);
+    String path = LocalSchemaRegistry.computeRecordSchemaPath(record);
+    return new PulsarStruct(record, schema, path, schemaRegistry);
   }
 
   public PulsarStruct(
-      Record<GenericRecord> record, PulsarSchema schema, LocalSchemaRegistry schemaRegistry) {
+      Record<GenericRecord> record,
+      PulsarSchema schema,
+      String path,
+      LocalSchemaRegistry schemaRegistry) {
     this.record = record.getValue();
     this.eventTime = record.getEventTime();
     this.schemaRegistry = schemaRegistry;
     this.schema = schema;
+    this.path = path;
   }
 
   public PulsarStruct(
       GenericRecord record,
       Optional<Long> eventTime,
       PulsarSchema schema,
+      String path,
       LocalSchemaRegistry schemaRegistry) {
     this.record = record;
     this.eventTime = eventTime;
     this.schemaRegistry = schemaRegistry;
     this.schema = schema;
+    this.path = path;
   }
 
   @Override
@@ -75,7 +84,7 @@ public class PulsarStruct implements AbstractStruct {
     if (SinkUtil.TIMESTAMP_VARNAME.equals(field)) {
       return eventTime.orElse(null);
     }
-    return wrap(record.getField(field), schemaRegistry);
+    return wrap(this, field, record.getField(field), schemaRegistry);
   }
 
   @Override
@@ -85,5 +94,9 @@ public class PulsarStruct implements AbstractStruct {
 
   public GenericRecord getRecord() {
     return record;
+  }
+
+  public String getPath() {
+    return path;
   }
 }

@@ -28,16 +28,20 @@ public class LocalSchemaRegistry {
   private final ConcurrentHashMap<String, PulsarSchema> registry = new ConcurrentHashMap<>();
 
   public PulsarSchema ensureAndUpdateSchema(Record<GenericRecord> struct) {
+    String path = computeRecordSchemaPath(struct);
+    // for nested structures we are going to add the name of the field
+    return ensureAndUpdateSchema(path, struct.getValue());
+  }
+
+  public static String computeRecordSchemaPath(Record<GenericRecord> struct) {
     String schemaDef = "?";
     // versions of Pulsar prior to 2.6.3 do not report schema information
     if (struct.getSchema() != null && struct.getSchema().getSchemaInfo() != null) {
       schemaDef = struct.getSchema().getSchemaInfo().getSchemaDefinition();
-    }
-    // we using as key the fully qualified topic name + string (JSON) representation of the schema
+    } // we using as key the fully qualified topic name + string (JSON) representation of the schema
     // this way we are supporting schema evolution easily
     String path = struct.getTopicName().orElse(null) + schemaDef;
-    // for nested structures we are going to add the name of the field
-    return ensureAndUpdateSchema(path, struct.getValue());
+    return path;
   }
 
   public PulsarSchema ensureAndUpdateSchema(String path, GenericRecord struct) {

@@ -37,7 +37,6 @@ import com.datastax.oss.dsbulk.tests.ccm.CCMCluster;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import com.datastax.oss.sink.pulsar.GenericRecordImpl;
 import com.datastax.oss.sink.pulsar.PulsarRecordImpl;
-import com.datastax.oss.sink.pulsar.PulsarStruct;
 import java.nio.ByteBuffer;
 import java.text.ParseException;
 import java.time.Duration;
@@ -46,7 +45,6 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.schema.GenericSchema;
 import org.apache.pulsar.client.api.schema.RecordSchemaBuilder;
 import org.apache.pulsar.common.schema.SchemaType;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -58,7 +56,6 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  @Disabled
   void struct_value_only() throws ParseException {
     String withDateRange = hasDateRange ? "daterangecol=value.daterange, " : "";
     String withGeotypes =
@@ -74,18 +71,6 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
                 + "floatcol=value.float, "
                 + "intcol=value.int, "
                 + "textcol=value.text, "
-                + "tinyintcol=value.tinyint, "
-                + "mapcol=value.map, "
-                + "mapnestedcol=value.mapnested, "
-                + "listcol=value.list, "
-                + "listnestedcol=value.listnested, "
-                + "setcol=value.set, "
-                + "setnestedcol=value.setnested, "
-                + "tuplecol=value.tuple, "
-                + "udtcol=value.udt, "
-                + "udtfromlistcol=value.udtfromlist, "
-                + "booleanudtcol=value.booleanudt, "
-                + "booleanudtfromlistcol=value.booleanudtfromlist, "
                 + withGeotypes
                 + withDateRange
                 + "blobcol=value.blob"));
@@ -161,7 +146,6 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
   }
 
   @Test
-  @Disabled
   void struct_value_struct_field() {
     taskConfigs.add(
         makeConnectorProperties(
@@ -200,8 +184,8 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
     GenericRecordImpl value =
         new GenericRecordImpl()
             .put("bigint", 1234567L)
-            .put("struct", PulsarStruct.wrap(fieldValue, task.getSchemaRegistry()))
-            .put("booleanstruct", PulsarStruct.wrap(booleanFieldValue, task.getSchemaRegistry()));
+            .put("struct", fieldValue)
+            .put("booleanstruct", booleanFieldValue);
 
     runTaskWithRecords(
         new PulsarRecordImpl("persistent://tenant/namespace/mytopic", null, value, schema));
@@ -273,7 +257,6 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
                 + "floatcol=value.float, "
                 + "intcol=value.int, "
                 + "textcol=value.text, "
-                + "tinyintcol=value.tinyint, "
                 + "blobcol=value.blob"));
 
     RecordSchemaBuilder builderRoot =
@@ -301,7 +284,6 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
             .put("int", baseValue.intValue())
             .put("smallint", baseValue.shortValue())
             .put("text", baseValue.toString())
-            .put("tinyint", baseValue.byteValue())
             .put("blob", blobValue);
 
     runTaskWithRecords(
@@ -317,7 +299,6 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
     assertThat(row.getFloat("floatcol")).isEqualTo(baseValue.floatValue() + 0.987f);
     assertThat(row.getInt("intcol")).isEqualTo(baseValue.intValue());
     assertThat(row.getString("textcol")).isEqualTo(baseValue.toString());
-    assertThat(row.getByte("tinyintcol")).isEqualTo(baseValue.byteValue());
     ByteBuffer blobcol = row.getByteBuffer("blobcol");
     assertThat(blobcol).isNotNull();
     assertThat(Bytes.getArray(blobcol)).isEqualTo(blobValue);
@@ -488,9 +469,11 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
     }
   }
 
-  /** Test for KAF-83 (case-sensitive fields and columns). */
+  /**
+   * Test for KAF-83 (case-sensitive fields and columns). In Pulsar we cannot have field names with
+   * dots and spaces, so this test is less significant than the one for Kafka sink
+   */
   @Test
-  @Disabled
   void single_map_quoted_fields_to_quoted_columns() {
     session.execute(
         SimpleStatement.builder(
@@ -507,8 +490,8 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
         makeConnectorProperties(
             "\"bigint col\" = \"key.bigint field\", "
                 + "\"boolean-col\" = \"key.boolean-field\", "
-                + "\"INT COL\" = \"value.INT.FIELD\", "
-                + "\"TEXT.COL\" = \"value.TEXT.FIELD\"",
+                + "\"INT COL\" = \"value.INTFIELD\", "
+                + "\"TEXT.COL\" = \"value.TEXTFIELD\"",
             "CASE_SENSITIVE",
             null));
 
@@ -516,15 +499,14 @@ class StructEndToEndCCMIT extends EndToEndCCMITBase {
 
     RecordSchemaBuilder builder =
         org.apache.pulsar.client.api.schema.SchemaBuilder.record("MyBean");
-    builder.field("INT.FIELD").type(SchemaType.INT64);
-    builder.field("TEXT.FIELD").type(SchemaType.STRING);
+    builder.field("INTFIELD").type(SchemaType.INT64);
+    builder.field("TEXTFIELD").type(SchemaType.STRING);
 
     Schema schema = org.apache.pulsar.client.api.Schema.generic(builder.build(SchemaType.JSON));
 
     String key = "{\"bigint field\":1234567,\"boolean-field\":true}";
 
-    GenericRecordImpl value =
-        new GenericRecordImpl().put("INT FIELD", 5725).put("TEXT.FIELD", "foo");
+    GenericRecordImpl value = new GenericRecordImpl().put("INTFIELD", 5725).put("TEXTFIELD", "foo");
 
     // Note: with the current mapping grammar, it is not possible to distinguish f1.f2 (i.e. a field
     // "f1" containing a nested field "f2") from a field named "f1.f2".

@@ -286,6 +286,15 @@ public class RecordMapper {
       T raw,
       DataType cqlType,
       GenericType<? extends T> javaType) {
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Mapping {} to {} ({}) cqlType {} javaType {}",
+          variable,
+          raw,
+          (raw != null ? raw.getClass() : "<NULL>"),
+          cqlType,
+          javaType);
+    }
     TypeCodec<T> codec = mapping.codec(variable, cqlType, javaType);
     ByteBuffer bb = codec.encode(raw, builder.protocolVersion());
     // Account for nullToUnset.
