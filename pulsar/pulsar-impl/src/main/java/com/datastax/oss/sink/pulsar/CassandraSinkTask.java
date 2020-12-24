@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
+import org.apache.pulsar.client.api.schema.Field;
 import org.apache.pulsar.client.api.schema.GenericRecord;
 import org.apache.pulsar.functions.api.Record;
 import org.apache.pulsar.io.core.Sink;
@@ -85,6 +86,8 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
             }
             if (!ignore) {
               impl.getRecord().fail();
+            } else {
+              impl.getRecord().ack();
             }
           }
 
@@ -126,7 +129,14 @@ public class CassandraSinkTask implements Sink<GenericRecord> {
   public void write(Record<GenericRecord> record) throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("write {}", record);
+      GenericRecord value = record.getValue();
+      for (Field field : value.getFields()) {
+        Object v = value.getField(field);
+        String clazz = v != null ? v.getClass().toGenericString() : "";
+        log.debug("field {} value {} class {}", field, v, clazz);
+      }
     }
+
     PulsarSinkRecordImpl pulsarSinkRecordImpl = buildRecordImpl(record);
     processor.put(Collections.singleton(pulsarSinkRecordImpl));
   }

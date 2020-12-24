@@ -157,9 +157,9 @@ public abstract class AbstractSinkTask {
   }
 
   public final void stop() {
-      if (taskStateManager == null) {
-          return;
-      }
+    if (taskStateManager == null) {
+      return;
+    }
     taskStateManager.toStopTransitionLogic(
         NO_OP, () -> LifeCycleManager.stopTask(this.instanceState, this));
   }

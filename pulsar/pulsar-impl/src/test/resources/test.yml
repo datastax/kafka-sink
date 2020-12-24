@@ -1,6 +1,6 @@
 configs:
   tasks.max: 1
-  topics: mytopic
+  topics: mytopic, mytopicudt
   contactPoints: localhost
   loadBalancing.localDc: datacenter1
   port: 9042
@@ -34,6 +34,16 @@ configs:
       path:
     cipherSuites:
   topic:
+    mytopicudt:
+      mykeyspace:
+        mytable2:
+          mapping: 'name=value.name,age=value.age,surname=value.surname,udtcol=value.udt'
+          consistencyLevel: LOCAL_ONE
+          ttl: -1
+          ttlTimeUnit : SECONDS
+          timestampTimeUnit : MICROSECONDS
+          nullToUnset: true
+          deletesEnabled: true
     mytopic:
       mykeyspace:
         user:
