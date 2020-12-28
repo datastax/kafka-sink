@@ -31,13 +31,13 @@
     <url>http://www.datastax.com</url>
   </organization>
   <modules>
-    <module>common</module>
     <module>sink</module>
     <module>dist</module>
   </modules>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <messaging.connectors.version>1.0.0-SNAPSHOT</messaging.connectors.version>
     <java.version>1.8</java.version>
     <kafka.connect.version>2.4.0</kafka.connect.version>
     <confluent.version>5.2.1</confluent.version>
@@ -70,6 +70,11 @@
   </properties>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>messaging-connectors-commons-core</artifactId>
+        <version>${messaging.connectors.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.kafka</groupId>
         <artifactId>connect-api</artifactId>
