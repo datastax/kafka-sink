@@ -294,32 +294,6 @@
           <version>3.0.0</version>
         </plugin>
         <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.7.0</version>
-          <configuration>
-            <source>${java.version}</source>
-            <target>${java.version}</target>
-            <optimize>true</optimize>
-            <showDeprecation>true</showDeprecation>
-            <showWarnings>true</showWarnings>
-            <failOnWarning>false</failOnWarning>
-            <compilerId>javac-with-errorprone</compilerId>
-            <forceJavacCompilerUse>true</forceJavacCompilerUse>
-          </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.codehaus.plexus</groupId>
-              <artifactId>plexus-compiler-javac-errorprone</artifactId>
-              <version>2.8</version>
-            </dependency>
-            <dependency>
-              <groupId>com.google.errorprone</groupId>
-              <artifactId>error_prone_core</artifactId>
-              <version>2.2.0</version>
-            </dependency>
-          </dependencies>
-        </plugin>
-        <plugin>
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
           <version>3.0</version>
@@ -395,7 +369,7 @@ limitations under the License.]]></inlineHeader>
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.0</version>
+          <version>0.8.6</version>
           <executions>
             <execution>
               <id>unit-tests-coverage</id>
@@ -579,6 +553,92 @@ limitations under the License.]]></inlineHeader>
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <id>jdk11</id>
+      <activation>
+        <jdk>[9..)</jdk>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.8.1</version>
+              <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+                <release>${java.release.version}</release>
+                <optimize>true</optimize>
+                <showDeprecation>true</showDeprecation>
+                <showWarnings>true</showWarnings>
+                <failOnWarning>false</failOnWarning>
+                <fork>false</fork>
+                <compilerArgs>
+                  <arg>-XDcompilePolicy=simple</arg>
+                  <arg>-Xplugin:ErrorProne</arg>
+                </compilerArgs>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_core</artifactId>
+                    <version>2.4.0</version>
+                  </path>
+                </annotationProcessorPaths>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <profile>
+      <id>jdk8</id>
+      <activation>
+        <jdk>1.8</jdk>
+      </activation>
+      <properties>
+        <javac.version>9+181-r4173-1</javac.version>
+      </properties>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.8.1</version>
+              <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+                <optimize>false</optimize>
+                <showDeprecation>true</showDeprecation>
+                <showWarnings>true</showWarnings>
+                <failOnWarning>false</failOnWarning>
+                <fork>true</fork>
+                <compilerArgs>
+                  <arg>-XDcompilePolicy=simple</arg>
+                  <arg>-Xplugin:ErrorProne</arg>
+                  <arg>-J-Xbootclasspath/p:${settings.localRepository}/com/google/errorprone/javac/${javac.version}/javac-${javac.version}.jar</arg>
+                </compilerArgs>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_core</artifactId>
+                    <version>2.4.0</version>
+                  </path>
+                  <!-- Add any other annotation processors here,
+                 even if they are also on the project dependency classpath. -->
+                </annotationProcessorPaths>
+              </configuration>
+              <dependencies>
+                <dependency>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>javac</artifactId>
+                  <version>${javac.version}</version>
+                </dependency>
+              </dependencies>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
     <profile>
       <id>medium</id>
       <build>
