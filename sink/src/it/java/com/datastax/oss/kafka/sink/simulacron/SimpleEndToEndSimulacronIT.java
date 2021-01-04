@@ -30,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import com.codahale.metrics.Histogram;
 import com.datastax.oss.common.sink.state.InstanceState;
 import com.datastax.oss.common.sink.state.LifeCycleManager;
+import com.datastax.oss.common.sink.util.SinkUtil;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.dsbulk.tests.logging.LogCapture;
@@ -87,26 +88,29 @@ import org.junit.jupiter.params.provider.CsvSource;
 class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =
-      "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp";
-  // if user provided custom query, it does not have auto-generated :kafka_internal_timestamp
+      "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :" + SinkUtil.TIMESTAMP_VARNAME;
+  // if user provided custom query, it does not have auto-generated :message_internal_timestamp
   private static final String INSERT_STATEMENT_CUSTOM_QUERY =
       "INSERT INTO ks1.table1_custom_query(col1,col2) VALUES (:some1,:some2)";
   private static final String INSERT_STATEMENT_TTL =
-      "INSERT INTO ks1.table1_with_ttl(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp AND TTL :kafka_internal_ttl";
+      "INSERT INTO ks1.table1_with_ttl(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+          + SinkUtil.TIMESTAMP_VARNAME
+          + " AND TTL :"
+          + SinkUtil.TTL_VARNAME;
   private static final String DELETE_STATEMENT = "DELETE FROM ks1.table1 WHERE a = :a AND b = :b";
   private static final ImmutableMap<String, String> PARAM_TYPES =
       ImmutableMap.<String, String>builder()
           .put("a", "int")
           .put("b", "varchar")
-          .put("kafka_internal_timestamp", "bigint")
+          .put(SinkUtil.TIMESTAMP_VARNAME, "bigint")
           .build();
 
   private static final ImmutableMap<String, String> PARAM_TYPES_TTL =
       ImmutableMap.<String, String>builder()
           .put("a", "int")
           .put("b", "varchar")
-          .put("kafka_internal_timestamp", "bigint")
-          .put("kafka_internal_ttl", "bigint")
+          .put(SinkUtil.TIMESTAMP_VARNAME, "bigint")
+          .put(SinkUtil.TTL_VARNAME, "bigint")
           .build();
 
   private static final ImmutableMap<String, String> PARAM_TYPES_CUSTOM_QUERY =
@@ -229,8 +233,8 @@ class SimpleEndToEndSimulacronIT {
     return ImmutableMap.<String, Object>builder()
         .put("a", a)
         .put("b", b)
-        .put("kafka_internal_timestamp", timestamp)
-        .put("kafka_internal_ttl", ttl)
+        .put(SinkUtil.TIMESTAMP_VARNAME, timestamp)
+        .put(SinkUtil.TTL_VARNAME, ttl)
         .build();
   }
 
@@ -238,7 +242,7 @@ class SimpleEndToEndSimulacronIT {
     return ImmutableMap.<String, Object>builder()
         .put("a", a)
         .put("b", b)
-        .put("kafka_internal_timestamp", timestamp)
+        .put(SinkUtil.TIMESTAMP_VARNAME, timestamp)
         .build();
   }
 
@@ -430,12 +434,12 @@ class SimpleEndToEndSimulacronIT {
         .contains("Connector has no configuration for record topic 'wrongtopic'")
         .contains("Could not parse 'bad key'")
         .contains(
-            "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
+            "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+                + SinkUtil.TIMESTAMP_VARNAME);
     InstanceState instanceState = task.getInstanceState();
-    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
-        .isEqualTo(3);
-    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(4);
-    assertThat(instanceState.getFailedWithUnknownTopicCounter().getCount()).isEqualTo(1);
+    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1")).isEqualTo(3);
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1")).isEqualTo(4);
+    assertThat(instanceState.getFailedWithUnknownTopicCounter()).isEqualTo(1);
   }
 
   @Test
@@ -470,9 +474,8 @@ class SimpleEndToEndSimulacronIT {
         .contains("Error decoding/mapping Kafka record SinkRecord{kafkaOffset=1235")
         .contains("Could not parse 'bad key'");
     InstanceState instanceState = task.getInstanceState();
-    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
-        .isEqualTo(1);
-    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(2);
+    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1")).isEqualTo(1);
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1")).isEqualTo(2);
   }
 
   @ParameterizedTest
@@ -524,11 +527,11 @@ class SimpleEndToEndSimulacronIT {
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1237")
         .contains("Error inserting/updating row for Kafka record SinkRecord{kafkaOffset=1238")
         .contains(
-            "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp");
+            "statement: INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+                + SinkUtil.TIMESTAMP_VARNAME);
     InstanceState instanceState = task.getInstanceState();
-    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1").getCount())
-        .isEqualTo(3);
-    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(5);
+    assertThat(instanceState.getFailedRecordCounter("mytopic", "ks1.table1")).isEqualTo(3);
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1")).isEqualTo(5);
   }
 
   @Test
@@ -644,8 +647,8 @@ class SimpleEndToEndSimulacronIT {
     assertThat(queryList.get(3).getConsistency()).isEqualTo(ConsistencyLevel.LOCAL_ONE);
 
     InstanceState instanceState = task.getInstanceState();
-    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1").getCount()).isEqualTo(2);
-    assertThat(instanceState.getRecordCounter("mytopic_with_ttl", "ks1.table1_with_ttl").getCount())
+    assertThat(instanceState.getRecordCounter("mytopic", "ks1.table1")).isEqualTo(2);
+    assertThat(instanceState.getRecordCounter("mytopic_with_ttl", "ks1.table1_with_ttl"))
         .isEqualTo(2);
   }
 
@@ -658,7 +661,8 @@ class SimpleEndToEndSimulacronIT {
 
     Query good2 =
         new Query(
-            "INSERT INTO ks1.table2(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp",
+            "INSERT INTO ks1.table2(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+                + SinkUtil.TIMESTAMP_VARNAME,
             Collections.emptyList(),
             makeParams(22, "success", 153000987000L),
             PARAM_TYPES);
@@ -751,7 +755,8 @@ class SimpleEndToEndSimulacronIT {
     simulacron.prime(when(good1).then(noRows()));
     Query good2 =
         new Query(
-            "INSERT INTO ks1.table2(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp",
+            "INSERT INTO ks1.table2(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+                + SinkUtil.TIMESTAMP_VARNAME,
             Collections.emptyList(),
             makeParams(42, "topic2 success1", 153000987000L),
             PARAM_TYPES);
@@ -871,12 +876,14 @@ class SimpleEndToEndSimulacronIT {
 
     Statement s1 =
         new Statement(
-            "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp",
+            "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+                + SinkUtil.TIMESTAMP_VARNAME,
             PARAM_TYPES,
             makeParams(42, "the answer", 153000987000L));
     Statement s2 =
         new Statement(
-            "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :kafka_internal_timestamp",
+            "INSERT INTO ks1.table1(a,b) VALUES (:a,:b) USING TIMESTAMP :"
+                + SinkUtil.TIMESTAMP_VARNAME,
             PARAM_TYPES,
             makeParams(42, "the second answer", 153000987000L));
     com.datastax.oss.simulacron.common.request.Batch batchRequest =
