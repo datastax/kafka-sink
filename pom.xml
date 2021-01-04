@@ -39,6 +39,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
+    <java.release.version>8</java.release.version>
     <kafka.connect.version>2.4.0</kafka.connect.version>
     <confluent.version>5.2.1</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
