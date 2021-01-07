@@ -37,7 +37,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <messaging.connectors.commons.version>1.0.2</messaging.connectors.commons.version>
+    <messaging.connectors.commons.version>1.0.9</messaging.connectors.commons.version>
     <java.version>1.8</java.version>
     <java.release.version>8</java.release.version>
     <kafka.connect.version>2.4.0</kafka.connect.version>
