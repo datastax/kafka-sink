@@ -122,8 +122,8 @@ topics=my_topic
 #socks.proxyHost=None
 
 # Port on which the SOCKS5 proxy is running.
-# Defaults to None.
-#socks.proxyPort=None
+# Defaults to 0.
+#socks.proxyPort=0
 
 ### Settings for topic my_topic ###
 
