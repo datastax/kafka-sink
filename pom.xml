@@ -696,9 +696,20 @@ limitations under the License.]]></inlineHeader>
   </profiles>
   <repositories>
     <repository>
+      <id>datastax-releases-local</id>
+      <name>DataStax Local Releases</name>
+      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
       <id>Confluent</id>
       <name>Confluent</name>
-      <url>https://packages.confluent.io/maven/</url>
+      <url>http://packages.confluent.io/maven/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -707,6 +718,18 @@ limitations under the License.]]></inlineHeader>
       </snapshots>
     </repository>
   </repositories>
+  <distributionManagement>
+    <repository>
+      <id>carrefour-releases</id>
+      <name>Carrefour releases</name>
+      <url>https://nexus.phenix.carrefour.com/content/repositories/stables</url>
+    </repository>
+    <snapshotRepository>
+      <id>carrefour-snapshots</id>
+      <name>Carrefour snapshots</name>
+      <url>https://nexus.phenix.carrefour.com/content/repositories/snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
   <licenses>
     <license>
       <name>Apache 2</name>

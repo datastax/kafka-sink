@@ -22,6 +22,9 @@
       <pattern>%-5level [%thread] %logger{40} - %msg%n</pattern>
     </encoder>
   </appender>
+  <logger name="com.datastax.oss.dsbulk.tests.ccm.DefaultCCMCluster" level="DEBUG"/>
+  <logger name="dsbulk.ccm.CCM_OUT" level="DEBUG"/>
+  <logger name="dsbulk.ccm.CCM_ERR" level="DEBUG"/>
   <root level="${log.root.level:-OFF}">
     <appender-ref ref="STDOUT"/>
   </root>
