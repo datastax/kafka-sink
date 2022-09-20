@@ -698,7 +698,18 @@ limitations under the License.]]></inlineHeader>
     <repository>
       <id>datastax-releases-local</id>
       <name>DataStax Local Releases</name>
-      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
+      <url>https://repo.aws.dsinternal.org/artifactory/datastax-releases-local/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>apache-releases-remote-cache</id>
+      <name>DataStax apache-releases-remote-cache</name>
+      <url>https://repo.aws.dsinternal.org/artifactory/apache-releases-remote-cache/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -709,7 +720,7 @@ limitations under the License.]]></inlineHeader>
     <repository>
       <id>Confluent</id>
       <name>Confluent</name>
-      <url>http://packages.confluent.io/maven/</url>
+      <url>https://packages.confluent.io/maven/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -722,12 +733,12 @@ limitations under the License.]]></inlineHeader>
     <repository>
       <id>datastax-releases-local</id>
       <name>DataStax Local Releases</name>
-      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-releases-local/</url>
+      <url>https://repo.aws.dsinternal.org/artifactory/datastax-releases-local/</url>
     </repository>
     <snapshotRepository>
       <id>datastax-snapshots-local</id>
       <name>DataStax Local Snapshots</name>
-      <url>https://repo.sjc.dsinternal.org/artifactory/datastax-snapshots-local/</url>
+      <url>https://repo.aws.dsinternal.org/artifactory/datastax-snapshots-local/</url>
     </snapshotRepository>
   </distributionManagement>
   <licenses>
