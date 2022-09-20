@@ -115,6 +115,16 @@ topics=my_topic
 # Path to the private key file, when using OpenSSL.
 #ssl.openssl.privateKey=
 
+### SOCKS Proxy Settings ###
+
+# Host which runs as a SOCKS5 proxy, through which Cassandra traffic should be routed.
+# Defaults to None.
+#socks.proxyHost=None
+
+# Port on which the SOCKS5 proxy is running.
+# Defaults to 0.
+#socks.proxyPort=0
+
 ### Settings for topic my_topic ###
 
 #### Settings for table my_ks.my_table in topic my_topic ####

@@ -30,6 +30,8 @@
         "ssl.truststore.password": "",
         "ssl.truststore.path": "",
         "ssl.cipherSuites": "",
+        "socks.proxyHost": "None",
+        "socks.proxyPort": 0,
         "topic.my_topic.my_ks.my_table.mapping": "col1=key.f1, col2=value.f1, __ttl=value.f2, __timestamp=value.f3, col3=header.f1, col4=now()",
         "topic.my_topic.my_ks.my_table.consistencyLevel": "LOCAL_ONE",
         "topic.my_topic.my_ks.my_table.ttl": -1,
