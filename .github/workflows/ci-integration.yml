@@ -1,0 +1,154 @@
+name: Integration tests
+
+on:
+  pull_request:
+    branches:
+      - 1.x
+  push:
+    branches:
+      - 1.x
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cassandra:
+          - cassandra_version: 3.0.27
+            ccm_version: 3.0.27
+            is_dse: false
+          - cassandra_version: 3.11.13
+            ccm_version: 3.11.13
+            is_dse: false
+          - cassandra_version: 4.0.4
+            ccm_version: 4.0.4
+            is_dse: false
+          - cassandra_version: dse-5.1
+            ccm_version: 5.1.31
+            is_dse: true
+          - cassandra_version: dse-6.0
+            ccm_version: 6.0.18
+            is_dse: true
+          - cassandra_version: dse-6.7
+            ccm_version: 6.7.17
+            is_dse: true
+          - cassandra_version: dse-6.8
+            ccm_version: 6.8.24
+            is_dse: true
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: 8
+          distribution: 'temurin'
+      - name: Save JDK8 path
+        run: |
+          export JDK8_PATH=$JAVA_HOME
+          echo "JDK8_PATH=$JDK8_PATH" >> $GITHUB_ENV
+      - name: Set up JDK 11
+        uses: actions/setup-java@v2
+        with:
+          java-version: 11
+          distribution: 'temurin'
+      - name: Pre set up Python
+        run: |
+          #!/bin/bash
+          # This step is need to not make setup-python fails
+          set -e
+          echo """
+          pyYaml 
+          six 
+          psutil
+          """ > requirements.txt
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '2.x'
+          cache: 'pip'
+      - name: Setup CCM private
+        if: ${{ matrix.cassandra.is_dse }}
+        env:
+          CLONE_RIPTANO_CCM_SECRET: ${{secrets.CLONE_RIPTANO_CCM_SECRET}}
+        run: |
+          #!/bin/bash
+          set -e
+          git clone https://${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
+          cd ccm-private
+          
+          pip install -r requirements.txt
+          ./setup.py install
+      - name: Setup CCM
+        if: ${{ !matrix.cassandra.is_dse }}
+        run: |
+          #!/bin/bash
+          pip install ccm
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Build with JDK 11
+        run: mvn -B clean install -DskipTests
+
+      - name: Run integration tests
+        run: |
+          set -e
+          echo "Running tests,  cassandra: ${{ matrix.cassandra.cassandra_version }}, ${{ matrix.cassandra.ccm_version }}, ${{ matrix.cassandra.is_dse }}"  
+          PREV_IFS=$IFS
+          IFS=':'
+          IFS=$PREV_IFS
+          
+          if [[ "${{ matrix.cassandra.is_dse }}" == "true" ]]; then
+            export CCM_SERVER_TYPE=dse
+            export CCM_IS_DSE=true
+            export DSE_VERSION=${{ matrix.cassandra.ccm_version }}
+          else
+            export CCM_SERVER_TYPE=cassandra
+            export CCM_IS_DSE=false
+          fi
+          
+          export CASSANDRA_VERSION=${{ matrix.cassandra.cassandra_version }}
+          export CCM_CASSANDRA_VERSION=${{ matrix.cassandra.ccm_version }}
+          export CCM_VERSION=${{ matrix.cassandra.ccm_version }}
+          
+          mvn verify -Pmedium -pl pulsar-impl \
+            -Ddsbulk.ccm.CCM_VERSION=$CCM_VERSION \
+            -Ddsbulk.ccm.CCM_IS_DSE=$CCM_IS_DSE \
+            -Ddsbulk.ccm.JAVA_HOME="$JDK8_PATH" \
+            -Dmax.ccm.clusters=1 \
+            -DredirectTestOutputToFile=false || (echo "Build failed" && find "/tmp/" -name "debug.log" -exec cat {} + && find "/tmp/" -name "system.log" -exec cat {} + && exit 1)
+
+      - name: Run integration tests (tests)
+        run: |
+          echo "Running tests, pulsar: ${{ matrix.pulsar }}, cassandra: ${{ matrix.cassandra.cassandra_version }}, ${{ matrix.cassandra.ccm_version }}, ${{ matrix.cassandra.is_dse }}"  
+          PREV_IFS=$IFS
+          IFS=':'
+          IFS=$PREV_IFS
+          
+          if [[ "${{ matrix.cassandra.is_dse }}" == "true" ]]; then
+            export CCM_SERVER_TYPE=dse
+            export CCM_IS_DSE=true
+            export DSE_VERSION=${{ matrix.cassandra.ccm_version }}
+          else
+            export CCM_SERVER_TYPE=cassandra
+            export CCM_IS_DSE=false
+          fi
+          
+          export CASSANDRA_VERSION=${{ matrix.cassandra.cassandra_version }}
+          export CCM_CASSANDRA_VERSION=${{ matrix.cassandra.ccm_version }}
+          export CCM_VERSION=${{ matrix.cassandra.ccm_version }}
+          
+          env
+          
+          mvn verify -Pmedium -pl tests \
+            -Ddsbulk.ccm.CCM_VERSION=$CCM_VERSION \
+            -Ddsbulk.ccm.CCM_IS_DSE=$CCM_IS_DSE \
+            -Ddsbulk.ccm.JAVA_HOME="$JDK8_PATH" \
+            -Dmax.ccm.clusters=1 \
+            -DredirectTestOutputToFile=false
