@@ -336,6 +336,10 @@ class SimpleEndToEndSimulacronIT {
             .put("contactPoints", connectorProperties.get("contactPoints"))
             .put("port", connectorProperties.get("port"))
             .put("loadBalancing.localDc", "dc1")
+            // since we upgraded to Driver 4.16.x, we need to explicitly set the protocol version
+            // otherwise it will try only DSE_v1 and DSE_v2 because they are not considered "BETA"
+            // https://github.com/datastax/java-driver/blob/4270f93277249abb513bc2abf2ff7a7c481b1d0d/core/src/main/java/com/datastax/oss/driver/internal/core/channel/ChannelFactory.java#L163
+            .put("loadBalancing.localDc", "dc1")
             .put("topic.mytopic.ks1.mycounter.mapping", "a=key, b=value, c=value.f2")
             .build();
     assertThatThrownBy(() -> task.start(props))
@@ -365,6 +369,10 @@ class SimpleEndToEndSimulacronIT {
     Map<String, String> connProps = new HashMap<>();
     connProps.put("name", INSTANCE_NAME);
     connProps.put("contactPoints", hostname);
+    connProps.put("loadBalancing.localDc", "dc1");
+    // since we upgraded to Driver 4.16.x, we need to explicitly set the protocol version
+    // otherwise it will try only DSE_v1 and DSE_v2 because they are not considered "BETA"
+    // https://github.com/datastax/java-driver/blob/4270f93277249abb513bc2abf2ff7a7c481b1d0d/core/src/main/java/com/datastax/oss/driver/internal/core/channel/ChannelFactory.java#L163
     connProps.put("port", port);
     connProps.put("loadBalancing.localDc", "dc1");
     connProps.put(
