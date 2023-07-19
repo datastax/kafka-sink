@@ -21,7 +21,7 @@
   <groupId>com.datastax.oss</groupId>
   <artifactId>kafka-connect-cassandra-sink-parent</artifactId>
   <packaging>pom</packaging>
-  <version>1.4.1-SNAPSHOT</version>
+  <version>1.5.0</version>
   <name>DataStax Apache Cassandra (R) Kafka Sink Connector</name>
   <description>A Kafka Sink Connector for pulling data from Apache Kafka and inserting into Apache Cassandra (R) or DataStax Enterprise (DSE)</description>
   <url>https://github.com/riptano/kafka-sink</url>
@@ -753,7 +753,7 @@ limitations under the License.]]></inlineHeader>
     <connection>scm:git:git@github.com:riptano/kafka-sink.git</connection>
     <developerConnection>scm:git:git@github.com:riptano/kafka-sink.git</developerConnection>
     <url>https://github.com/riptano/kafka-sink</url>
-    <tag>HEAD</tag>
+    <tag>1.5.0</tag>
   </scm>
   <developers>
     <developer>
