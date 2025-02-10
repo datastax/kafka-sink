@@ -11,7 +11,6 @@ on:
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
-    container: quay.io/coatldev/six:latest
     strategy:
       fail-fast: false
       matrix:
@@ -39,7 +38,7 @@ jobs:
             is_dse: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
       - name: Set up JDK 8
         uses: actions/setup-java@v2
         with:
@@ -59,17 +58,16 @@ jobs:
           #!/bin/bash
           # This step is need to not make setup-python fails
           set -e
-          ln -sf /opt/python/2.7/bin/python2 /opt/python/bin/python
           echo """
           pyYaml 
           six 
           psutil
           """ > requirements.txt
-#      - name: Set up Python
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: '3.x'
-#          cache: 'pip'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: 'pip'
       - name: Setup CCM private
         if: ${{ matrix.cassandra.is_dse }}
         env:
