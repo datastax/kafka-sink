@@ -64,9 +64,9 @@ jobs:
           psutil
           """ > requirements.txt
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
-          python-version: '2.x'
+          python-version: '3.x'
           cache: 'pip'
       - name: Setup CCM private
         if: ${{ matrix.cassandra.is_dse }}
