@@ -85,7 +85,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 @ExtendWith(StreamInterceptingExtension.class)
 @ExtendWith(LogInterceptingExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@SimulacronConfig(dseVersion = "5.0.8")
+@SimulacronConfig
 class SimpleEndToEndSimulacronIT {
 
   private static final String INSERT_STATEMENT =
@@ -332,10 +332,7 @@ class SimpleEndToEndSimulacronIT {
 
     ImmutableMap<String, String> props =
         ImmutableMap.<String, String>builder()
-            .put("name", INSTANCE_NAME)
-            .put("contactPoints", connectorProperties.get("contactPoints"))
-            .put("port", connectorProperties.get("port"))
-            .put("loadBalancing.localDc", "dc1")
+            .putAll(connectorProperties)
             // since we upgraded to Driver 4.16.x, we need to explicitly set the protocol version
             // otherwise it will try only DSE_v1 and DSE_v2 because they are not considered "BETA"
             // https://github.com/datastax/java-driver/blob/4270f93277249abb513bc2abf2ff7a7c481b1d0d/core/src/main/java/com/datastax/oss/driver/internal/core/channel/ChannelFactory.java#L163
@@ -367,8 +364,7 @@ class SimpleEndToEndSimulacronIT {
                     .build()));
     simulacron.prime(when(bad1).then(serverError("bad thing")));
     Map<String, String> connProps = new HashMap<>();
-    connProps.put("name", INSTANCE_NAME);
-    connProps.put("contactPoints", hostname);
+    connProps.putAll(connectorProperties);
     // since we upgraded to Driver 4.16.x, we need to explicitly set the protocol version
     // otherwise it will try only DSE_v1 and DSE_v2 because they are not considered "BETA"
     // https://github.com/datastax/java-driver/blob/4270f93277249abb513bc2abf2ff7a7c481b1d0d/core/src/main/java/com/datastax/oss/driver/internal/core/channel/ChannelFactory.java#L163
