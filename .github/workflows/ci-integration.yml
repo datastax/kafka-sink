@@ -64,10 +64,12 @@ jobs:
           psutil
           """ > requirements.txt
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: MatteoH2O1999/setup-python@v1
         with:
-          python-version: '3.x'
+          python-version: '2.7'
           cache: 'pip'
+          allow-build: info
+          cache-build: true
       - name: Setup CCM private
         if: ${{ matrix.cassandra.is_dse }}
         env:
