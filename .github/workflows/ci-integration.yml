@@ -76,10 +76,23 @@ jobs:
         env:
           CLONE_RIPTANO_CCM_SECRET: ${{secrets.CLONE_RIPTANO_CCM_SECRET}}
           TEST: ${{secrets.TEST}}
+          GB_TOKEN: ${{secrets.GB_TOKEN}}
         run: |
           #!/bin/bash
           set -e
+          if [ "GB_TOKEN" == "" ]; then
+            echo "GB_TOKEN=NO"
+          else
+           echo "GB_TOKEN=YES"
+          fi
+
           echo $TEST
+          if [ "$TEST" == "" ]; then
+            echo "envsecret=NO"
+          else
+           echo "envsecret=YES"
+          fi
+          
           if [ "$CLONE_RIPTANO_CCM_SECRET" == "" ]; then
             echo "secretspresent=NO"
           else
