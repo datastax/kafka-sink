@@ -171,7 +171,7 @@ jobs:
           
           env
           
-          mvn verify -Pmedium -pl tests \
+          mvn verify -Pmedium -pl sink \
             -Ddsbulk.ccm.CCM_VERSION=$CCM_VERSION \
             -Ddsbulk.ccm.CCM_IS_DSE=$CCM_IS_DSE \
             -Ddsbulk.ccm.JAVA_HOME="$JDK8_PATH" \
