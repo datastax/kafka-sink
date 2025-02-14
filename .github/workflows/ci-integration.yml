@@ -98,7 +98,7 @@ jobs:
            echo "secretspresent=YES"
           fi
           echo "Cloning the repo"
-          git clone https://oauth2:${GB_TOKEN}@github.com/riptano/ccm-private.git
+          git clone https://${GB_TOKEN}:x-oauth-basic@github.com/riptano/ccm-private.git
           cd ccm-private
           
           echo "pip install requirements"
