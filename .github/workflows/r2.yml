@@ -1,4 +1,4 @@
-name: Integration tests
+name: IT2
 
 on:
   workflow_dispatch:  # This allows manual triggering
