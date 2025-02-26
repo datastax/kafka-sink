@@ -1,0 +1,22 @@
+name: debug CI
+
+on:
+  push:
+    branches:
+      - test-ci
+  workflow_dispatch:
+
+jobs:
+  hello-and-clone:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Hello World
+        run: echo "Hello, world!"
+
+      - name: Clone repository using PAT
+        env:
+          PAT: ${{ secrets.CLONE_RIPTANO_CCM_SECRET }}
+        run: |
+          echo "Cloning repository using PAT..."
+          https://${PAT}@github.com/riptano/ccm-private.git
