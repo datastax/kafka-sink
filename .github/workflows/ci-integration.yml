@@ -78,7 +78,7 @@ jobs:
           #!/bin/bash
           set -e
           echo "Cloning the repo"
-          git clone https://${GB_TOKEN}:x-oauth-basic@github.com/riptano/ccm-private.git
+          git clone https://${CLONE_RIPTANO_CCM_SECRET}:x-oauth-basic@github.com/riptano/ccm-private.git
           cd ccm-private
           echo "pip install requirements"
           pip install -r requirements.txt
