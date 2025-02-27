@@ -25,23 +25,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.DoubleNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.connect.avro.AvroConverter;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
-import io.confluent.kafka.serializers.AvroSchemaUtils;
-import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Stream;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.connect.data.Decimal;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.json.DecimalFormat;
 import org.apache.kafka.connect.json.JsonConverter;
@@ -49,7 +43,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mockito;
 
 /**
  * Tests to validate discussion in KAF-91. These tests are intended to prove that the behaviour
@@ -161,7 +154,7 @@ public class AvroJsonConvertersTest {
   public void should_convert_big_decimal_to_bytes_with_avro_converter() throws Exception {
 
     String topic = "topic";
-    AvroConverter converter = new AvroConverter(Mockito.mock(SchemaRegistryClient.class));
+    AvroConverter converter = new AvroConverter(new MockSchemaRegistryClient());
     converter.configure(
         Collections.singletonMap(
             AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "localhost"),
@@ -172,29 +165,15 @@ public class AvroJsonConvertersTest {
         new SchemaBuilder(Schema.Type.BYTES)
             .name(Decimal.LOGICAL_NAME)
             .parameter(Decimal.SCALE_FIELD, Integer.toString(expected.scale()))
+            .required()
             .build();
 
-    // Root conversion operation
     byte[] convertedBytes = converter.fromConnectData(topic, schema, expected);
-
-    // AvroConverter winds up adding 5 extra bytes, a "magic" byte + a 4 byte ID value, so strip
-    // those here.  See AbstractKafkaAvroSerializer for more detail.
-    ByteArrayInputStream stream =
-        new ByteArrayInputStream(convertedBytes, 5, convertedBytes.length - 5);
-
-    org.apache.avro.Schema bytesSchema = AvroSchemaUtils.getSchema(convertedBytes);
 
     // Confirm that we can read the contents of the connect data as a byte array (not by itself an
     // impressive feat) _and_ that the bytes in this array represent the unscaled value of the
     // expected BigInteger
-    BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(stream, null);
-    DatumReader<Object> reader = new GenericDatumReader(bytesSchema);
-    ByteBuffer observedBytes = (ByteBuffer) reader.read(null, decoder);
-
-    BigDecimal observed =
-        new BigDecimal(
-            new BigInteger(observedBytes.array()),
-            Integer.parseInt(schema.parameters().get(Decimal.SCALE_FIELD)));
-    assertThat(expected).isEqualTo(observed);
+    SchemaAndValue val = converter.toConnectData(topic, convertedBytes);
+    assertThat(expected).isEqualTo(val.value());
   }
 }

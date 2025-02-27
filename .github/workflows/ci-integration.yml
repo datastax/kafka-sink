@@ -64,10 +64,12 @@ jobs:
           psutil
           """ > requirements.txt
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: MatteoH2O1999/setup-python@v1
         with:
-          python-version: '2.x'
+          python-version: '2.7'
           cache: 'pip'
+          allow-build: info
+          cache-build: true
       - name: Setup CCM private
         if: ${{ matrix.cassandra.is_dse }}
         env:
@@ -75,10 +77,12 @@ jobs:
         run: |
           #!/bin/bash
           set -e
-          git clone https://${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
+          echo "Cloning the repo"
+          git clone https://${CLONE_RIPTANO_CCM_SECRET}:x-oauth-basic@github.com/riptano/ccm-private.git
           cd ccm-private
-          
+          echo "pip install requirements"
           pip install -r requirements.txt
+          echo "setup.py install"
           ./setup.py install
       - name: Setup CCM
         if: ${{ !matrix.cassandra.is_dse }}
@@ -117,7 +121,7 @@ jobs:
           export CCM_CASSANDRA_VERSION=${{ matrix.cassandra.ccm_version }}
           export CCM_VERSION=${{ matrix.cassandra.ccm_version }}
           
-          mvn verify -Pmedium -pl pulsar-impl \
+          mvn verify -Pmedium -pl sink \
             -Ddsbulk.ccm.CCM_VERSION=$CCM_VERSION \
             -Ddsbulk.ccm.CCM_IS_DSE=$CCM_IS_DSE \
             -Ddsbulk.ccm.JAVA_HOME="$JDK8_PATH" \
@@ -146,7 +150,7 @@ jobs:
           
           env
           
-          mvn verify -Pmedium -pl tests \
+          mvn verify -Pmedium -pl sink \
             -Ddsbulk.ccm.CCM_VERSION=$CCM_VERSION \
             -Ddsbulk.ccm.CCM_IS_DSE=$CCM_IS_DSE \
             -Ddsbulk.ccm.JAVA_HOME="$JDK8_PATH" \
