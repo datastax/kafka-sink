@@ -43,6 +43,7 @@
     <kafka.connect.version>3.7.2</kafka.connect.version>
     <confluent.version>7.7.2</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
+    <protobuf.version>3.25.6</protobuf.version>
     <oss.driver.version>4.16.0</oss.driver.version>
     <dsbulk.version>1.10.0</dsbulk.version>
     <reactive-streams.version>1.0.4</reactive-streams.version>
@@ -239,6 +240,16 @@
         <groupId>io.confluent</groupId>
         <artifactId>kafka-schema-rules</artifactId>
         <version>${confluent.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>${protobuf.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>${protobuf.version}</version>
       </dependency>
       <dependency>
         <groupId>com.datastax.oss.simulacron</groupId>
