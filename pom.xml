@@ -231,6 +231,16 @@
         <version>${confluent.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-schema-registry-client</artifactId>
+        <version>${confluent.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-schema-rules</artifactId>
+        <version>${confluent.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.datastax.oss.simulacron</groupId>
         <artifactId>simulacron-native-server</artifactId>
         <version>${simulacron.version}</version>
