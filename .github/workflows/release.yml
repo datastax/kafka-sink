@@ -20,6 +20,6 @@ jobs:
         run: mvn -B package -Prelease -DskipTests
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "dist/target/kafka-connec*.jar,dist/target/kafka-connec*.tar,dist/target/kafka-connec*.zip"
+          artifacts: "dist/target/kafka-connec*.jar,dist/target/kafka-connec*.tar.gz,dist/target/kafka-connec*.zip"
           token: ${{ secrets.GITHUB_TOKEN }}
           generateReleaseNotes: true
