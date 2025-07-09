@@ -62,9 +62,11 @@ topics=my_topic
 
 ### Authentication Setings ###
 
-# Authentication provider to use, if any. Valid choices: None, PLAIN, GSSAPI.
+# Authentication provider to use, if any. Valid choices: None, PLAIN, GSSAPI, OIDC.
 # Defaults to None.
 #auth.provider=None
+
+# TODO: OIDC examples
 
 # Username for PLAIN authentication
 #auth.username=
