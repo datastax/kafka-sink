@@ -658,7 +658,7 @@ limitations under the License.]]></inlineHeader>
     <profile>
       <id>jdk21</id>
       <activation>
-        <jdk>21</jdk>
+        <jdk>[21..)</jdk>
       </activation>
       <build>
         <pluginManagement>
