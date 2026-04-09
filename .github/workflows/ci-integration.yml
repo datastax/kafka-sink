@@ -90,13 +90,13 @@ jobs:
       - name: Setup CCM private
         if: ${{ matrix.cassandra.is_dse }}
         env:
-          CLONE_RIPTANO_CCM_SECRET: ${{secrets.CLONE_RIPTANO_CCM_SECRET}}
+          CLONE_RIPTANO_CCM_SECRET: ${{secrets.CLONE_RIPTANO_CCM_PRIVATE_SECRET}}
         run: |
           #!/bin/bash
           set -e
           echo "Cloning the repo"
           echo $CLONE_RIPTANO_CCM_SECRET
-          git clone https://x-access-token:${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
+          git clone https://${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
           cd ccm-private
           echo "pip install requirements"
           pip install -r requirements.txt
