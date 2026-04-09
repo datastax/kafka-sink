@@ -93,9 +93,10 @@ class LifeCycleManagerIT {
       assertThat(set).isNotNull();
       // and endPoint uses unresolved DNS address
       EndPoint endPoint = getEndPoint(session);
-      assertThat(endPoint.toString())
-          .isEqualTo(String.format("%s:%d", contactPointDns, ccm.getBinaryPort()));
-      assertTrue(((InetSocketAddress) endPoint.resolve()).isUnresolved());
+      InetSocketAddress address = (InetSocketAddress) endPoint.resolve();
+      assertThat(address.getHostString()).isEqualTo(contactPointDns);
+      assertThat(address.getPort()).isEqualTo(ccm.getBinaryPort());
+      assertTrue(address.isUnresolved());
     }
   }
 
@@ -127,9 +128,10 @@ class LifeCycleManagerIT {
       assertThat(set).isNotNull();
       // and endPoint uses unresolved IP address
       EndPoint endPoint = getEndPoint(session);
-      assertThat(endPoint.toString())
-          .isEqualTo(String.format("%s:%d", contactPointIp, ccm.getBinaryPort()));
-      assertTrue(((InetSocketAddress) endPoint.resolve()).isUnresolved());
+      InetSocketAddress address = (InetSocketAddress) endPoint.resolve();
+      assertThat(address.getHostString()).isEqualTo(contactPointIp);
+      assertThat(address.getPort()).isEqualTo(ccm.getBinaryPort());
+      assertTrue(address.isUnresolved());
     }
   }
 
