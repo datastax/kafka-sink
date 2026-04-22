@@ -116,6 +116,24 @@ jobs:
         run: |
           #!/bin/bash
           pip install ccm
+      - name: Configure CCM for DSE
+        if: ${{ matrix.cassandra.is_dse }}
+        env:
+          DSE_USERNAME: ${{ secrets.DSE_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.DSE_PASSWORD }}
+        run: |
+          mkdir -p ~/.ccm
+            
+          cat <<EOF > ~/.ccm/config
+          [repositories]
+          dse = https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/dse-%s-bin.tar.gz
+          EOF
+            
+          cat <<EOF > ~/.ccm/.dse.ini
+          [dse_credentials]
+          dse_username = $DSE_USERNAME
+          dse_password = $DSE_PASSWORD
+          EOF
       - name: Cache local Maven repository
         uses: actions/cache@v4
         with:
