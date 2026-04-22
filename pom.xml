@@ -45,7 +45,7 @@
     <caffeine.version>2.6.2</caffeine.version>
     <protobuf.version>3.25.6</protobuf.version>
     <oss.driver.version>4.16.0</oss.driver.version>
-    <dsbulk.version>1.10.0</dsbulk.version>
+    <dsbulk.version>1.11.1</dsbulk.version>
     <reactive-streams.version>1.0.4</reactive-streams.version>
     <guava.version>25.1-jre</guava.version>
     <slf4j.version>1.7.36</slf4j.version>
@@ -459,7 +459,7 @@ limitations under the License.]]></inlineHeader>
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.12</version>
+          <version>0.8.14</version>
           <executions>
             <execution>
               <id>unit-tests-coverage</id>
@@ -665,7 +665,7 @@ limitations under the License.]]></inlineHeader>
           <plugins>
             <plugin>
               <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.11.0</version>
+              <version>3.15.0</version>
               <configuration>
                 <source>${java.version}</source>
                 <target>${java.version}</target>
