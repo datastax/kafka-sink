@@ -30,6 +30,7 @@ jobs:
       matrix:
         java:
           - '11'
+          - '17'
           - '21'
         cassandra:
           - cassandra_version: 3.0.27
@@ -44,12 +45,13 @@ jobs:
           - cassandra_version: dse-5.1
             ccm_version: 5.1.31
             is_dse: true
-          - cassandra_version: dse-6.0
-            ccm_version: 6.0.18
-            is_dse: true
-          - cassandra_version: dse-6.7
-            ccm_version: 6.7.17
-            is_dse: true
+            # DSE 6.0 and 6.7 are commented out because they are EOL and no longer supported by DataStax/IBM
+          #- cassandra_version: dse-6.0
+          #  ccm_version: 6.0.18
+          #  is_dse: true
+          #- cassandra_version: dse-6.7
+          #  ccm_version: 6.7.17
+          #  is_dse: true
           - cassandra_version: dse-6.8
             ccm_version: 6.8.24
             is_dse: true
@@ -104,7 +106,6 @@ jobs:
           #!/bin/bash
           set -e
           echo "Cloning the repo"
-          echo $CLONE_RIPTANO_CCM_SECRET
           git clone https://x-access-token:${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
           cd ccm-private
           echo "pip install requirements"

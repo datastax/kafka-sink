@@ -654,11 +654,47 @@ limitations under the License.]]></inlineHeader>
     </plugins>
   </build>
   <profiles>
-    <!-- NEW: Separate profile specifically for Java 21+ -->
+    <!-- NEW: Separate profile specifically for Java 17+ -->
     <profile>
       <id>jdk21</id>
       <activation>
         <jdk>[21..)</jdk>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.15.0</version>
+              <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+                <release>${java.release.version}</release>
+                <showDeprecation>true</showDeprecation>
+                <showWarnings>true</showWarnings>
+                <failOnWarning>false</failOnWarning>
+                <fork>false</fork>
+                <compilerArgs>
+                  <arg>-XDcompilePolicy=simple</arg>
+                  <arg>-Xplugin:ErrorProne</arg>
+                </compilerArgs>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_core</artifactId>
+                    <version>2.49.0</version>
+                  </path>
+                </annotationProcessorPaths>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <profile>
+      <id>jdk17</id>
+      <activation>
+        <jdk>[17,21)</jdk>
       </activation>
       <build>
         <pluginManagement>
@@ -694,14 +730,14 @@ limitations under the License.]]></inlineHeader>
     <profile>
       <id>jdk11</id>
       <activation>
-        <jdk>[9,21)</jdk>
+        <jdk>[9,17)</jdk>
       </activation>
       <build>
         <pluginManagement>
           <plugins>
             <plugin>
               <artifactId>maven-compiler-plugin</artifactId>
-              <version>3.11.0</version>
+              <version>3.8.1</version>
               <configuration>
                 <source>${java.version}</source>
                 <target>${java.version}</target>
@@ -719,7 +755,7 @@ limitations under the License.]]></inlineHeader>
                   <path>
                     <groupId>com.google.errorprone</groupId>
                     <artifactId>error_prone_core</artifactId>
-                    <version>2.28.0</version>
+                    <version>2.4.0</version>
                   </path>
                 </annotationProcessorPaths>
               </configuration>
