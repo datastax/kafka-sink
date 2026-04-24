@@ -28,6 +28,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        java:
+          - '11'
+          - '17'
+          - '21'
         cassandra:
           - cassandra_version: 3.0.27
             ccm_version: 3.0.27
@@ -41,12 +45,13 @@ jobs:
           - cassandra_version: dse-5.1
             ccm_version: 5.1.31
             is_dse: true
-          - cassandra_version: dse-6.0
-            ccm_version: 6.0.18
-            is_dse: true
-          - cassandra_version: dse-6.7
-            ccm_version: 6.7.17
-            is_dse: true
+            # DSE 6.0 and 6.7 are commented out because they are EOL and no longer supported by DataStax/IBM
+          #- cassandra_version: dse-6.0
+          #  ccm_version: 6.0.18
+          #  is_dse: true
+          #- cassandra_version: dse-6.7
+          #  ccm_version: 6.7.17
+          #  is_dse: true
           - cassandra_version: dse-6.8
             ccm_version: 6.8.24
             is_dse: true
@@ -62,10 +67,10 @@ jobs:
         run: |
           export JDK8_PATH=$JAVA_HOME
           echo "JDK8_PATH=$JDK8_PATH" >> $GITHUB_ENV
-      - name: Set up JDK 11
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v2
         with:
-          java-version: 11
+          java-version: ${{ matrix.java }}
           distribution: 'temurin'
       - name: Pre set up Python
         run: |
@@ -84,15 +89,24 @@ jobs:
           cache: 'pip'
           allow-build: info
           cache-build: true
+      - name: Generate installation token for CCM private
+        if: ${{ matrix.cassandra.is_dse }}
+        id: generate-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RIPTANO_CCM_PRIVATE_APP_ID }}
+          private-key: ${{ secrets.RIPTANO_CCM_APP_PRIVATE_KEY }}
+          owner: riptano
+          repositories: ccm-private
       - name: Setup CCM private
         if: ${{ matrix.cassandra.is_dse }}
         env:
-          CLONE_RIPTANO_CCM_SECRET: ${{secrets.CLONE_RIPTANO_CCM_SECRET}}
+          CLONE_RIPTANO_CCM_SECRET: ${{ steps.generate-token.outputs.token }}
         run: |
           #!/bin/bash
           set -e
           echo "Cloning the repo"
-          git clone https://${CLONE_RIPTANO_CCM_SECRET}:x-oauth-basic@github.com/riptano/ccm-private.git
+          git clone https://x-access-token:${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
           cd ccm-private
           echo "pip install requirements"
           pip install -r requirements.txt
@@ -103,6 +117,24 @@ jobs:
         run: |
           #!/bin/bash
           pip install ccm
+      - name: Configure CCM for DSE
+        if: ${{ matrix.cassandra.is_dse }}
+        env:
+          DSE_USERNAME: ${{ secrets.DSE_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.DSE_PASSWORD }}
+        run: |
+          mkdir -p ~/.ccm
+            
+          cat <<EOF > ~/.ccm/config
+          [repositories]
+          dse = https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/dse-%s-bin.tar.gz
+          EOF
+            
+          cat <<EOF > ~/.ccm/.dse.ini
+          [dse_credentials]
+          dse_username = $DSE_USERNAME
+          dse_password = $DSE_PASSWORD
+          EOF
       - name: Cache local Maven repository
         uses: actions/cache@v4
         with:
@@ -111,7 +143,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build with JDK 11
+      - name: Build with JDK ${{ matrix.java }}
         run: mvn -B clean install -DskipTests
 
       - name: Run integration tests

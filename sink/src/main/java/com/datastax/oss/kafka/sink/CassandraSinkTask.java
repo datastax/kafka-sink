@@ -105,7 +105,7 @@ public class CassandraSinkTask extends SinkTask {
     /**
      * Handle a failed record.
      *
-     * @param record the {@link SinkRecord} that failed to process
+     * @param abstractRecord the {@link SinkRecord} that failed to process
      * @param e the exception
      * @param cql the cql statement that failed to execute
      * @param failCounter the metric that keeps track of number of failures encountered

@@ -16,6 +16,7 @@ jobs:
       matrix:
         java:
           - '11'
+          - '21'
 
     steps:
       - uses: actions/checkout@v2

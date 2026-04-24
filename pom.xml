@@ -45,12 +45,12 @@
     <caffeine.version>2.6.2</caffeine.version>
     <protobuf.version>3.25.6</protobuf.version>
     <oss.driver.version>4.16.0</oss.driver.version>
-    <dsbulk.version>1.10.0</dsbulk.version>
+    <dsbulk.version>1.11.1</dsbulk.version>
     <reactive-streams.version>1.0.4</reactive-streams.version>
     <guava.version>25.1-jre</guava.version>
     <slf4j.version>1.7.36</slf4j.version>
     <logback.version>1.2.13</logback.version>
-    <junit.version>5.4.1</junit.version>
+    <junit.version>5.10.2</junit.version>
     <assertj.version>3.14.0</assertj.version>
     <mockito.version>2.18.3</mockito.version>
     <wiremock.version>2.25.0</wiremock.version>
@@ -271,11 +271,6 @@
         <version>${confluent.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.confluent</groupId>
-        <artifactId>kafka-schema-registry-client-encryption-hcvault</artifactId>
-        <version>${confluent.version}</version>
-      </dependency>
-      <dependency>
         <groupId>com.amazonaws</groupId>
         <artifactId>aws-java-sdk-core</artifactId>
         <version>${amazonaws.version}</version>
@@ -464,7 +459,7 @@ limitations under the License.]]></inlineHeader>
         <plugin>
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
-          <version>0.8.6</version>
+          <version>0.8.14</version>
           <executions>
             <execution>
               <id>unit-tests-coverage</id>
@@ -660,9 +655,103 @@ limitations under the License.]]></inlineHeader>
   </build>
   <profiles>
     <profile>
+      <id>jdk21</id>
+      <activation>
+        <jdk>[21,)</jdk>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.15.0</version>
+              <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+                <release>${java.release.version}</release>
+                <showDeprecation>true</showDeprecation>
+                <failOnWarning>false</failOnWarning>
+                <fork>true</fork>
+                <compilerArgs>
+                  <arg>-XDcompilePolicy=simple</arg>
+                  <arg>-Xplugin:ErrorProne</arg>
+                  <arg>-XDshould-stop.ifError=FLOW</arg>
+                  <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                </compilerArgs>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_core</artifactId>
+                    <version>2.49.0</version>
+                  </path>
+                </annotationProcessorPaths>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <profile>
+      <id>jdk17</id>
+      <activation>
+        <jdk>[16,21)</jdk>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <artifactId>maven-compiler-plugin</artifactId>
+              <version>3.15.0</version>
+              <configuration>
+                <source>${java.version}</source>
+                <target>${java.version}</target>
+                <release>${java.release.version}</release>
+                <showDeprecation>true</showDeprecation>
+                <failOnWarning>false</failOnWarning>
+                <fork>true</fork>
+                <compilerArgs>
+                  <arg>-XDcompilePolicy=simple</arg>
+                  <arg>-Xplugin:ErrorProne</arg>
+                  <arg>-XDshould-stop.ifError=FLOW</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                </compilerArgs>
+                <annotationProcessorPaths>
+                  <path>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_core</artifactId>
+                    <!-- From further version the minimum supported JDK version to run Error Prone is 21 -->
+                    <version>2.42.0</version>
+                  </path>
+                </annotationProcessorPaths>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+    <profile>
       <id>jdk11</id>
       <activation>
-        <jdk>[9..)</jdk>
+        <jdk>[9,16)</jdk>
       </activation>
       <build>
         <pluginManagement>
