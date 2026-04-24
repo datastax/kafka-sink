@@ -72,10 +72,6 @@
       <artifactId>kafka-schema-registry-client-encryption-hcvault</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.confluent</groupId>
-      <artifactId>kafka-schema-registry-client-encryption-hcvault</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
     </dependency>

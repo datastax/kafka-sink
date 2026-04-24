@@ -654,11 +654,10 @@ limitations under the License.]]></inlineHeader>
     </plugins>
   </build>
   <profiles>
-    <!-- NEW: Separate profile specifically for Java 17+ -->
     <profile>
       <id>jdk21</id>
       <activation>
-        <jdk>[21..)</jdk>
+        <jdk>[21,)</jdk>
       </activation>
       <build>
         <pluginManagement>
@@ -671,12 +670,23 @@ limitations under the License.]]></inlineHeader>
                 <target>${java.version}</target>
                 <release>${java.release.version}</release>
                 <showDeprecation>true</showDeprecation>
-                <showWarnings>true</showWarnings>
                 <failOnWarning>false</failOnWarning>
-                <fork>false</fork>
+                <fork>true</fork>
                 <compilerArgs>
                   <arg>-XDcompilePolicy=simple</arg>
                   <arg>-Xplugin:ErrorProne</arg>
+                  <arg>-XDshould-stop.ifError=FLOW</arg>
+                  <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
                 </compilerArgs>
                 <annotationProcessorPaths>
                   <path>
@@ -694,7 +704,7 @@ limitations under the License.]]></inlineHeader>
     <profile>
       <id>jdk17</id>
       <activation>
-        <jdk>[17,21)</jdk>
+        <jdk>[16,21)</jdk>
       </activation>
       <build>
         <pluginManagement>
@@ -707,18 +717,29 @@ limitations under the License.]]></inlineHeader>
                 <target>${java.version}</target>
                 <release>${java.release.version}</release>
                 <showDeprecation>true</showDeprecation>
-                <showWarnings>true</showWarnings>
                 <failOnWarning>false</failOnWarning>
-                <fork>false</fork>
+                <fork>true</fork>
                 <compilerArgs>
                   <arg>-XDcompilePolicy=simple</arg>
                   <arg>-Xplugin:ErrorProne</arg>
+                  <arg>-XDshould-stop.ifError=FLOW</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                  <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                  <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
                 </compilerArgs>
                 <annotationProcessorPaths>
                   <path>
                     <groupId>com.google.errorprone</groupId>
                     <artifactId>error_prone_core</artifactId>
-                    <version>2.28.0</version>
+                    <!-- From further version the minimum supported JDK version to run Error Prone is 21 -->
+                    <version>2.42.0</version>
                   </path>
                 </annotationProcessorPaths>
               </configuration>
@@ -730,7 +751,7 @@ limitations under the License.]]></inlineHeader>
     <profile>
       <id>jdk11</id>
       <activation>
-        <jdk>[9,17)</jdk>
+        <jdk>[9,16)</jdk>
       </activation>
       <build>
         <pluginManagement>
