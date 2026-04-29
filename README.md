@@ -43,3 +43,9 @@ To do so please follow those steps:
 
 To see practical examples and usages of mapping, see:
 https://docs.datastax.com/en/kafka/doc/search.html?searchQuery=mapping 
+
+## Java Compatibility
+| Connector Version | Java 8 | Java 11 | Java 17 | Java 21 |
+|-------------------|--------|---------|---------|---------|
+| 1.7.4+            | ✅     | ✅      | ✅      | ✅      |
+| 1.7.3 and earlier | ✅     | ✅      | ❌      | ❌      |
