@@ -14,30 +14,12 @@ Install DataStax Apache Kafka™ Connector 1.7.4 from the DataStax distribution 
  has write access to the Kafka configuration directory.
  
 The supported operating systems are Linux and macOS.
- 
-**[cassandra-sink-distributed.json.sample](../../dist/conf/cassandra-sink-distributed.json.sample)**
- 
-- The
- [cassandra-sink-distributed.json.sample](../../dist/conf/cassandra-sink-distributed.json.sample)
- file is located in the conf
- directory of the DataStax Apache Kafka Connector
- distribution package.
- 
-**[cassandra-sink-standalone.properties.sample](../../dist/conf/cassandra-sink-standalone.properties.sample)**
- 
-- The
- [cassandra-sink-standalone.properties.sample](../../dist/conf/cassandra-sink-standalone.properties.sample)
- file is located in the conf
- directory of the DataStax Apache Kafka Connector
- distribution package.
- 
+
 ## Supported Apache Kafka versions
  Install the DataStax Apache Kafka® Connector on any of following versions:
 - Apache Kafka 3.0 and higher (tested with 3.7.2)
 - Confluent Platform 7.0 and higher (tested with 7.7.2)
 - Earlier versions: Kafka 0.10.2+ and Confluent 3.2+ may work but are not actively tested
- 
-## Prerequisites
  
 ## Procedure
  
