@@ -1,0 +1,29 @@
+---
+title: DataStax Apache Kafka Connector configuration parameter reference
+source: kafkaConfigToc.html
+---
+
+# DataStax Apache Kafka Connector configuration parameter reference
+ 
+Use the sample configuration files as a starting point. 
+ 
+cassandra-sink-distributed.json.sample
+ 
+- The
+ cassandra-sink-distributed.json.sample
+ file is located in the conf
+ directory of the DataStax Apache Kafka Connector
+ distribution package.
+ 
+cassandra-sink-standalone.properties.sample
+ 
+- The
+ cassandra-sink-standalone.properties.sample
+ file is located in the conf
+ directory of the DataStax Apache Kafka Connector
+ distribution package.
+ 
+To configure the DataStax Apache Kafka™ Connector, use the
+ [cassandra-sink-standalone.properties.sample](javascript:;) or
+ [cassandra-sink-distributed.json.sample](javascript:;) configuration file as a
+ starting point.

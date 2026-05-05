@@ -1,0 +1,60 @@
+---
+title: Kerberos authentication
+source: configuration_reference/kafkaKerberos.html
+---
+
+📘 [Documentation](../README.md) > [Configuration](README.md) > Kerberos Authentication
+
+---
+
+**Quick Links:** [Home](../README.md) | [Install](../install/README.md) | [Config](../config/README.md) | [Operations](../operations/README.md) | [Monitoring](../monitoring/README.md) | [Troubleshooting](../troubleshooting/README.md)
+
+---
+
+# Kerberos authentication
+ 
+When the cluster has Kerberos authentication enabled
+ configure Kerberos settings for DataStax Apache Kafka™ Connector.
+ 
+When the cluster has Kerberos authentication enabled, configure these
+ authentication settings.
+ 
+> **Note:** Note: When [authorization is
+ enabled](/en/dse/6.8/dse-admin/datastax_enterprise/config/configDseYaml.md#configDseYaml__authorizationOptions), the DataStax connector login role must have a minimum of
+ `modify` privileges on tables receiving data from the DataStax Apache
+ Kafka® Connector.
+ 
+## Parameters
+ 
+```
+auth.provider=GSSAPI
+auth.gssapi.keyTab=path_to_keytab
+auth.gssapi.principal=connectorPrincipal/hostname@EXAMPLE.com
+auth.gssapi.service=dse
+```
+ 
+**auth.provider**
+: Select the type of authentication provider configured for the DataStax cluster. 
+- **None** - No authentication.
+- **PLAIN** - Internal or LDAP authentication.
+- **GSSAPI** - Supports SASL authentication to DSE clusters using the GSSAPI
+ mechanism (Kerberos authentication)
+> **Note:** Note: When using the GSSAPI, the Kafka Connect
+ process requires that the Kerberos configuration file (krb5.conf) location is provided in the
+ `java.security.krb5.conf` system property at startup. See
+ [Using the DataStax Apache Kafka Connector with Kerberos](../security/kerberos-auth.md).
+
+Default: `None`
+
+**auth.gssapi.keyTab**
+: Path to the Kerberos key tab file.
+
+**auth.gssapi.principal**
+: Kerberos principal name. Specifying the principal explicitly to the connector is
+ required if there are multiple principals that have valid tickets in the ticket cache.
+ Prevents the connector from arbitrarily choosing one.
+
+**auth.gssapi.service**
+: SASL service name to use for GSSAPI provider authentication.
+ 
+Default: `dse`

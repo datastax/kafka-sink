@@ -1,0 +1,403 @@
+---
+title: DataStax Apache Kafka Connector release notes
+source: releaseNotes/RelNoteskafka.html
+---
+
+📘 [Documentation](../README.md) > Release Notes
+
+---
+
+**Quick Links:** [Home](../README.md) | [Install](../install/README.md) | [Config](../config/README.md) | [Operations](../operations/README.md) | [Monitoring](../monitoring/README.md) | [Troubleshooting](../troubleshooting/README.md)
+
+---
+
+# DataStax Apache Kafka Connector release notes
+ 
+Release notes for open source DataStax Apache Kafka Connector.
+ 
+Release notes for open source DataStax Apache Kafka™ Connector. 
+ DataStax Apache Kafka™ Connector is open-source software (OSS) installed in the
+ Kafka Connect framework. and synchronizes records from a Kafka topic to table rows in the
+ following supported databases: 
+- [DataStax Astra](https://docs.astra.datastax.com/docs) cloud databases
+- DataStax Enterprise (DSE) 4.7 and later databases
+- Open source Apache Cassandra® 2.1 and later databases
+ For related information, refer to the DataStax Enterprise release notes:
+- DSE 6.8 release notes
+- DSE 6.7 release notes
+- DSE 6.0 release notes
+- DSE 5.1 release notes
+ 
+## DataStax Apache Kafka Connector 1.7.4 release notes
+
+24 April 2026 (Current Release)
+DataStax Apache Kafka™ Connector 1.7.4 release notes
+
+### 1.7.4 Changes and enhancements
+
+- Added support for JDK 21 (now supports JDK 8, 11, 17, and 21)
+- Updated CI/CD pipeline configuration
+
+### 1.7.4 Java Compatibility
+
+- JDK 8, 11, 17, and 21 are supported
+
+## DataStax Apache Kafka Connector 1.7.3 release notes
+
+13 May 2025
+DataStax Apache Kafka™ Connector 1.7.3 release notes
+
+### 1.7.3 Changes and enhancements
+
+- Updated to use standard Apache 2.0 License
+- Fixed tarball releases in CI
+
+## DataStax Apache Kafka Connector 1.7.2 release notes
+
+6 March 2025
+DataStax Apache Kafka™ Connector 1.7.2 release notes
+
+### 1.7.2 Changes and enhancements
+
+- Added Confluent dependencies for cloud key handling
+- Improved cloud integration support
+
+## DataStax Apache Kafka Connector 1.7.1 release notes
+
+5 March 2025
+DataStax Apache Kafka™ Connector 1.7.1 release notes
+
+### 1.7.1 Changes and enhancements
+
+- Added schema rules dependency
+- Explicitly included schema registry support
+- Fixed license file inclusion
+
+## DataStax Apache Kafka Connector 1.7.0 release notes
+
+3 March 2025
+DataStax Apache Kafka™ Connector 1.7.0 release notes
+
+### 1.7.0 Changes and enhancements
+
+- **Security**: Added OWASP Dependency Check to CI/CD pipeline for automated vulnerability scanning
+- **Security**: Upgraded multiple dependencies to resolve known CVEs (Common Vulnerabilities and Exposures):
+  - Netty upgraded to 4.1.119.Final (from earlier version)
+  - Netty TCNative upgraded to 2.0.70.Final
+  - Jackson upgraded to 2.12.7
+  - Jackson Databind upgraded to 2.12.7.2
+  - org.json upgraded to 20250107
+- Added OWASP suppression files for managing false positives
+- Enhanced security posture through proactive dependency management
+- Improved CI/CD workflows for security scanning
+
+### 1.7.0 Security Notes
+
+This release focuses on security improvements by:
+- Implementing automated OWASP dependency checking in the build process
+- Upgrading vulnerable dependencies (Netty, Jackson, org.json) identified by security scans
+- Establishing a process for tracking and managing security vulnerabilities
+- Adding suppression files to handle false positives while maintaining security vigilance
+
+## DataStax Apache Kafka Connector 1.6.0 release notes
+
+27 February 2025
+DataStax Apache Kafka™ Connector 1.6.0 release notes
+
+### 1.6.0 Changes and enhancements
+
+- Upgraded to Apache Kafka 3.7.2
+- Upgraded to Confluent Platform 7.7.2
+- Improved compatibility with newer Kafka versions
+- Enhanced support for modern Kafka features
+
+### 1.6.0 Compatibility
+
+- Apache Kafka 3.0 and higher (tested with 3.7.2)
+- Confluent Platform 7.0 and higher (tested with 7.7.2)
+
+## DataStax Apache Kafka Connector 1.5.0 release notes
+
+19 July 2023
+DataStax Apache Kafka™ Connector 1.5.0 release notes
+
+### 1.5.0 Changes and enhancements
+
+- Added support for Vector Data Type (for AI/ML workloads)
+- Updated Cassandra Driver, Messaging Connectors and DSBulk
+- Moved to DataStax internal artifactory
+- Added JDK 11 build support while maintaining JDK 8 compatibility
+- Upgraded ErrorProne and JaCoCo
+- Created common module for code reuse with Pulsar Sink
+- Changed project title to "DataStax Apache Kafka Connector"
+
+## DataStax Apache Kafka Connector 1.4.0 release notes
+
+22 July 2020
+DataStax Apache Kafka™ Connector 1.4.0 release notes
+- [1.4.0
+ Changes and enhancements](RelNoteskafka.md#RNkafka140__140changesEnhancements)
+- [1.4.0
+ resolved issue](RelNoteskafka.md#RNkafka140__140resolvedIssues)
+
+### 1.4.0 Changes and enhancements
+
+- Starting with version 1.4.0, DataStax Apache Kafka™ Connector is now available under the [Apache-2.0 license](https://www.apache.org/licenses/LICENSE-2.0) as open-source software (OSS). This change and enhancement
+ makes it possible for the open-source community of developers to contribute to features
+ that enable streaming Kafka data into Apache Cassandra, DataStax Enterprise (DSE), and
+ DataStax Astra databases.
+- The public GitHub repo is [https://github.com/datastax/kafka-sink](https://github.com/datastax/kafka-sink).
+- Sample resource files provided by the installation, which were formerly named with a
+ `-dse` prefix, have new names: 
+- conf/cassandra-sink-distributed.json.sample
+- conf/cassandra-sink-standalone.properties.sample
+- Updated the public [kafka-examples](https://github.com/datastax/kafka-examples) GitHub repo with new class names,
+ as part of the open-source DataStax Apache Kafka Connector 1.4.0 release. (KAF-196)
+- Improved documentation about logging configuration. See [Configure logging for Kafka Connector](../config/logging.md). (KAF-203)
+ 
+### 1.4.0 Resolved issues
+ 
+- In prior releases, the `ignoreErrors` setting only ignored driver errors.
+ For example, errors that occurred during the conversion phase were treated as fatal, and
+ usually caused the Kafka connector task to crash. Now you can use
+ `ignoreErrors` to ignore specific types or all runtime errors, depending
+ on the settings you choose. See Configure error handling. (KAF-200)
+ 
+## DataStax Apache Kafka Connector 1.3.1 release notes
+ 
+12 March 2020
+DataStax Apache Kafka™ Connector 1.3.1 release
+ notes 
+ 
+ 
+ 
+1.3.1 Resolved issue
+ 
+DataStax Apache Kafka Connector 1.3.1 removed an unnecessary
+ TinkerPop dependency in the DataStax Java driver (KAF-189). 
+ 
+ 
+## DataStax Apache Kafka Connector 1.3.0 release notes
+ 
+02 March 2020
+DataStax Apache Kafka™ Connector 1.3.0 release
+ notes 
+ 
+1.3.0 Changes and
+ enhancements
+DataStax Apache Kafka Connector 1.3.0 added support for the following:
+ 
+- A new histogram metric, `batchSizeInBytes`, showing the calculated size
+ of batch statements (KAF-174). See [DataStax Apache Kafka Connector - Batch size metrics](../monitoring/write-metrics.md).
+- Enhanced rate-based metrics for failed Kafka topic records (KAF-72, KAF-175). See
+ [Failed Kafka topic record metrics](../monitoring/failed-records.md).
+- You can selectively update maps and User Defined Types (UDTs) based on present Kafka
+ fields (KAF-182). See [Selectively update maps and UDTs based on Kafka fields](../mapping/selective-updates.md).
+- DataStax Apache Kafka Connector 1.3.0 adds support for the DataStax Unified Driver
+ 4.4.0. For background information, read the [Better drivers for Cassandra](https://www.datastax.com/blog/2020/01/better-drivers-for-cassandra) blog post. Then
+ refer to this start page for the DataStax drivers documentation.
+- The writetime timestamp mapping topic has been improved by emphasizing that the
+ provided column must be a number (KAF-185). See [Specify writetime timestamp column](../operations/row-level-ttl.md).
+- You can use the `now()` function (KAF-173). For examples, see the [The now() function in mappings](../operations/now-function.md).
+- Starting in this 1.3.0 release, you can optionally provide a CQL query that should run
+ when each new record to the Kafka topic mapping arrives (KAF-180). See [Provide CQL queries in mappings](../operations/cql-queries.md).
+- The Kafka connect-api 2.4 introduced a new way of handling `BigDecimal`
+ in `JsonConverter` with a new `decimal.format` config
+ setting. This new option defaults to `BASE64` to maintain the previous
+ behavior. However, you have the option of changing `decimal.format` to
+ `NUMERIC` to serialize decimal values as normal JSON numbers. The
+ `decimal.format` setting works only from Kafka connect-api 2.4 and
+ later, DataStax Apache Kafka Connector 1.3.0 (this release, with KAF-181), and Confluent
+ 5.4.0 and later. Here's the behavior: 
+- If the client sets `decimal.format` to `BASE64` (or
+ leaves it unset), the resulting deserialized `BigDecimal` is of type
+ `String`, which needs to be decoded.
+- If the client sets `decimal.format` to `NUMERIC`,
+ the resulting deserialized `BigDecimal` is of type
+ `DoubleNode`.
+- The `decimal.format` setting is per `key` or
+ `value`. You must set `BASE64` or
+ `NUMERIC` for `value.converter.decimal.format`:
+ 
+```json
+value.converter.decimal.format={BASE64 | NUMERIC} 
+```
+
+ For `key.converter.decimal.format`, the default of
+ `BASE64` is backward compatible with Confluent 5.4.0.
+ 
+```json
+key.converter.decimal.format={BASE64 | NUMERIC}
+```
+
+> **Note:** Attention: The JSON converter automatically deserializes using either
+ format. Be sure to upgrade your consumer applications and sink connectors before
+ changing source connector converters to use the `NUMERIC` format,
+ should you choose to do so. 
+Refer to [https://cwiki.apache.org/confluence/display/KAFKA/KIP-481%3A+SerDe+Improvements+for+Connect+Decimal+type+in+JSON](https://cwiki.apache.org/confluence/display/KAFKA/KIP-481%3A+SerDe+Improvements+for+Connect+Decimal+type+in+JSON)
+
+> **Note:** Tip: DataStax recommends that you use the
+ `datastax-java-driver.basic.contact-point` setting with the DataStax Java
+ driver (KAF-155), instead of the combination of two deprecated configuration parameters,
+ `contactPoints` and `port`. See [Mapping Kafka Connector settings to Java driver properties](../config/java-driver.md#kafkaSettingJavaDriverConfig__mappingConnectorSettingsToJavaDriverProperties).
+ 
+## DataStax Apache Kafka Connector 1.2.1 release notes
+ 
+16 December 2019
+DataStax Apache Kafka™ Connector 1.2.1 release
+ notes
+ 
+ 
+1.2.1 Changes and
+ enhancements
+
+DataStax Apache Kafka Connector 1.2.1 added support for topic-to-table mappings with table rows of
+ open source Apache Cassandra® databases. (KAF-165)
+The new support in 1.2.1 is in
+ addition to the existing functionality for topic-to-table mappings with: 
+- DataStax Astra cloud databases (DataStax Astra on AWS | [DataStax Astra on
+ GCP](/en/astra/gcp/doc/index.md))
+- DataStax Enterprise (DSE) 4.7 and later databases
+ 
+## DataStax Apache Kafka Connector 1.2.0 release notes
+ 
+12 November 2019
+DataStax Apache Kafka™ Connector 1.2.0 release notes
+ 
+ 
+ 
+1.2.0
+ Changes and enhancements
+ 
+- You can deploy DataStax Apache Kafka Connector to stream records from an Apache Kafka
+ topic to a cloud-based DataStax Astra database
+ by using the `cloud.secureConnectBundle`. See Streaming data with the DataStax Apache Kafka Connector. (KAF-143) 
+> **Note:** Note: DataStax Astra
+ Open Beta participants can download the secure connect bundle from the DataStax Cloud console after creating an
+ Astra database.
+- You can pass all DataStax Apache Kafka Connector settings to the DataStax Java driver
+ directly by using the `datastax-java-driver` prefix. See [Pass Kafka Connector settings directly to the DataStax Java driver](../config/java-driver.md) (KAF-79)
+- In the DataStax Apache Kafka Connector topic mapping, you can optionally extract a
+ value from the record's header by using
+ `header.header-field-name`. See [Extract Kafka record header values](../mapping/record-headers.md). (KAF-142)
+ 
+## DataStax Apache Kafka Connector 1.1.1 release notes
+ 
+23 September 2019
+DataStax Apache Kafka Connector 1.1.1 release notes include:
+- [1.1.1 Changes and
+ enhancements](RelNoteskafka.md#RNkafka111__111changesEnhancements)
+- [1.1.1 Resolved issues](../release-notes/README.md#RNkafka111__111resolvedIssues)
+ 
+1.1.1 Changes and enhancements
+ 
+- This release adds a new parameter, `ignoreErrors`. When set to
+ `true`, it allows the Kafka Connector to continue processing records
+ even after an error occurred on the prior record. Refer to Configure error handling. (KAF-132)
+- DataStax Apache Kafka Connector has been upgraded to use the latest:
+ 
+- DataStax Enterprise Java Driver 2.2.0
+- Apache Cassandra OSS Driver 4.2.0
+(KAF-136)
+ 
+1.1.1 Resolved issues
+ 
+- Bootstrapping node results in task failure and NPE. (KAF-126)
+- The dse-reference.conf file not loaded because wrong config Loader used. (KAF-135)
+ 
+## DataStax Apache Kafka Connector 1.1.0 release notes
+ 
+20 May 2019
+DataStax Apache Kafka Connector 1.1.0 release notes include:
+- [1.1.0 Changes and
+ enhancements](RelNoteskafka.md#RNkafka110__110changesEnhancements)
+- [1.1.0 Resolved issues](../release-notes/README.md#RNkafka110__110resolvedIssues)
+ 
+1.1.0 Changes and enhancements
+ 
+- New mapping properties: 
+- `__timestamp`. By setting this property you can specify which
+ column should be used as the write-time timestamp when doing an insert to DSE. 
+ Refer to [Specify writetime timestamp column](../operations/row-level-ttl.md) (KAF-46)
+- `__ttl`. By setting this property you can specify which column
+ is used as the TTL (Time-to-Live) when doing an insert to DSE. Refer
+ to [Setting row-level TTL values from Kafka fields](../operations/row-level-ttl.md). (KAF-107)
+- Counters and histograms are now applicable per topic, keyspace, and table. Previously
+ counters and histograms were implemented at a global level. The change allows for finer
+ granularity in reporting operations. As a result, the `name` parameter
+ value in `objectName` has changed. For `recordCount`: 
+- From:
+ `objectName='com.datastax.kafkaconnector:connector=*,name=recordCount'`
+- To:
+ `objectName='com.datastax.kafkaconnector:connector=*,name=topic.keyspace.table.recordCount'`
+For `failedRecordCount`:
+- From:
+ `objectName='com.datastax.kafkaconnector:connector=*,name=failedRecordCount'`
+- To:
+ `objectName='com.datastax.kafkaconnector:connector=*,name=topic.keyspace.table.failedRecordCount'`
+ Refer to [Metrics for the processed Kafka topic records](../monitoring/record-counts.md) and [Failed Kafka topic record metrics](../monitoring/failed-records.md). (KAF-72).
+- Support for the [Confluent Kafka Connect 2.1.0 and 2.2.0 API](https://docs.confluent.io/current/api-javadoc.html).
+ (KAF-81, KAF-109).
+- Kafka topic names may now include one or more period (.) characters. Example:
+ `org.datastax.init.event.history` (KAF-104)
+- In cases where a Kafka producer writes a record's entire value as
+ `null`, DataStax Apache Kafka Connector now allows the DSE 
+ record to be deleted, provided: 
+- `topic.<topic>.<keyspace>.<table>.deletesEnabled": "true"`
+ is set in the configuration
+- The record's primary key and clustering key columns are present for the event
+ Given those conditions, the DSE rows can be deleted for the primary key in
+ this example:
+ 
+```json
+{"key":{"symbol":"DEC", "industry": "tech"}, "value": null}
+```
+
+> **Note:** Note: The
+ connector continues to support the scenario where the DSE 
+ `DELETE` can be performed when all field values (other than the
+ primary key and clustering keys) are `null`.
+ (KAF-113)
+- To allow for the recording of latency records, DataStax Apache Kafka Connector
+ dynamically sets the default value of
+ `advanced.metrics.session.cql-requests.highest-latency` so that it
+ exceeds the configured `request-timeout` value. (KAF-115)
+- DataStax Apache Kafka Connector has been upgraded to use the externally released
+ version of the DSE Java Driver 2.x. (KAF-112)
+ 
+1.1.0 Resolved issues
+ 
+- `java.lang.ArrayIndexOutOfBoundsException` while inserting (KAF-114)
+ 
+## DataStax Apache Kafka Connector 1.0 release notes
+ 
+5 December 2018
+ 
+The latest version of DataStax Apache Kafka Connector is 1.7.0.
+ DataStax Apache Kafka Connector 1.0 includes these features and enhancements:
+- JSON, Avro, Struct, Primitive Types mapping support. (KAF-1, KAF-3, KAF-7)
+- DSE data types support. (KAF-4)
+- Configurable row TTL. (KAF-6)
+- Configurable consistency level. (KAF-9)
+- Treat nulls as unset. (KAF-11)
+- Support multiple topics for single [connector](../config/connector.md)
+ instance. (KAF-14)
+- Report [metrics](../monitoring/README.md) via JMX. (KAF-15)
+- Configurable max request rate with [maxConcurrentRequests](../config/connection.md#kafkaDseConnection__maxConcurrentRequests).
+ (KAF-16)
+- Support for connections to DataStax Enterprise (DSE) 5.0 and later databases.
+- Connector to DSE [SSL](../config/ssl.md). (KAF-18)
+- Connector to DSE username/password [authentication](../config/authentication.md).
+ (KAF-19)
+- Connector to DSE [Kerberos](../config/kerberos.md) authentication.
+ (KAF-20)
+- Configurable deletes. (KAF-21)
+- Configurable [date/time](../config/dates.md) formats. (KAF-26)
+- Mapping single topic to [multiple](../mapping/multiple-tables.md) DSE tables. (KAF-43)
+- Connector to DSE [compression](../config/connection.md#kafkaDseConnection__compression).
+ (KAF-45)
+- Configurable connector to DSE execution timeout with [queryExecutionTimeout](../config/connection.md#kafkaDseConnection__queryExecutionTimeout).
+ (KAF-49)
+- Configurable max statements per batch with [maxNumberOfRecordsInBatch](../config/connection.md#kafkaDseConnection__maxNumberOfRecordsInBatch). (KAF-60)
+- Configurable connections per DSE host with [connectionPoolLocalSize](../config/connection.md#kafkaDseConnection__connectionPoolLocalSize).
+ (KAF-95)

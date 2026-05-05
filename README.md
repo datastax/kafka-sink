@@ -3,13 +3,27 @@
 An Apache Kafka® sink for transferring events/messages from Kafka topics to Apache Cassandra®,
 DataStax Astra or DataStax Enterprise (DSE).
 
-## Installation
-
-To download and install this connector please follow the procedure detailed [here](https://docs.datastax.com/en/kafka/doc/kafka/install/kafkaInstall.html).
-
 ## Documentation
 
-All documentation is available online [here](https://docs.datastax.com/en/kafka/doc/index.html).
+Full documentation is available in the [`docs/`](docs/README.md) directory.
+
+### Quick Links
+
+- **[Documentation Home](docs/README.md)** - Start here for complete documentation
+- **[Introduction and Overview](docs/intro/README.md)** - Learn about the connector architecture and features
+- **[Installation Guide](docs/install/README.md)** - Install and configure the connector
+- **[Configuration Reference](docs/config/README.md)** - Complete configuration parameter reference
+- **[Data Mapping](docs/mapping/README.md)** - Map Kafka topics to database tables
+- **[Operations Guide](docs/operations/README.md)** - Operational procedures and best practices
+- **[Security](docs/security/README.md)** - Security configuration (SSL, Kerberos, LDAP)
+- **[Monitoring](docs/monitoring/README.md)** - Metrics and monitoring with JMX
+- **[Troubleshooting](docs/troubleshooting/README.md)** - Common issues and solutions
+- **[Tutorials](docs/tutorials/README.md)** - Step-by-step guides
+- **[Release Notes](docs/release-notes/README.md)** - Version history and changes
+
+## Installation
+
+See the **[Installation Guide](docs/install/README.md)** for detailed installation instructions.
 
 ## Building from the sources
 
@@ -41,11 +55,8 @@ To do so please follow those steps:
 
 ## Mapping specification
 
-To see practical examples and usages of mapping, see:
-https://docs.datastax.com/en/kafka/doc/search.html?searchQuery=mapping 
+See the **[Data Mapping Guide](docs/mapping/README.md)** for complete mapping documentation.
 
-## Java Compatibility
-| Connector Version | Java 8 | Java 11 | Java 17 | Java 21 |
-|-------------------|--------|---------|---------|---------|
-| 1.7.4+            | ✅     | ✅      | ✅      | ✅      |
-| 1.7.3 and earlier | ✅     | ✅      | ❌      | ❌      |
+## Compatibility
+
+For Java, Kafka, and platform compatibility information, see the **[Compatibility Guide](docs/intro/compatibility.md)**.
