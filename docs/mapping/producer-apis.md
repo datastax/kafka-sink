@@ -1,8 +1,3 @@
----
-title: Configuring the worker to convert serialized bytes
-source: kafkaProducerApis.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Producer APIs
 
 ---

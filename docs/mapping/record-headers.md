@@ -1,8 +1,3 @@
----
-title: Extract Kafka record header values
-source: kafkaRecordHeaderToTable.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Record Headers
 
 ---

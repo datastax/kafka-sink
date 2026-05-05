@@ -1,8 +1,3 @@
----
-title: Monitoring DataStax Apache Kafka Connector
-source: monitoring/kafkaMetrics.html
----
-
 📘 [Documentation](../README.md) > Monitoring
 
 ---

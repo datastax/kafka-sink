@@ -1,8 +1,3 @@
----
-title: SSL encrypted connection
-source: configuration_reference/kafkaSsl.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > SSL Configuration
 
 ---

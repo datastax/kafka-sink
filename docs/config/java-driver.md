@@ -1,8 +1,3 @@
----
-title: Pass Kafka Connector settings directly to the DataStax Java driver
-source: kafkaSettingJavaDriverConfig.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Java Driver Settings
 
 ---

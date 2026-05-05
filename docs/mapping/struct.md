@@ -1,8 +1,3 @@
----
-title: Mapping a Kafka Struct
-source: kafkaStruct.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Struct Data
 
 ---

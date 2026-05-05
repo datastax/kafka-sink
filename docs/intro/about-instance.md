@@ -1,8 +1,3 @@
----
-title: How data is written to the target platform
-source: kafkaAboutInstance.html
----
-
 📘 [Documentation](../README.md) > [Introduction](README.md) > How Data is Written
 
 ---

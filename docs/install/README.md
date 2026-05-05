@@ -1,8 +1,3 @@
----
-title: Installing DataStax Apache Kafka Connector 1.7.4
-source: install/kafkaInstall.html
----
-
 📘 [Documentation](../README.md) > Installation
 
 ---

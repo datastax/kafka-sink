@@ -1,8 +1,3 @@
----
-title: Determining topic data structure
-source: kafkaDisplayingTopic.html
----
-
 📘 [Documentation](../README.md) > [Operations](README.md) > Displaying Topics
 
 ---

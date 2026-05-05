@@ -1,8 +1,3 @@
----
-title: Mapping kafka topics to database tables
-source: kafkaMapTopicTable.html
----
-
 📘 [Documentation](../README.md) > Data Mapping
 
 ---

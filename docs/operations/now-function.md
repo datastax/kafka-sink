@@ -1,8 +1,3 @@
----
-title: The now() function in mappings
-source: kafkaNowFunction.html
----
-
 📘 [Documentation](../README.md) > [Operations](README.md) > NOW Function
 
 ---

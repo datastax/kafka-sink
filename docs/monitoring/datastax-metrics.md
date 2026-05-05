@@ -1,8 +1,3 @@
----
-title: DataStax Kafka Connector metrics
-source: monitoring/kafkaDatastaxComMetrics.html
----
-
 📘 [Documentation](../README.md) > [Monitoring](README.md) > DataStax Metrics
 
 ---

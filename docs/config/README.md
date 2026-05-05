@@ -1,8 +1,3 @@
----
-title: DataStax Apache Kafka Connector configuration parameter reference
-source: kafkaConfigToc.html
----
-
 📘 [Documentation](../README.md) > Configuration
 
 ---

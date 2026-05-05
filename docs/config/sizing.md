@@ -1,8 +1,3 @@
----
-title: System requirements
-source: config/kafkaSizing.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > System Requirements
 
 ---

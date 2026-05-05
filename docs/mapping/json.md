@@ -1,8 +1,3 @@
----
-title: Mapping a message that contain JSON fields
-source: kafkaMapJson.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > JSON Data
 
 ---

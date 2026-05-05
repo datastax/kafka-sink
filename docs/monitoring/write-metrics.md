@@ -1,8 +1,3 @@
----
-title: DataStax Apache Kafka Connector - Batch size metrics
-source: monitoring/kafkaWriteMetrics.html
----
-
 📘 [Documentation](../README.md) > [Monitoring](README.md) > Write Metrics
 
 ---

@@ -1,8 +1,3 @@
----
-title: Mapping JSON messages
-source: kafkaJsonMessageSchema.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > JSON Schema
 
 ---

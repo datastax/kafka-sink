@@ -1,8 +1,3 @@
----
-title: DataStax connection
-source: configuration_reference/kafkaDseConnection.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Connection Settings
 
 ---

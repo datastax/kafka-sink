@@ -1,8 +1,3 @@
----
-title: DataStax Apache Kafka Connector release notes
-source: releaseNotes/RelNoteskafka.html
----
-
 📘 [Documentation](../README.md) > Release Notes
 
 ---

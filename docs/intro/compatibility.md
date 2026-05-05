@@ -1,8 +1,3 @@
----
-title: Kafka-DataStax compatibility
-source: kafkaCompatibility.html
----
-
 📘 [Documentation](../README.md) > [Introduction](README.md) > Compatibility
 
 ---

@@ -1,8 +1,3 @@
----
-title: Kerberos authentication
-source: configuration_reference/kafkaKerberos.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Kerberos Authentication
 
 ---

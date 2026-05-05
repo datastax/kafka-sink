@@ -1,7 +1,3 @@
----
-title: Tutorials
----
-
 📘 [Documentation](../README.md) > Tutorials
 
 ---

@@ -1,8 +1,3 @@
----
-title: Worker configuration parameters
-source: kafkaWorkerConfig.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Worker Configuration
 
 ---

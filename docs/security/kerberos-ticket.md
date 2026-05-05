@@ -1,8 +1,3 @@
----
-title: Using a Kerberos ticket cache to authenticate connector running on a stand-alone worker
-source: security/kafkaKerberosTicket.html
----
-
 📘 [Documentation](../README.md) > [Security](README.md) > Kerberos Ticket
 
 ---

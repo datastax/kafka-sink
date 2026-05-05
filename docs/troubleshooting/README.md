@@ -1,8 +1,3 @@
----
-title: Troubleshooting the DataStax Apache Kafka Connector
-source: kafkaTroubleshoot.html
----
-
 📘 [Documentation](../README.md) > Troubleshooting
 
 ---

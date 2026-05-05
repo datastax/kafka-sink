@@ -1,8 +1,3 @@
----
-title: Using an alternate location for the Kerberos files
-source: security/kafkaKerberosConfigFile.html
----
-
 📘 [Documentation](../README.md) > [Security](README.md) > Kerberos Configuration
 
 ---

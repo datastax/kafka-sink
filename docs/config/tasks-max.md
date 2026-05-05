@@ -1,8 +1,3 @@
----
-title: Configuring parallelism
-source: kafkaConfigTasksMax.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Parallelism Configuration
 
 ---

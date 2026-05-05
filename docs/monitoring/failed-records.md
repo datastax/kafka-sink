@@ -1,8 +1,3 @@
----
-title: Failed Kafka topic record metrics
-source: monitoring/kafkaMetricsFailed.html
----
-
 📘 [Documentation](../README.md) > [Monitoring](README.md) > Failed Records
 
 ---

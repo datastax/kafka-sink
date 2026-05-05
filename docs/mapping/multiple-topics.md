@@ -1,8 +1,3 @@
----
-title: Multiple topics to multiple tables
-source: kafkaMultTopicToTables.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Multiple Topics
 
 ---

@@ -1,8 +1,3 @@
----
-title: How Apache Kafka messages are written
-source: kafkaHowMessages.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Message Processing
 
 ---

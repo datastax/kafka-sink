@@ -1,8 +1,3 @@
----
-title: Using internal or LDAP authentication
-source: security/kafkaInternalLdapAuth.html
----
-
 📘 [Documentation](../README.md) > [Security](README.md) > LDAP Authentication
 
 ---

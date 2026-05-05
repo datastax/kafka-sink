@@ -1,8 +1,3 @@
----
-title: Mapping a message that contains both basic and JSON fields
-source: kafkaStringJson.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > String JSON
 
 ---

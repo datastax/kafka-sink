@@ -1,8 +1,3 @@
----
-title: Converting date and times for a topic
-source: configuration_reference/kafkaDates.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Date and Time Conversion
 
 ---

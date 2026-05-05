@@ -1,8 +1,3 @@
----
-title: Using the DataStax Apache Kafka Connector with Kerberos
-source: security/kafkaKerberosAuth.html
----
-
 📘 [Documentation](../README.md) > [Security](README.md) > Kerberos Authentication
 
 ---

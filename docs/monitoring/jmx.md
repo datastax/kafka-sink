@@ -1,8 +1,3 @@
----
-title: Enabling Java Management Extension remote connections
-source: monitoring/kafkaEnableJmx.html
----
-
 📘 [Documentation](../README.md) > [Monitoring](README.md) > JMX Configuration
 
 ---

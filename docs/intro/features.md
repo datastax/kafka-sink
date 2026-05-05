@@ -1,8 +1,3 @@
----
-title: Features
-source: kafkaFeatures.html
----
-
 📘 [Documentation](../README.md) > [Introduction](README.md) > Features
 
 ---

@@ -1,8 +1,3 @@
----
-title: Mapping Avro messages
-source: kafkaMapAvroMessages.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Avro Data
 
 ---

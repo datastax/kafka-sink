@@ -1,7 +1,3 @@
----
-title: Operations
----
-
 📘 [Documentation](../README.md) > Operations
 
 ---

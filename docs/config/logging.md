@@ -1,8 +1,3 @@
----
-title: Configure logging for Kafka Connector
-source: kafkaConfigureLogging.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Logging
 
 ---

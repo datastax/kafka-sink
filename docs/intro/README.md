@@ -1,8 +1,3 @@
----
-title: About the DataStax Apache Kafka Connector
-source: kafkaIntro.html
----
-
 📘 [Documentation](../README.md) > Introduction
 
 ---

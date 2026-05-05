@@ -1,8 +1,3 @@
----
-title: Metrics for the processed Kafka topic records
-source: monitoring/kafkaRecordCountMetrics.html
----
-
 📘 [Documentation](../README.md) > [Monitoring](README.md) > Record Counts
 
 ---

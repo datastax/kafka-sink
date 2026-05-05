@@ -1,8 +1,3 @@
----
-title: Selectively update maps and UDTs based on Kafka fields
-source: kafkaSelectiveUpdateMapsAndUdts.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Selective Updates
 
 ---

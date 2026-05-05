@@ -1,8 +1,3 @@
----
-title: Kafka Connect metrics
-source: monitoring/kafkaConnectMetrics.html
----
-
 📘 [Documentation](../README.md) > [Monitoring](README.md) > Connect Metrics
 
 ---

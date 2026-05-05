@@ -1,8 +1,3 @@
----
-title: Mapping a topic to multiple tables
-source: kafkaMapMultipleTables.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Multiple Tables
 
 ---

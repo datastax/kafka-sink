@@ -1,8 +1,3 @@
----
-title: Kafka topic-to-table settings
-source: configuration_reference/kafkaDseTable.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Topic-to-Table Mapping
 
 ---

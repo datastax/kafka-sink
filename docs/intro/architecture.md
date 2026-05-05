@@ -1,8 +1,3 @@
----
-title: Understanding the architecture
-source: kafkaArchitecture.html
----
-
 📘 [Documentation](../README.md) > [Introduction](README.md) > Architecture
 
 ---

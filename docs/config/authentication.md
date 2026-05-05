@@ -1,8 +1,3 @@
----
-title: Using the DataStax Connector with DataStax Enterprise authentication
-source: configuration_reference/kafkaAuth.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Authentication
 
 ---

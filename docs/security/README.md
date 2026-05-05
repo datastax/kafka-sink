@@ -1,8 +1,3 @@
----
-title: Security
-source: security/kafkaSecurityToc.html
----
-
 📘 [Documentation](../README.md) > Security
 
 ---

@@ -1,8 +1,3 @@
----
-title: Configuring the DataStax Apache Kafka Connector
-source: kafkaConfigTasksTOC.html
----
-
 📘 [Documentation](../README.md) > [Configuration](README.md) > Configuring the Connector
 
 ---

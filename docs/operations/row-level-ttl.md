@@ -1,8 +1,3 @@
----
-title: Setting row-level TTL values from Kafka fields
-source: kafkaSettingRowLevelTtl.html
----
-
 📘 [Documentation](../README.md) > [Operations](README.md) > Row-Level TTL
 
 ---

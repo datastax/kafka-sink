@@ -1,8 +1,3 @@
----
-title: Provide CQL queries in mappings
-source: kafkaCqlQuery.html
----
-
 📘 [Documentation](../README.md) > [Operations](README.md) > CQL Queries
 
 ---

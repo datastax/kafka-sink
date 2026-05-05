@@ -1,8 +1,3 @@
----
-title: Mapping basic messages to table columns
-source: kafkaMapKeyPair.html
----
-
 📘 [Documentation](../README.md) > [Data Mapping](README.md) > Key-Value Pairs
 
 ---
