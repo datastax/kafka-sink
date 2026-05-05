@@ -11,7 +11,8 @@
 Use the Apache Kafka™ Connect Framework Java Management Extensions (JMX)
  metrics to monitor the DataStax Apache Kafka Connector consumption of topics. 
  
-> **Note:** Tip: This section covers a limited subset of the available JMX metrics. See [Apache Kafka Connect monitoring](https://kafka.apache.org/documentation/#connect_monitoring) for a detailed reference.
+> [!TIP]
+> This section covers a limited subset of the available JMX metrics. See [Apache Kafka Connect monitoring](https://kafka.apache.org/documentation/#connect_monitoring) for a detailed reference.
  
 ## Kafka Connect - Consumer metrics
  
@@ -19,7 +20,8 @@ Consumer metrics relevant for monitoring the DataStax Kafka
  Connector.
  Monitor the rate at which messages are pulled by the worker running
  the DataStax Apache Kafka™ Connector.
-> **Note:** Tip: See Apache Kafka [consumer metrics](https://kafka.apache.org/documentation/#new_consumer_monitoring) documentation.
+> [!TIP]
+> See Apache Kafka [consumer metrics](https://kafka.apache.org/documentation/#new_consumer_monitoring) documentation.
  
 ### Fetch manager metrics
  Use the fetch manager MBean to monitor the rate messages are pulled from the
@@ -69,8 +71,8 @@ Number of records accessed across the number of partitions by
  the DataStax Apache Kafka Connector.
  Monitor the number of records pulled by each DataStax Apache Kafka™
  Connector task.
-> **Note:** Tip: [tasks.max](../config/connector.md#kafkaConnector__tasks_max) sets the maximum
- number of tasks the DataStax Connector can run.
+> [!TIP]
+> [tasks.max](../config/connector.md#kafkaConnector__tasks_max) sets the maximum number of tasks the DataStax Connector can run.
  
 ### Sink Task metrics
  Use the Kafka Connect Sink Task metrics to get information on the number of Kafka records

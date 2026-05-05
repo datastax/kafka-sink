@@ -12,7 +12,8 @@ Find answers to common issues and errors.
 
 DataStax Apache Kafka Connector writes error messages to the Kafka Connect Worker log. The default logger is `log4j`, which is configured in the connect-log4j.properties file distributed with Apache Kafka and Confluent. If a file is not designated, the logger writes to `stdout`.
 
-> **Note:** Tip: When the Kafka connect worker first starts, many informational messages are written to the log; most messages are related to system configuration. These messages are harmless and contain startup and configuration information.
+> [!NOTE]
+> When the Kafka Connect worker first starts, many informational messages are written to the log. Most messages are related to system configuration. These messages are harmless and contain startup and configuration information.
 
 ## Contents
 

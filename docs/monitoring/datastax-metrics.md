@@ -14,6 +14,5 @@ Metrics for requests sent by the DataStax Apache Kafka™ Connector instance
  are written to Java Management Extension MBeans under the namespace:
  `com.datastax.kafkaconnector`.
  
-> **Note:** Note: To capture these metrics, the [jmx](../config/connection.md#kafkaDseConnection__jmx)
- parameter must be set to `true` in the DataStax Apache Kafka®
- Connector configuration file.
+> [!NOTE]
+> To capture these metrics, the [jmx](../config/connection.md#kafkaDseConnection__jmx) parameter must be set to `true` in the DataStax Apache Kafka® Connector configuration file.

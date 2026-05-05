@@ -14,9 +14,8 @@ Running total and averages of the Kafka topic records processed by the DataStax 
 Use the Record Count MBeans to monitor the total number of Apache Kafka™
  records processed by the DataStax Connector.
  
-> **Note:** Note: To capture these metrics, the [jmx](../config/connection.md#kafkaDseConnection__jmx)
- parameter must be set to `true` in the DataStax Apache Kafka®
- Connector configuration file.
+> [!NOTE]
+> To capture these metrics, the [jmx](../config/connection.md#kafkaDseConnection__jmx) parameter must be set to `true` in the DataStax Apache Kafka® Connector configuration file.
  
 **Count**
 : Running total of records processed.

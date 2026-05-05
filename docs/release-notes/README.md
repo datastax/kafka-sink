@@ -225,16 +225,12 @@ value.converter.decimal.format={BASE64 | NUMERIC}
 key.converter.decimal.format={BASE64 | NUMERIC}
 ```
 
-> **Note:** Attention: The JSON converter automatically deserializes using either
- format. Be sure to upgrade your consumer applications and sink connectors before
- changing source connector converters to use the `NUMERIC` format,
- should you choose to do so. 
+> [!CAUTION]
+> The JSON converter automatically deserializes using either format. Be sure to upgrade your consumer applications and sink connectors before changing source connector converters to use the `NUMERIC` format, should you choose to do so.
 Refer to [https://cwiki.apache.org/confluence/display/KAFKA/KIP-481%3A+SerDe+Improvements+for+Connect+Decimal+type+in+JSON](https://cwiki.apache.org/confluence/display/KAFKA/KIP-481%3A+SerDe+Improvements+for+Connect+Decimal+type+in+JSON)
 
-> **Note:** Tip: DataStax recommends that you use the
- `datastax-java-driver.basic.contact-point` setting with the DataStax Java
- driver (KAF-155), instead of the combination of two deprecated configuration parameters,
- `contactPoints` and `port`. See [Mapping Kafka Connector settings to Java driver properties](../config/java-driver.md#kafkaSettingJavaDriverConfig__mappingConnectorSettingsToJavaDriverProperties).
+> [!TIP]
+> DataStax recommends that you use the `datastax-java-driver.basic.contact-point` setting with the DataStax Java driver (KAF-155), instead of the combination of two deprecated configuration parameters, `contactPoints` and `port`. See [Mapping Kafka Connector settings to Java driver properties](../config/java-driver.md#kafkaSettingJavaDriverConfig__mappingConnectorSettingsToJavaDriverProperties).
  
 ## DataStax Apache Kafka Connector 1.2.1 release notes
  
@@ -267,9 +263,8 @@ DataStax Apache Kafka™ Connector 1.2.0 release notes
 - You can deploy DataStax Apache Kafka Connector to stream records from an Apache Kafka
  topic to a cloud-based DataStax Astra database
  by using the `cloud.secureConnectBundle`. See Streaming data with the DataStax Apache Kafka Connector. (KAF-143) 
-> **Note:** Note: DataStax Astra
- Open Beta participants can download the secure connect bundle from the DataStax Cloud console after creating an
- Astra database.
+> [!NOTE]
+> DataStax Astra Open Beta participants can download the secure connect bundle from the DataStax Cloud console after creating an Astra database.
 - You can pass all DataStax Apache Kafka Connector settings to the DataStax Java driver
  directly by using the `datastax-java-driver` prefix. See [Pass Kafka Connector settings directly to the DataStax Java driver](../config/java-driver.md) (KAF-79)
 - In the DataStax Apache Kafka Connector topic mapping, you can optionally extract a
@@ -348,11 +343,8 @@ For `failedRecordCount`:
 {"key":{"symbol":"DEC", "industry": "tech"}, "value": null}
 ```
 
-> **Note:** Note: The
- connector continues to support the scenario where the DSE 
- `DELETE` can be performed when all field values (other than the
- primary key and clustering keys) are `null`.
- (KAF-113)
+> [!NOTE]
+> The connector continues to support the scenario where the DSE `DELETE` can be performed when all field values, other than the primary key and clustering keys, are `null`. (KAF-113)
 - To allow for the recording of latency records, DataStax Apache Kafka Connector
  dynamically sets the default value of
  `advanced.metrics.session.cql-requests.highest-latency` so that it

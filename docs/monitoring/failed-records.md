@@ -101,5 +101,5 @@ objectName='com.datastax.kafkaconnector:connector=*,name=failedRecordsWithUnknow
  attribute='FifteenMinuteRate'
 ```
 
-> **Note:** Tip: See `WARN` level message that includes specific
- information for each record in the Kafka Connect worker log.
+> [!TIP]
+> See `WARN` level messages that include specific information for each record in the Kafka Connect worker log.

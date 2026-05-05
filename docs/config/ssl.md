@@ -13,11 +13,11 @@ When the cluster has client encryption enabled
  Connector.
  When the cluster has client encryption enabled, configure the SSL keys and
  certificates for the DataStax Apache Kafka™ Connector.
-> **Note:** Tip: SSL
- encryption settings are configured in the Client-to-node encryption options. See Configuring SSL.
+> [!TIP]
+> SSL encryption settings are configured in the client-to-node encryption options. See Configuring SSL.
  
-> **Note:** Note: You cannot use this option if specifying the [cloud.secureConnectBundle](../config/connector.md#kafkaConnector__secure_ConnectBundle) option for
- connecting to a DataStax Astra database.
+> [!NOTE]
+> You cannot use this option if specifying the [cloud.secureConnectBundle](../config/connector.md#kafkaConnector__secure_ConnectBundle) option for connecting to a DataStax Astra database.
  
 ## Parameters
  
