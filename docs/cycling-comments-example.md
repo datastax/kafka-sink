@@ -12,6 +12,8 @@ The cycling comments example provides a step-by-step implementation for test or 
 
 The example maps JSON records from the `CyclingComments` Kafka topic into the `cycling.comments` table.
 
+![Kafka topic to table mapping](images/kafkaTopicToTable.png)
+
 > [!IMPORTANT]
 > This example is intended for local test or demonstration environments. Adjust paths, logging, security settings, and connection properties before using it in shared or production environments.
 
