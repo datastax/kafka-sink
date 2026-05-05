@@ -65,8 +65,8 @@ Perform the following steps on a Kafka Connect node:
         plugin.path=install_location/kafka-connect-cassandra-sink-1.7.4.jar
         ```
 
-        > [!NOTE]
-        > Confluent 3.3 and later are supported.
+> [!NOTE]
+> Confluent 3.3 and later are supported.
 
 4. Copy the sample configuration file from `kafka-connect-cassandra-sink-1.7.4/conf/` to the Kafka configuration directory, which is typically the `config` or `etc` directory. DataStax provides the following sample files in the `conf` directory of the connector distribution package:
 
@@ -76,8 +76,8 @@ Perform the following steps on a Kafka Connect node:
 
 5. Rename the sample file to `cassandra-sink.properties` or `cassandra-sink.json`.
 
-    > [!NOTE]
-    > If you use DataStax Apache Kafka™ Connector to stream records with a DataStax Astra DB database, refer to the Astra DB documentation for information about specifying the [secure connect bundle](https://docs.datastax.com/en/astra-db-serverless/databases/secure-connect-bundle.html) in the distributed `cassandra-sink.json` file. The secure connect bundle ZIP, downloaded from the Astra DB console, contains the security certificates and credentials for your database.
+> [!NOTE]
+> If you use DataStax Apache Kafka™ Connector to stream records with a DataStax Astra DB database, refer to the Astra DB documentation for information about specifying the [secure connect bundle](https://docs.datastax.com/en/astra-db-serverless/databases/secure-connect-bundle.html) in the distributed `cassandra-sink.json` file. The secure connect bundle ZIP, downloaded from the Astra DB console, contains the security certificates and credentials for your database.
 
 6. Update the settings as necessary. See [Connector details](../config/connector.md) and [Connection settings](../config/connection.md).
 
