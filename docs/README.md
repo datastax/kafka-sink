@@ -2,7 +2,7 @@
 
 ---
 
-**Quick Links:** [Home](#) | [Install](install/README.md) | [Config](config/README.md) | [Operations](operations/README.md) | [Monitoring](monitoring/README.md) | [FAQ](faq.md) | [Troubleshooting](troubleshooting/README.md)
+**Quick Links:** [Home](#) | [Install](install/README.md) | [Config](config/README.md) | [Cycling comments example](cycling-comments-example.md) | [Operations](operations/README.md) | [Monitoring](monitoring/README.md) | [FAQ](faq.md) | [Troubleshooting](troubleshooting/README.md)
 
 ---
 
@@ -13,6 +13,7 @@ This documentation covers the DataStax Apache Kafka Connector, which enables you
 - [Introduction](intro/README.md) - Overview, architecture, and features
 - [Installation](install/README.md) - Installation instructions
 - [Configuration](config/README.md) - Configuration reference
+- [Cycling comments example](cycling-comments-example.md) - Step-by-step example of mapping Kafka topic records to `cycling.comments`
 - [Data Mapping](mapping/README.md) - How to map Kafka topics to database tables
 - [Operations](operations/README.md) - Operational procedures
 - [Security](security/README.md) - Security configuration

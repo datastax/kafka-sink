@@ -121,6 +121,6 @@ See the [Failed Records Monitoring](monitoring/failed-records.md) for informatio
 
 ## Additional Resources
 
+- [Cycling comments example](cycling-comments-example.md) - Step-by-step example of mapping Kafka topic records to `cycling.comments`
 - [Release Notes](release-notes/README.md) - Version history and changes
-- [Tutorials](tutorials/README.md) - Step-by-step guides
 - [Architecture Overview](intro/architecture.md) - Understanding the connector architecture
