@@ -11,6 +11,7 @@ This documentation covers the DataStax Apache Kafka Connector, which enables you
 ## Quick Links
 
 - [Introduction](intro/README.md) - Overview, architecture, and features
+  - [Compatibility](intro/compatibility.md) - Java, Kafka, and platform compatibility
 - [Installation](install/README.md) - Installation instructions
 - [Configuration](config/README.md) - Configuration reference
 - [Data Mapping](mapping/README.md) - How to map Kafka topics to database tables
