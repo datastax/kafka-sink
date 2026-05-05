@@ -57,6 +57,6 @@ To do so please follow those steps:
 
 See the **[Data Mapping Guide](docs/mapping/README.md)** for complete mapping documentation.
 
-## Compatibility
+## FAQ
 
-For Java, Kafka, and platform compatibility information, see the **[Compatibility Guide](docs/intro/compatibility.md)**.
+For frequently asked questions including Java/Kafka compatibility, installation, configuration, and more, see the **[FAQ](docs/faq.md)**.

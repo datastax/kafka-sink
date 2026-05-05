@@ -2,7 +2,7 @@
 
 ---
 
-**Quick Links:** [Home](#) | [Install](install/README.md) | [Config](config/README.md) | [Operations](operations/README.md) | [Monitoring](monitoring/README.md) | [Troubleshooting](troubleshooting/README.md)
+**Quick Links:** [Home](#) | [Install](install/README.md) | [Config](config/README.md) | [Operations](operations/README.md) | [Monitoring](monitoring/README.md) | [FAQ](faq.md) | [Troubleshooting](troubleshooting/README.md)
 
 ---
 
@@ -11,7 +11,6 @@ This documentation covers the DataStax Apache Kafka Connector, which enables you
 ## Quick Links
 
 - [Introduction](intro/README.md) - Overview, architecture, and features
-  - [Compatibility](intro/compatibility.md) - Java, Kafka, and platform compatibility
 - [Installation](install/README.md) - Installation instructions
 - [Configuration](config/README.md) - Configuration reference
 - [Data Mapping](mapping/README.md) - How to map Kafka topics to database tables
@@ -19,6 +18,7 @@ This documentation covers the DataStax Apache Kafka Connector, which enables you
 - [Security](security/README.md) - Security configuration
 - [Monitoring](monitoring/README.md) - Metrics and monitoring
 - [Troubleshooting](troubleshooting/README.md) - Common issues and solutions
+- [FAQ](faq.md) - Frequently asked questions (compatibility, installation, configuration, etc.)
 - [Release Notes](release-notes/README.md) - Version history and changes
 
 ## Getting Started
