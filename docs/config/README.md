@@ -2,7 +2,7 @@
 
 ---
 
-**Quick Links:** [Home](../README.md) | [Install](../install/README.md) | [Config](#) | [Operations](../operations/README.md) | [Monitoring](../monitoring/README.md) | [FAQ](../faq.md) | [Troubleshooting](../troubleshooting/README.md) | [Cycling comments example](../cycling-comments-example.md)
+**Quick Links:** [Home](../README.md) | [Install](../install/README.md) | [Config](#) | [Cycling comments example](../cycling-comments-example.md) | [Operations](../operations/README.md) | [Monitoring](../monitoring/README.md) | [FAQ](../faq.md) | [Troubleshooting](../troubleshooting/README.md)
 
 ---
 
