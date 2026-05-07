@@ -467,10 +467,7 @@ limitations under the License.]]></inlineHeader>
                 <shadedClassifierName>slim</shadedClassifierName>
                 <artifactSet>
                   <excludes>
-                    <exclude>io.confluent:kafka-connect-avro-converter</exclude>
-                    <exclude>io.confluent:kafka-schema-registry-client</exclude>
-                    <exclude>io.confluent:kafka-schema-rules</exclude>
-                    <exclude>io.confluent:kafka-schema-registry-client-encryption*</exclude>
+                    <exclude>io.confluent:*</exclude>
                   </excludes>
                 </artifactSet>
               </configuration>
