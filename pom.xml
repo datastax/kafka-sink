@@ -455,6 +455,27 @@ limitations under the License.]]></inlineHeader>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
           <version>3.2.3</version>
+          <executions>
+            <execution>
+              <id>slim-jar</id>
+              <phase>package</phase>
+              <goals>
+                <goal>shade</goal>
+              </goals>
+              <configuration>
+                <shadedArtifactAttached>true</shadedArtifactAttached>
+                <shadedClassifierName>slim</shadedClassifierName>
+                <artifactSet>
+                  <excludes>
+                    <exclude>io.confluent:kafka-connect-avro-converter</exclude>
+                    <exclude>io.confluent:kafka-schema-registry-client</exclude>
+                    <exclude>io.confluent:kafka-schema-rules</exclude>
+                    <exclude>io.confluent:kafka-schema-registry-client-encryption*</exclude>
+                  </excludes>
+                </artifactSet>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>
