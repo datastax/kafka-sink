@@ -92,6 +92,56 @@
               </transformers>
             </configuration>
           </execution>
+          <execution>
+            <id>slim-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>slim</shadedClassifierName>
+              <outputFile>
+                ${project.build.directory}/kafka-connect-cassandra-sink-${project.version}-slim.jar
+              </outputFile>
+              <artifactSet>
+                <excludes>
+                  <exclude>org.apache.kafka:*</exclude>
+                  <exclude>org.slf4j:*</exclude>
+                  <exclude>ch.qos.logback:*</exclude>
+                  <exclude>io.confluent:*</exclude>
+                </excludes>
+              </artifactSet>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/DEPENDENCIES</exclude>
+                    <exclude>META-INF/NOTICE*</exclude>
+                    <exclude>META-INF/LICENSE*</exclude>
+                    <exclude>META-INF/maven/**</exclude>
+                    <exclude>META-INF/ASL*</exclude>
+                    <exclude>io/confluent/**</exclude>
+                    <exclude>META-INF/services/io.confluent.*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>reference.conf</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/io.netty.versions.properties</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+              </transformers>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
