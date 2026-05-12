@@ -101,6 +101,9 @@
             <configuration>
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <shadedClassifierName>slim</shadedClassifierName>
+              <outputFile>
+                ${project.build.directory}/kafka-connect-cassandra-sink-${project.version}-slim.jar
+              </outputFile>
               <artifactSet>
                 <excludes>
                   <exclude>org.apache.kafka:*</exclude>
