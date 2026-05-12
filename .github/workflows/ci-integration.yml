@@ -83,7 +83,7 @@ jobs:
           psutil
           """ > requirements.txt
       - name: Set up Python
-        uses: MatteoH2O1999/setup-python@v1
+        uses: actions/setup-python@v4
         with:
           python-version: '2.7'
           cache: 'pip'
