@@ -17,6 +17,7 @@ package com.datastax.oss.kafka.sink;
 
 import com.datastax.oss.common.sink.AbstractSchema;
 import com.datastax.oss.common.sink.AbstractStruct;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 /** Wrapper for Kafka Structs. */
@@ -43,5 +44,9 @@ public class KafkaStruct implements AbstractStruct {
   @Override
   public AbstractSchema schema() {
     return KafkaSchema.of(struct.schema());
+  }
+
+  public Schema kafkaSchema() {
+    return struct.schema();
   }
 }
