@@ -46,7 +46,7 @@ public class KafkaStruct implements AbstractStruct {
     return KafkaSchema.of(struct.schema());
   }
 
-  public Schema kafkaSchema() {
+  public Schema nativeSchema() {
     return struct.schema();
   }
 }

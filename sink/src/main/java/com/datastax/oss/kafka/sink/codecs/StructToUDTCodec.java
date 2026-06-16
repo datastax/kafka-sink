@@ -26,10 +26,10 @@ import com.datastax.oss.driver.api.core.type.reflect.GenericType;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodec;
 import com.datastax.oss.dsbulk.codecs.api.ConvertingCodecFactory;
 import com.datastax.oss.kafka.sink.KafkaStruct;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -37,13 +37,16 @@ import org.apache.kafka.connect.data.Struct;
 /** Codec to convert a Kafka {@link Struct} to a UDT. */
 public class StructToUDTCodec extends ConvertingCodec<KafkaStruct, UdtValue> {
 
+  private static final int MAX_PLANS_BY_SCHEMA = 1000;
+
   private final ConvertingCodecFactory codecFactory;
   private final UserDefinedType definition;
   private final int size;
   private final List<CqlIdentifier> udtFieldNames;
   private final List<DataType> udtFieldTypes;
   private final List<String> udtFieldNamesInternal;
-  private final ConcurrentMap<Schema, StructPlan> plansBySchema = new ConcurrentHashMap<>();
+  private final Cache<Schema, StructToUdtPlan> plansBySchema =
+      Caffeine.newBuilder().maximumSize(MAX_PLANS_BY_SCHEMA).build();
 
   StructToUDTCodec(ConvertingCodecFactory codecFactory, UserDefinedType cqlType) {
     super(codecFactory.getCodecRegistry().codecFor(cqlType), KafkaStruct.class);
@@ -63,9 +66,8 @@ public class StructToUDTCodec extends ConvertingCodec<KafkaStruct, UdtValue> {
       return null;
     }
 
-    StructPlan plan =
-        plansBySchema.computeIfAbsent(
-            external.kafkaSchema(), schema -> createPlan(external.schema()));
+    StructToUdtPlan plan =
+        plansBySchema.get(external.nativeSchema(), schema -> createPlan(external.schema()));
     UdtValue value = definition.newValue();
     for (FieldBinding binding : plan.bindings) {
       Object o = binding.codec.externalToInternal(external.get(binding.fieldNameInternal));
@@ -79,7 +81,7 @@ public class StructToUDTCodec extends ConvertingCodec<KafkaStruct, UdtValue> {
     return value.set(fieldName, raw, targetType);
   }
 
-  private StructPlan createPlan(AbstractSchema schema) {
+  private StructToUdtPlan createPlan(AbstractSchema schema) {
     StructDataMetadata structMetadata = new StructDataMetadata(schema);
     Set<String> structFieldNames =
         schema.fields().stream().map(AbstractField::name).collect(Collectors.toSet());
@@ -108,13 +110,13 @@ public class StructToUDTCodec extends ConvertingCodec<KafkaStruct, UdtValue> {
           codecFactory.createConvertingCodec(udtFieldType, fieldType, false);
       bindings[idx] = new FieldBinding(udtFieldName, fieldNameInternal, fieldCodec);
     }
-    return new StructPlan(bindings);
+    return new StructToUdtPlan(bindings);
   }
 
-  private static final class StructPlan {
+  private static final class StructToUdtPlan {
     private final FieldBinding[] bindings;
 
-    private StructPlan(FieldBinding[] bindings) {
+    private StructToUdtPlan(FieldBinding[] bindings) {
       this.bindings = bindings;
     }
   }
