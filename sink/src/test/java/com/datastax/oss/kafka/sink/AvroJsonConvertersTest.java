@@ -89,7 +89,7 @@ public class AvroJsonConvertersTest {
             .parameter(Decimal.SCALE_FIELD, Integer.toString(expected.scale()))
             .build();
 
-    // Root conversion operation
+    // Root conversion operation for testing
     JsonNode output = objectMapper.readTree(converter.fromConnectData(topic, schema, expected));
 
     assertThat(output.get("payload")).isNotNull();
