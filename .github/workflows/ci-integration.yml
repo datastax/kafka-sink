@@ -89,6 +89,9 @@ jobs:
           cache: 'pip'
           allow-build: info
           cache-build: true
+      - name: Debug app id var
+        run:
+          echo "APP_ID is: ${{ vars.RIPTANO_CCM_PRIVATE_APP_ID }}"
       - name: Generate installation token for CCM private
         if: ${{ matrix.cassandra.is_dse }}
         id: generate-token
