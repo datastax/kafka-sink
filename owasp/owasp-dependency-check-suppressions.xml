@@ -21,4 +21,10 @@
 -->
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
   <!-- add supressions for known vulnerabilities detected by OWASP Dependency Check -->
+  <suppress>
+    <!-- https://github.com/netty/netty/issues/13665 Netty CVE-2023-4586 is a false positive-->
+    <notes>Suppress CVE-2023-4586 false positives across all io.netty Maven artifacts</notes>
+    <packageUrl regex="true">^pkg:maven/io\.netty/.*@.*$</packageUrl>
+    <cve>CVE-2023-4586</cve>
+  </suppress>
 </suppressions>
