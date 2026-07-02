@@ -74,7 +74,7 @@
     <azure.version>1.13.3</azure.version>
     <jsonpath.version>2.9.0</jsonpath.version>
     <jsonsmart.version>2.5.2</jsonsmart.version>
-    <dependency-check-maven.version>10.0.1</dependency-check-maven.version>
+    <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
   </properties>
   <dependencyManagement>
     <dependencies>
