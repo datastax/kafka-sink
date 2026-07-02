@@ -891,8 +891,8 @@ limitations under the License.]]></inlineHeader>
             <artifactId>dependency-check-maven</artifactId>
             <configuration>
               <suppressionFiles>
-                <suppressionFile>${project.basedir}/sink/owasp/owasp-dependency-check-false-positives.xml</suppressionFile>
-                <suppressionFile>${project.basedir}/sink/owasp/owasp-dependency-check-suppressions.xml</suppressionFile>
+                <suppressionFile>${maven.multiModuleProjectDirectory}/owasp/owasp-dependency-check-false-positives.xml</suppressionFile>
+                <suppressionFile>${maven.multiModuleProjectDirectory}/owasp/owasp-dependency-check-suppressions.xml</suppressionFile>
               </suppressionFiles>
               <failBuildOnCVSS>7</failBuildOnCVSS>
               <msbuildAnalyzerEnabled>false</msbuildAnalyzerEnabled>
