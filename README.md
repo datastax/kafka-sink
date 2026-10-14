@@ -39,6 +39,17 @@ To do so please follow those steps:
 
        bin/confluent load cassandra-sink -d <full path to file>/cassandra-sink-standalone.properties
 
+## Optional RecordListener
+
+Callbacks are off unless `record.listener.class` is set. A `META-INF/services` provider is not loaded automatically. Set `record.listener.path` when the implementation is not already on the plugin classloader.
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `record.listener.class` | unset | Fully qualified `com.datastax.oss.kafka.sink.spi.RecordListener` |
+| `record.listener.path` | unset | Comma-separated jars and/or directories loaded in a child classloader |
+
+`onSuccess` runs after Cassandra accepts the write. `onFailure` runs after a mapping or CQL failure (`cql` is non-null on the driver path). Errors while loading the listener or running a callback are logged and do not fail `put`.
+
 ## Mapping specification
 
 To see practical examples and usages of mapping, see:
