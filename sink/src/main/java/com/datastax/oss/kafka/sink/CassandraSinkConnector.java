@@ -16,6 +16,7 @@
 package com.datastax.oss.kafka.sink;
 
 import com.datastax.oss.common.sink.config.CassandraSinkConfig;
+import com.datastax.oss.kafka.sink.spi.RecordListener;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -29,6 +30,23 @@ import org.apache.kafka.connect.sink.SinkConnector;
 
 /** Sink connector to insert Kafka records into Apache Cassandra or DSE. */
 public class CassandraSinkConnector extends SinkConnector {
+  private static final ConfigDef CONFIG_DEF =
+      new ConfigDef(CassandraSinkConfig.GLOBAL_CONFIG_DEF)
+          .define(
+              RecordListener.CLASS_CONFIG,
+              ConfigDef.Type.STRING,
+              null,
+              ConfigDef.Importance.LOW,
+              "Fully qualified RecordListener implementation. Leave unset to disable extra "
+                  + "record callbacks. A META-INF/services provider is not loaded automatically.")
+          .define(
+              RecordListener.PATH_CONFIG,
+              ConfigDef.Type.STRING,
+              null,
+              ConfigDef.Importance.LOW,
+              "Comma-separated jars and/or directories added to a child classloader when loading "
+                  + RecordListener.CLASS_CONFIG
+                  + ". Unpack archives before setting this path.");
   private String version;
   private Map<String, String> properties;
 
@@ -91,6 +109,6 @@ public class CassandraSinkConnector extends SinkConnector {
 
   @Override
   public ConfigDef config() {
-    return CassandraSinkConfig.GLOBAL_CONFIG_DEF;
+    return CONFIG_DEF;
   }
 }

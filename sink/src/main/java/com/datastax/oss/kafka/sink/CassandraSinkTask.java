@@ -19,6 +19,7 @@ import com.datastax.oss.common.sink.AbstractSinkRecord;
 import com.datastax.oss.common.sink.AbstractSinkTask;
 import com.datastax.oss.common.sink.config.CassandraSinkConfig.IgnoreErrorsPolicy;
 import com.datastax.oss.common.sink.state.InstanceState;
+import com.datastax.oss.kafka.sink.spi.RecordListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -42,6 +43,7 @@ public class CassandraSinkTask extends SinkTask {
 
   private Map<TopicPartition, OffsetAndMetadata> failureOffsets;
   private final AbstractSinkTask processor = new SinkTaskProcessorImpl();
+  RecordListener recordListener = RecordListener.NoOpRecordListener.INSTANCE;
 
   @Override
   public String version() {
@@ -52,6 +54,7 @@ public class CassandraSinkTask extends SinkTask {
   public void start(Map<String, String> props) {
     log.debug("CassandraSinkTask starting with props: {}", props);
     failureOffsets = new ConcurrentHashMap<>();
+    recordListener = RecordListener.load(props, getClass().getClassLoader());
     processor.start(props);
   }
 
@@ -89,7 +92,11 @@ public class CassandraSinkTask extends SinkTask {
 
   @Override
   public void stop() {
-    processor.stop();
+    try {
+      processor.stop();
+    } finally {
+      RecordListener.invokeClose(recordListener);
+    }
   }
 
   public AbstractSinkTask getProcessor() {
@@ -151,6 +158,13 @@ public class CassandraSinkTask extends SinkTask {
       } else {
         log.warn("Error decoding/mapping Kafka record {}: {}", record, e.getMessage());
       }
+      RecordListener.invokeFailure(recordListener, record, e, cql);
+    }
+
+    @Override
+    protected void handleSuccess(AbstractSinkRecord abstractRecord) {
+      SinkRecord record = ((KafkaSinkRecordAdapter) abstractRecord).getRecord();
+      RecordListener.invokeSuccess(recordListener, record);
     }
 
     @Override
