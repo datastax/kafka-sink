@@ -1,0 +1,31 @@
+📘 [Documentation](../README.md) > [Configuration](README.md) > System Requirements
+
+---
+
+**Quick Links:** [Home](../README.md) | [Install](../install/README.md) | [Config](../config/README.md) | [Operations](../operations/README.md) | [Monitoring](../monitoring/README.md) | [FAQ](../faq.md) | [Troubleshooting](../troubleshooting/README.md)
+
+---
+
+# System requirements
+ 
+Vary depending on the workload and network capacity.
+ 
+The system requirements for DataStax Apache Kafka™ Connector
+ depends on the workload and network capacity. The factors include characteristics of the Kafka
+ topic and the cluster data models and volume. DataStax recommends testing with realistic
+ data flows before committing to an instance type for the connector. 
+ DataStax Apache Kafka Connector is bound by the amount of CPU available on the
+ host. The connector holds all the records pulled from Kafka topics in memory, along with the
+ cluster metadata and prepared statements. Memory pressure is influenced by:
+- Record size of Kafka topics
+- Number of records pulled at the same time; where the maximum is set by the workers
+ `consumer.max.poll.records` parameter.
+- Number of simultaneous tasks run by the connector; See [Configuring parallelism](tasks-max.md).
+ 
+DataStax Apache Kafka Connector needs adequate network capacity for the payload.
+ This includes the connections from Kafka Servers to the target platform. Scale the connector
+ horizontally by adding additional workers in distributed mode to increase overall
+ throughput.
+ 
+> **Note:** Tip: The DataStax Apache Kafka Connector framework automatically rebalances the load
+ when workers are added by reallocating the tasks among the workers.
