@@ -48,6 +48,11 @@
     <dsbulk.version>1.11.1</dsbulk.version>
     <reactive-streams.version>1.0.4</reactive-streams.version>
     <guava.version>25.1-jre</guava.version>
+    <commons-beanutils.version>1.11.0</commons-beanutils.version>
+    <commons-lang3.version>3.21.0</commons-lang3.version>
+    <httpclient.version>4.5.14</httpclient.version>
+    <grpc.version>1.85.1</grpc.version>
+    <threetenbp.version>1.6.9</threetenbp.version>
     <slf4j.version>1.7.36</slf4j.version>
     <logback.version>1.2.13</logback.version>
     <junit.version>5.10.2</junit.version>
@@ -62,7 +67,7 @@
     <max.ccm.clusters>2</max.ccm.clusters>
     <commons-exec.version>1.3</commons-exec.version>
     <awaitility.version>4.0.1</awaitility.version>
-    <netty.version>4.1.119.Final</netty.version>
+    <netty.version>4.1.140.Final</netty.version>
     <netty.tcnative.version>2.0.70.Final</netty.tcnative.version>
     <metrics.version>4.0.2</metrics.version>
     <lz4.version>1.6.0</lz4.version>
@@ -199,6 +204,31 @@
         <groupId>org.apache.cassandra</groupId>
         <artifactId>java-driver-core-shaded</artifactId>
         <version>${oss.driver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-beanutils</groupId>
+        <artifactId>commons-beanutils</artifactId>
+        <version>${commons-beanutils.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>${commons-lang3.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>${httpclient.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-core</artifactId>
+        <version>${grpc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.threeten</groupId>
+        <artifactId>threetenbp</artifactId>
+        <version>${threetenbp.version}</version>
       </dependency>
       <dependency>
         <groupId>org.reactivestreams</groupId>
