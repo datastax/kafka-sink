@@ -41,7 +41,7 @@
     <java.version>1.8</java.version>
     <java.release.version>8</java.release.version>
     <kafka.connect.version>3.9.2</kafka.connect.version>
-    <confluent.version>7.9.2</confluent.version>
+    <confluent.version>7.9.10</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
     <protobuf.version>3.25.6</protobuf.version>
     <oss.driver.version>4.19.4</oss.driver.version>
@@ -76,7 +76,7 @@
     <jackson-databind.version>2.22.4</jackson-databind.version>
     <org-json.version>20250107</org-json.version>
     <amazonaws.version>1.12.782</amazonaws.version>
-    <azure.version>1.13.3</azure.version>
+    <azure.version>1.19.0</azure.version>
     <jsonpath.version>2.9.0</jsonpath.version>
     <jsonsmart.version>2.5.2</jsonsmart.version>
     <dependency-check-maven.version>12.2.2</dependency-check-maven.version>
