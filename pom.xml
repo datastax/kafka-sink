@@ -67,8 +67,8 @@
     <metrics.version>4.0.2</metrics.version>
     <lz4.version>1.6.0</lz4.version>
     <snappy.version>1.1.10.7</snappy.version>
-    <jackson.version>2.12.7</jackson.version>
-    <jackson-databind.version>2.12.7.2</jackson-databind.version>
+    <jackson.version>2.22.4</jackson.version>
+    <jackson-databind.version>2.22.4</jackson-databind.version>
     <org-json.version>20250107</org-json.version>
     <amazonaws.version>1.12.782</amazonaws.version>
     <azure.version>1.13.3</azure.version>
