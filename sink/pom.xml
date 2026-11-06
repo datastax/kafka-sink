@@ -30,6 +30,16 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>messaging-connectors-commons-core</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-shaded-guava</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
@@ -96,7 +106,7 @@
       <artifactId>dsbulk-sampler</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
+      <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-core</artifactId>
       <exclusions>
         <exclusion>
@@ -122,8 +132,8 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-shaded-guava</artifactId>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>java-driver-core-shaded</artifactId>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -223,7 +233,7 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.datastax.oss</groupId>
+      <groupId>org.apache.cassandra</groupId>
       <artifactId>java-driver-test-infra</artifactId>
       <scope>test</scope>
     </dependency>
