@@ -40,8 +40,8 @@
     <messaging.connectors.commons.version>1.0.16</messaging.connectors.commons.version>
     <java.version>1.8</java.version>
     <java.release.version>8</java.release.version>
-    <kafka.connect.version>3.9.0</kafka.connect.version>
-    <confluent.version>7.9.0</confluent.version>
+    <kafka.connect.version>3.9.2</kafka.connect.version>
+    <confluent.version>7.9.2</confluent.version>
     <caffeine.version>2.6.2</caffeine.version>
     <protobuf.version>3.25.6</protobuf.version>
     <oss.driver.version>4.16.0</oss.driver.version>
@@ -67,8 +67,8 @@
     <metrics.version>4.0.2</metrics.version>
     <lz4.version>1.6.0</lz4.version>
     <snappy.version>1.1.10.7</snappy.version>
-    <jackson.version>2.12.7</jackson.version>
-    <jackson-databind.version>2.12.7.2</jackson-databind.version>
+    <jackson.version>2.22.4</jackson.version>
+    <jackson-databind.version>2.22.4</jackson-databind.version>
     <org-json.version>20250107</org-json.version>
     <amazonaws.version>1.12.782</amazonaws.version>
     <azure.version>1.13.3</azure.version>
