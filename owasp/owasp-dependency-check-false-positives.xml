@@ -21,4 +21,10 @@
 -->
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
   <!-- add supressions for false-positives detected by OWASP Dependency Check -->
+  <suppress>
+    <!-- CVE-2020-13946 is for Apache Cassandra server, not the messaging-connectors-commons-core client library -->
+    <notes>False positive: CVE-2020-13946 applies to Apache Cassandra server, not DataStax messaging connectors client library</notes>
+    <filePath regex="true">.*messaging-connectors-commons-core-.*\.jar</filePath>
+    <cve>CVE-2020-13946</cve>
+  </suppress>
 </suppressions>
