@@ -27,4 +27,10 @@
     <packageUrl regex="true">^pkg:maven/io\.netty/.*@.*$</packageUrl>
     <cve>CVE-2023-4586</cve>
   </suppress>
+  <suppress>
+    <!-- CVE-2020-13946 is for Apache Cassandra server, not the messaging-connectors-commons-core client library -->
+    <notes>False positive: CVE-2020-13946 applies to Apache Cassandra server, not DataStax messaging connectors client library</notes>
+    <packageUrl regex="true">^pkg:maven/com\.datastax\.oss/messaging\-connectors\-commons\-core@.*$</packageUrl>
+    <cve>CVE-2020-13946</cve>
+  </suppress>
 </suppressions>

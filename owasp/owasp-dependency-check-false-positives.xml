@@ -23,8 +23,8 @@
   <!-- add supressions for false-positives detected by OWASP Dependency Check -->
   <suppress>
     <!-- CVE-2020-13946 is for Apache Cassandra server, not the messaging-connectors-commons-core client library -->
-    <notes>False positive: CVE-2020-13946 applies to Apache Cassandra server, not DataStax messaging connectors client library</notes>
-    <filePath regex="true">.*messaging-connectors-commons-core-.*\.jar</filePath>
-    <cve>CVE-2020-13946</cve>
+    <notes>False positive: CVE-2020-13946 applies to Apache Cassandra server, not DataStax messaging connectors client library. Suppressing the incorrectly matched CPE.</notes>
+    <packageUrl regex="true">^pkg:maven/com\.datastax\.oss/messaging\-connectors\-commons\-core@.*$</packageUrl>
+    <cpe>cpe:/a:apache:cassandra</cpe>
   </suppress>
 </suppressions>
