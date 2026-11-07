@@ -27,4 +27,16 @@
     <packageUrl regex="true">^pkg:maven/com\.datastax\.oss/messaging\-connectors\-commons\-core@.*$</packageUrl>
     <cpe>cpe:/a:apache:cassandra</cpe>
   </suppress>
+  <suppress>
+    <!-- False detected for non-java versions -->
+    <notes>False detected for non-java versions</notes>
+    <packageUrl regex="true">^pkg:maven/com\.azure/azure\-.*@.*$</packageUrl>
+    <cve>CVE-2026-33117</cve>
+  </suppress>
+  <suppress>
+    <!-- False detected for non-java versions -->
+    <notes>False detected for non-java versions</notes>
+    <packageUrl regex="true">^pkg:maven/com\.azure/azure\-.*@.*$</packageUrl>
+    <cve>CVE-2023-36415</cve>
+  </suppress>
 </suppressions>
