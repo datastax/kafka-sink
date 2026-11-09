@@ -85,7 +85,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          # 3.11: ubuntu-latest (26.04) has no 3.9 build, and ccm-private still imports distutils (removed in 3.12).
+          python-version: '3.11'
           cache: 'pip'
           allow-build: info
           cache-build: true
@@ -108,6 +109,8 @@ jobs:
           echo "Cloning the repo"
           git clone https://x-access-token:${CLONE_RIPTANO_CCM_SECRET}@github.com/riptano/ccm-private.git
           cd ccm-private
+          pip install "cython<3" wheel setuptools
+          pip install --no-build-isolation "pyyaml==5.4.1"
           echo "pip install requirements"
           pip install -r requirements.txt
           echo "setup.py install"
