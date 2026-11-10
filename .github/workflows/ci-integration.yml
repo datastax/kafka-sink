@@ -138,6 +138,24 @@ jobs:
           dse_username = $DSE_USERNAME
           dse_password = $DSE_PASSWORD
           EOF
+      - name: Check DSE download access
+        if: ${{ matrix.cassandra.is_dse }}
+        env:
+          DSE_USERNAME: ${{ secrets.DSE_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.DSE_PASSWORD }}
+        run: |
+          # ccm hides the download error from the test output, so check access up front.
+          url="https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/dse-${{ matrix.cassandra.ccm_version }}-bin.tar.gz"
+          if [ -z "$DSE_USERNAME" ] || [ -z "$DSE_PASSWORD" ]; then
+            echo "::error::DSE_USERNAME or DSE_PASSWORD secret is empty"
+            exit 1
+          fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' -I -u "$DSE_USERNAME:$DSE_PASSWORD" "$url")
+          echo "HTTP $code for $url"
+          if [ "$code" != "200" ]; then
+            echo "::error::Cannot download DSE ${{ matrix.cassandra.ccm_version }} (HTTP $code). 401/403: check the DSE_USERNAME/DSE_PASSWORD secrets. 404: the tarball path changed."
+            exit 1
+          fi
       - name: Cache local Maven repository
         uses: actions/cache@v4
         with:
