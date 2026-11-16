@@ -68,6 +68,16 @@
       <artifactId>kafka-schema-registry-client-encryption-gcp</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.cloud</groupId>
+      <artifactId>google-cloud-kms</artifactId>
+      <version>2.103.0</version>
+    </dependency>
+    <dependency>
+      <groupId>dev.cel</groupId>
+      <artifactId>protobuf</artifactId>
+      <version>0.15.0</version>
+    </dependency>
+    <dependency>
       <groupId>io.confluent</groupId>
       <artifactId>kafka-schema-registry-client-encryption-hcvault</artifactId>
     </dependency>
