@@ -127,10 +127,17 @@ jobs:
           DSE_PASSWORD: ${{ secrets.DSE_PASSWORD }}
         run: |
           mkdir -p ~/.ccm
-            
+
+          # DSE tarballs now sit in a <major.minor>/ folder (e.g. 5.1/dse-5.1.31-bin.tar.gz).
+          # ccm-private does not expand the {major_minor} placeholder, so fill it in here.
+          DSE_VERSION="${{ matrix.cassandra.ccm_version }}"
+          DSE_MAJOR_MINOR="${DSE_VERSION%.*}"
+          DSE_URL_TEMPLATE="https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/${DSE_MAJOR_MINOR}/dse-%s-bin.tar.gz"
+          echo "DSE_URL_TEMPLATE=$DSE_URL_TEMPLATE" >> "$GITHUB_ENV"
+
           cat <<EOF > ~/.ccm/config
           [repositories]
-          dse = https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/dse-%s-bin.tar.gz
+          dse = $DSE_URL_TEMPLATE
           EOF
             
           cat <<EOF > ~/.ccm/.dse.ini
@@ -145,7 +152,7 @@ jobs:
           DSE_PASSWORD: ${{ secrets.DSE_PASSWORD }}
         run: |
           # ccm hides the download error from the test output, so check access up front.
-          url="https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/dse-${{ matrix.cassandra.ccm_version }}-bin.tar.gz"
+          url=$(printf "$DSE_URL_TEMPLATE" "${{ matrix.cassandra.ccm_version }}")
           if [ -z "$DSE_USERNAME" ] || [ -z "$DSE_PASSWORD" ]; then
             echo "::error::DSE_USERNAME or DSE_PASSWORD secret is empty"
             exit 1
